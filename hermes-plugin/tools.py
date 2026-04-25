@@ -6,7 +6,8 @@ Phase 1 实施进度（详见 .planning/phase1/specs/PHASE-PLAN.md）：
 - ✅ P1.2（已完成）：design_tech_plan → 接入 design_tech_plan.run（6 步推理链 + KR4 SLA）
 - ✅ P1.3（已完成）：breakdown_tasks → 接入 breakdown_tasks.run（4 步推理链 + DAG）
 - ✅ P1.4（已完成）：dispatch_to_legion_balanced → 接入 dispatch_balanced.run（5 步推理链 + 双通道）
-- 🚧 P1.5 ~ P1.7：3 个核心能力（kickoff_project / review_code / daily_brief）—— 仍为 stub
+- ✅ P1.5（已完成）：kickoff_project → 接入 kickoff_project.run（8 步串联 + 30s SLA）
+- 🚧 P1.6 ~ P1.7：2 个核心能力（review_code / daily_brief）—— 仍为 stub
 
 stub 透明纪律：未实现的工具必须明确返回 not_implemented，不得伪造成功。
 违反此纪律 = 反幻觉 5 条违规（详见 SOUL.md / __init__.py hook）。
@@ -16,6 +17,7 @@ import json
 from . import breakdown_tasks as _breakdown_tasks
 from . import design_tech_plan as _design_tech_plan
 from . import dispatch_balanced as _dispatch_balanced
+from . import kickoff_project as _kickoff_project
 from . import pm_db_api
 
 
@@ -42,8 +44,13 @@ def _not_implemented(name: str, args: dict, phase: str = "TBD") -> str:
 # ============================================================================
 
 def kickoff_project(args, **kwargs):
-    """能力 0：项目启动自动化（8 步串联）。计划 P1.5 阶段实现。"""
-    return _not_implemented("kickoff_project", args, phase="P1.5")
+    """能力 0：项目启动自动化（8 步串联，30s SLA）。
+
+    P1.5 已上线。8 步推理链委托给 kickoff_project.run（独立模块）：
+      mkdir → git init → PM HTTP → ADR-0001 → 拉军团 → mailbox → 派任务 → 飞书卡片
+    详见 .planning/phase1/specs/PHASE-PLAN.md §6 + REQUIREMENTS.md §1.1。
+    """
+    return _kickoff_project.run(args, **kwargs)
 
 
 def design_tech_plan(args, **kwargs):
