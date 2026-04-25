@@ -4,7 +4,40 @@
 > 旧版 `.planning/STATE.md` 是 Phase 0 时期的，保留作为历史快照。
 
 ## 当前阶段
-**🚧 阶段 3 · 实施 P1.1 进行中**（2026-04-25）
+**🚧 阶段 3 · 实施 P1.3 — 待启动**（2026-04-25）
+
+P1.2 完成（commit 待落地）。reviewer 1 BLOCKING 已修，verifier 9/9 PASS。
+ad8ee5fb 7 + c2e9ad6b 9 = 16 条真 ADR 留存 dev.db（Dogfood/真分析，待 Phase 1 收尾决策）。
+
+5 NON-BLOCKING（reviewer-p1-2）+ 3 MED（verifier-p1-2）= 8 项收尾批次：
+- N-1 permission 静默不 escalate
+- N-2 ADR catch 太宽
+- N-3 LLM 没用 response_format
+- N-4 import 在函数内
+- N-5 多 1 次 DB round-trip
+- M-1 apimart fallback SSE 兼容
+- M-2 HTTP 400 → unknown 而非 intent
+- M-3 ProjectDocument 反查失败静默降级标注
+
+—— 留 P1.7 / 收官前批量打补丁（与 cron 实现一并）
+
+## 历史阶段记录
+
+### P1.2 流水线
+| Teammate | 任务 | Task | 状态 | 产出 |
+|---------|------|------|------|------|
+| impl-design-tech-plan | 6 步推理链 + ADR 自动写入 + 飞书 doc | #16 | ✅ done | 1049 行 + 87 行 prompt + tools.py 接入 |
+| **reviewer-p1-2** | 7 维审查 | #17 | 🟡 in_progress | — |
+| **verifier-p1-2** | 9 场景实测 | #18 | 🟡 in_progress | — |
+
+### P1.2 implementer 自验证关键证据
+- ✅ 9/9 自验证 PASS
+- ✅ KR4 实测 41-68 秒（远低于 300s SLA）
+- ✅ red verdict improvement_path 含 4 段详细改进路径
+- ✅ missing_info → blocking_downstream=true
+- ✅ ADR 写入 7 条（number 1-7 自动递增）
+- ✅ 飞书 doc 回读 2654 字符（feasibility/工期/技术栈/风险/missing_info 全段齐）
+- ✅ gateway restart 无 ERROR，1 hook loaded
 
 ### P1.1 流水线团队进度
 | Teammate | 模块 | Task | 状态 | 产出 |
