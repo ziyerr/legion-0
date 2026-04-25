@@ -75,3 +75,18 @@ def register(ctx):
         return {"context": _ANTI_HALLUCINATION_NUDGE}
 
     ctx.register_hook("pre_llm_call", _pre_llm_aicto_nudge)
+
+    # ------------------------------------------------------------------------
+    # P1.7：daily_brief cron — 18:00 UTC+8 自动推送 + 09:00 补发漏跑
+    # 设 env AICTO_DAILY_BRIEF_DISABLED=1 可关闭（开发环境免打扰）
+    # ------------------------------------------------------------------------
+    try:
+        from . import cron_runner
+
+        cron_runner.register_cron(ctx)
+    except Exception as e:  # noqa: BLE001 — cron 失败不阻塞工具注册
+        import logging
+
+        logging.getLogger(__name__).warning(
+            "AICTO daily_brief cron register failed: %s (tool 仍可手动调用)", e
+        )

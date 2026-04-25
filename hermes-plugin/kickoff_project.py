@@ -335,6 +335,7 @@ def run(args: Dict[str, Any], **kwargs) -> str:
         project_id=project_id,
         project_name=project_name,
         expected_skill=expected_legion_skill,
+        description=description,
         warnings=warnings,
     )
     step_results["7_initial_tasks"] = s7
@@ -573,7 +574,24 @@ def _step3_create_pm_project(
             _do_post, max_retries=3, base_delay=0.5
         )
     except error_classifier.WrappedToolError as e:
-        # 用尽重试或非 tech 级 — 降级（不抛，避免阻塞 8 步）
+        # G-1 修复 P1.5：区分两种降级语义：
+        #   (a) 单次 ConnectionError（PM 离线 — 静默降级 OK）
+        #   (b) retry_with_backoff 用尽后包装为 LEVEL_UNKNOWN（PM 在线但持续报错 = 重伤）
+        # 后者额外升级骏飞，让 R-NFR-22 的"保守升级"不被一刀切吞掉。
+        if e.level == error_classifier.LEVEL_UNKNOWN:
+            try:
+                error_classifier.escalate_to_owner(
+                    error_classifier.LEVEL_UNKNOWN,
+                    e,
+                    {
+                        "phase": "step3_pm_persistent_5xx",
+                        "project_name": project_name,
+                        "endpoint": PRODMIND_CREATE_PROJECT_URL,
+                    },
+                )
+            except Exception:  # noqa: BLE001 — best-effort，不打断降级
+                pass
+        # 用尽重试或非 tech 级 — 仍降级（不抛，避免阻塞 8 步）
         return _step3_degraded(
             project_name=project_name,
             description=description,
@@ -821,6 +839,9 @@ def _step5_provision_legion(
                     "tmux_alive": chosen.tmux_alive,
                     "method": "legion.sh l1+1",
                     "stdout_excerpt": legion_sh_stdout,
+                    # W-3 修复 P1.5：success 分支补齐 online_legion_count，
+                    # 与 fallback 分支字段一致（下游观测/度量统一拿同一字段）
+                    "online_legion_count": len(commanders),
                     "elapsed_seconds": round(time.monotonic() - started, 3),
                     "ts": _now_iso(),
                 },
@@ -951,12 +972,16 @@ def _step7_dispatch_initial(
     project_id: str,
     project_name: str,
     expected_skill: str,
+    description: str = "",
     warnings: List[str],
 ) -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
     """派 1 个 placeholder task 到军团（等 PM PRD 后接 design_tech_plan）。
 
     调用 dispatch_to_legion_balanced（含双通道 inbox + tmux），失败 → warning + deferred。
     Phase 1 占位任务：tech_stack_link=['planning']，可由 dispatch 启发式选军团。
+
+    G-2 修复 P1.5：把用户传入的 description 拼进任务正文，让军团 standby 时知道
+    在等什么。PM 简介是最便宜的语境，丢了可惜。
     """
     started = time.monotonic()
 
@@ -966,6 +991,7 @@ def _step7_dispatch_initial(
             "title": f"等待 PM 提供 {project_name} PRD 后启动 design_tech_plan",
             "description": (
                 f"项目 {project_name} 启动占位任务。"
+                f"PM 给的项目梗概：{description.strip() if description else '（未提供）'}\n"
                 "等 PM 完成 PRD 评审后，CTO 将调用 design_tech_plan 落 ADR + 飞书技术方案文档；"
                 "随后调 breakdown_tasks 拆分实战任务，再 dispatch_to_legion_balanced 派单。"
                 "本任务无需军团动手，只需 acknowledge 并 standby。"

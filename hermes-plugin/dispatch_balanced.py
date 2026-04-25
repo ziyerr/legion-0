@@ -195,8 +195,10 @@ def _step1_load_project_context(
         "prd_content": "",
         "tech_stack": [],
         "adr_ids": [],
-        "feishu_doc_url": None,  # Phase 1 暂不接（design_tech_plan 输出含此 URL，
-                                  # 但 dispatch 拿不到 plan obj — 需等 Phase 2 改 schema）
+        # N-2 修复 P1.4：从 ProjectDocument 表反查 feishuDocUrl（如有）。
+        # design_tech_plan 落 ADR 时若同步生成飞书文档，会写到 ProjectDocument.feishuDocUrl。
+        # 拉不到（表/记录不存在）→ 保持 None（best-effort）。
+        "feishu_doc_url": None,
     }
 
     # 1a. Project name
@@ -247,7 +249,61 @@ def _step1_load_project_context(
     except Exception as e:  # noqa: BLE001
         warnings.append(f"step1.list_adrs exception: {e}")
 
+    # 1d. 反查 ProjectDocument.feishuDocUrl（best-effort；N-2 修复 P1.4）
+    try:
+        ctx["feishu_doc_url"] = _lookup_feishu_doc_url(project_id)
+    except Exception as e:  # noqa: BLE001
+        warnings.append(f"step1.lookup_feishu_doc_url exception: {e}")
+
     return ctx
+
+
+def _lookup_feishu_doc_url(project_id: str) -> Optional[str]:
+    """从 ProjectDocument 表查 feishuDocUrl（最新一条 docType='tech_plan'）。
+
+    PM dev.db 的 ProjectDocument 表结构（2026-04 schema）：
+      id, projectId, docType, title, content, feishuDocUrl, feishuDocToken,
+      wikiPath, version, createdAt, updatedAt
+    优先取 docType='tech_plan' 最新版本；若无则取项目最新一条。
+    """
+    if not project_id:
+        return None
+    import sqlite3 as _sqlite
+
+    try:
+        uri = f"file:{pm_db_api.PRODMIND_DB_PATH}?mode=ro"
+        conn = _sqlite.connect(uri, uri=True)
+        conn.row_factory = _sqlite.Row
+        try:
+            # 先查表是否存在
+            tbl = conn.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name='ProjectDocument'"
+            ).fetchone()
+            if tbl is None:
+                return None
+            # 优先 docType='tech_plan'
+            row = conn.execute(
+                'SELECT "feishuDocUrl" FROM "ProjectDocument" '
+                'WHERE "projectId" = ? AND "docType" = ? AND "feishuDocUrl" IS NOT NULL '
+                'ORDER BY "version" DESC, "updatedAt" DESC LIMIT 1',
+                (project_id, "tech_plan"),
+            ).fetchone()
+            if row and row["feishuDocUrl"]:
+                return row["feishuDocUrl"]
+            # 兜底：项目下任意一条带 URL 的文档
+            row = conn.execute(
+                'SELECT "feishuDocUrl" FROM "ProjectDocument" '
+                'WHERE "projectId" = ? AND "feishuDocUrl" IS NOT NULL '
+                'ORDER BY "updatedAt" DESC LIMIT 1',
+                (project_id,),
+            ).fetchone()
+            if row and row["feishuDocUrl"]:
+                return row["feishuDocUrl"]
+            return None
+        finally:
+            conn.close()
+    except _sqlite.Error:
+        return None
 
 
 def _parse_adr_component(title: str) -> str:
