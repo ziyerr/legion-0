@@ -7,7 +7,8 @@ Phase 1 实施进度（详见 .planning/phase1/specs/PHASE-PLAN.md）：
 - ✅ P1.3（已完成）：breakdown_tasks → 接入 breakdown_tasks.run（4 步推理链 + DAG）
 - ✅ P1.4（已完成）：dispatch_to_legion_balanced → 接入 dispatch_balanced.run（5 步推理链 + 双通道）
 - ✅ P1.5（已完成）：kickoff_project → 接入 kickoff_project.run（8 步串联 + 30s SLA）
-- 🚧 P1.6 ~ P1.7：2 个核心能力（review_code / daily_brief）—— 仍为 stub
+- ✅ P1.6（已完成）：review_code → 接入 review_code.run（5 步 + 10 项 + BLOCKING 硬 gate + appeal）
+- 🚧 P1.7：1 个核心能力（daily_brief）—— 仍为 stub
 
 stub 透明纪律：未实现的工具必须明确返回 not_implemented，不得伪造成功。
 违反此纪律 = 反幻觉 5 条违规（详见 SOUL.md / __init__.py hook）。
@@ -19,6 +20,7 @@ from . import design_tech_plan as _design_tech_plan
 from . import dispatch_balanced as _dispatch_balanced
 from . import kickoff_project as _kickoff_project
 from . import pm_db_api
+from . import review_code as _review_code
 
 
 def _not_implemented(name: str, args: dict, phase: str = "TBD") -> str:
@@ -81,8 +83,14 @@ def dispatch_to_legion_balanced(args, **kwargs):
 
 
 def review_code(args, **kwargs):
-    """能力 4：10 项审查 + BLOCKING 硬 gate + appeal 通道。计划 P1.6 阶段实现。"""
-    return _not_implemented("review_code", args, phase="P1.6")
+    """能力 4：10 项审查 + BLOCKING 硬 gate + appeal 通道。
+
+    P1.6 已上线。5 步推理链委托给 review_code.run（独立模块）：
+      gh pr diff → tech_plan/PRD 上下文 → LLM 10 项 → 评论密度兜底 →
+      写 CodeReview 表 + 飞书 BLOCKING 卡片
+    详见 .planning/phase1/specs/PHASE-PLAN.md §7 + REQUIREMENTS.md §1.5。
+    """
+    return _review_code.run(args, **kwargs)
 
 
 def daily_brief(args, **kwargs):
