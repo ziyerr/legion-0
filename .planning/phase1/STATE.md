@@ -4,7 +4,28 @@
 > 旧版 `.planning/STATE.md` 是 Phase 0 时期的，保留作为历史快照。
 
 ## 当前阶段
-**🚧 阶段 3 · 实施 P1.0 完成 → P1.1 待启动**
+**🚧 阶段 3 · 实施 P1.1 进行中**（2026-04-25）
+
+### P1.1 流水线团队进度
+| Teammate | 模块 | Task | 状态 | 产出 |
+|---------|------|------|------|------|
+| impl-feishu | feishu_api.py | #9 | ✅ done | 2040 行（整文件 copy + 3 处常量改）|
+| impl-pmdb | pm_db_api.py + tools.py 接入 | #10 | ✅ done | 627 行 + 接入 10 工具 + 审计日志 |
+| impl-adr | adr_storage.py | #11 | ✅ done | 933 行 + 11 项自验证 + 5 张 CTO 表 |
+| impl-legion | legion_api.py | #12 | ✅ done | 547 行 + L1-麒麟军团双通道实测 |
+| impl-errcls | error_classifier.py | #13 | ✅ done | 507 行 + 47/47 单测 + escalation.log 兜底 |
+| **reviewer-p1-1** | 批次审查 5 模块 | #14 | 🟡 in_progress | — |
+| **verifier-p1-1** | 7 场景实测 | #15 | 🟡 in_progress | — |
+
+### P1.1 关键证据（implementer 自验证）
+- ✅ mode=ro 物理挡写：INSERT/UPDATE/DELETE 三 SQL 全抛 `attempt to write a readonly database`
+- ✅ Plugin 加载：aicto 1.0.0 enabled / 16 工具注册 / 1 hook loaded
+- ✅ Gateway 已 restart：8644 LISTEN / no ERROR
+- ✅ 真实 token：t-g1044peu...（42 字符）
+- ✅ 真实 PRD 读取：用 prdid `4f3e135a-...` 跑通
+- ✅ 5 张 CTO 表创建：sqlite3 dev.db 验证存在
+- ✅ 10 个 commander discover：含 L1-麒麟军团 alive=True
+- ✅ 47 单测：4 级分类 + retry + escalate + give_options 全过
 
 ## 历史阶段记录
 - 阶段 1 · 侦察（2026-04-25）— 三路并行参谋全数交付
