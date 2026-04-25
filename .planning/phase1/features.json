@@ -1,0 +1,299 @@
+{
+  "task": "AICTO Phase 1 全量开发 — 6 能力 + 独立 Hermes profile + 飞书集成 + 军团通信",
+  "created": "2026-04-25",
+  "complexity": "XL",
+  "estimated_days": {"optimistic": 8.1, "likely": 10.3, "pessimistic": 16.5},
+  "phases": ["P1.0", "P1.1", "P1.2", "P1.3", "P1.4", "P1.5", "P1.6", "P1.7", "P1.8"],
+  "features": [
+    {
+      "id": "F001",
+      "phase": "P1.0",
+      "name": "plugin symlink 部署",
+      "status": "pending",
+      "assignee": "",
+      "files": ["~/.hermes/profiles/aicto/plugins/aicto"],
+      "verified": false,
+      "notes": "mkdir + ln -sfn"
+    },
+    {
+      "id": "F002",
+      "phase": "P1.0",
+      "name": "plugin.yaml 改 16 工具命名 + identity.name=程小远",
+      "status": "pending",
+      "assignee": "",
+      "files": ["hermes-plugin/plugin.yaml"],
+      "verified": false,
+      "notes": "ADR-001 / ADR-009"
+    },
+    {
+      "id": "F003",
+      "phase": "P1.0",
+      "name": "SOUL.md 改写为程小远版（53 行 + 5 条纪律 + 16 工具清单）",
+      "status": "pending",
+      "assignee": "",
+      "files": ["~/.hermes/profiles/aicto/SOUL.md"],
+      "verified": false,
+      "notes": "ADR-009"
+    },
+    {
+      "id": "F004",
+      "phase": "P1.0",
+      "name": "config.yaml 删 HERMES_SYSTEM_PROMPT 死代码",
+      "status": "pending",
+      "assignee": "",
+      "files": ["~/.hermes/profiles/aicto/config.yaml"],
+      "verified": false,
+      "notes": "Hermes 不读此 key，删避免误导"
+    },
+    {
+      "id": "F005",
+      "phase": "P1.0",
+      "name": ".env 改 FEISHU_BOT_NAME=程小远",
+      "status": "pending",
+      "assignee": "",
+      "files": ["~/.hermes/profiles/aicto/.env"],
+      "verified": false,
+      "notes": ""
+    },
+    {
+      "id": "F006",
+      "phase": "P1.0",
+      "name": "schemas.py 16 个工具 schema 骨架",
+      "status": "pending",
+      "assignee": "",
+      "files": ["hermes-plugin/schemas.py"],
+      "verified": false,
+      "notes": "ADR-001"
+    },
+    {
+      "id": "F007",
+      "phase": "P1.0",
+      "name": "tools.py 16 个工具 dispatch 骨架（仍 stub）",
+      "status": "pending",
+      "assignee": "",
+      "files": ["hermes-plugin/tools.py"],
+      "verified": false,
+      "notes": "保留 stub 透明返回 not_implemented"
+    },
+    {
+      "id": "F008",
+      "phase": "P1.0",
+      "name": "__init__.py register 16 工具",
+      "status": "pending",
+      "assignee": "",
+      "files": ["hermes-plugin/__init__.py"],
+      "verified": false,
+      "notes": ""
+    },
+    {
+      "id": "F009",
+      "phase": "P1.0",
+      "name": "重启 aicto gateway + 飞书测试",
+      "status": "pending",
+      "assignee": "",
+      "files": [],
+      "verified": false,
+      "notes": "/list_tools 返回 16 项"
+    },
+    {
+      "id": "F010",
+      "phase": "P1.1",
+      "name": "feishu_api.py 整文件 copy + 改 3 处常量",
+      "status": "pending",
+      "assignee": "",
+      "files": ["hermes-plugin/feishu_api.py"],
+      "verified": false,
+      "notes": "ADR-004 — 复用 ProdMind 黄金标本"
+    },
+    {
+      "id": "F011",
+      "phase": "P1.1",
+      "name": "pm_db_api.py：_readonly_connect + 8 PM 只读工具",
+      "status": "pending",
+      "assignee": "",
+      "files": ["hermes-plugin/pm_db_api.py"],
+      "verified": false,
+      "notes": "mode=ro 物理挡写"
+    },
+    {
+      "id": "F012",
+      "phase": "P1.1",
+      "name": "pm_db_api.py：2 个综合工具（get_pm_context_for_tech_plan / diff_pm_prd_versions）",
+      "status": "pending",
+      "assignee": "",
+      "files": ["hermes-plugin/pm_db_api.py"],
+      "verified": false,
+      "notes": ""
+    },
+    {
+      "id": "F013",
+      "phase": "P1.1",
+      "name": "adr_storage.py：5 张 CTO 自有表 CREATE + CRUD",
+      "status": "pending",
+      "assignee": "",
+      "files": ["hermes-plugin/adr_storage.py"],
+      "verified": false,
+      "notes": "ADR-002 PROVISIONAL — 写 prodmind dev.db"
+    },
+    {
+      "id": "F014",
+      "phase": "P1.1",
+      "name": "legion_api.py：discover_online_commanders + send_to_commander",
+      "status": "pending",
+      "assignee": "",
+      "files": ["hermes-plugin/legion_api.py"],
+      "verified": false,
+      "notes": "复用 ProdMind 双通道"
+    },
+    {
+      "id": "F015",
+      "phase": "P1.1",
+      "name": "error_classifier.py：4 级判定 + 重试调度",
+      "status": "pending",
+      "assignee": "",
+      "files": ["hermes-plugin/error_classifier.py"],
+      "verified": false,
+      "notes": "ADR-006 PROVISIONAL — 默认矩阵全 6 能力共享"
+    },
+    {
+      "id": "F016",
+      "phase": "P1.1",
+      "name": "tools.py 接入 8 PM 只读 + 2 综合工具（取代 stub）",
+      "status": "pending",
+      "assignee": "",
+      "files": ["hermes-plugin/tools.py"],
+      "verified": false,
+      "notes": ""
+    },
+    {
+      "id": "F017",
+      "phase": "P1.1",
+      "name": "审计日志 read-audit.log 实现",
+      "status": "pending",
+      "assignee": "",
+      "files": ["hermes-plugin/pm_db_api.py", "~/.hermes/profiles/aicto/logs/"],
+      "verified": false,
+      "notes": ""
+    },
+    {
+      "id": "F018",
+      "phase": "P1.2",
+      "name": "design_tech_plan 实现（6 步推理链）",
+      "status": "pending",
+      "assignee": "",
+      "files": ["hermes-plugin/tools.py", "hermes-plugin/templates/tech-plan.md"],
+      "verified": false,
+      "notes": "KR4 ≤ 5 分钟 SLA"
+    },
+    {
+      "id": "F019",
+      "phase": "P1.3",
+      "name": "breakdown_tasks 实现（DAG + GWT 验收）",
+      "status": "pending",
+      "assignee": "",
+      "files": ["hermes-plugin/tools.py"],
+      "verified": false,
+      "notes": "拓扑排序检环 + size ≤ XL"
+    },
+    {
+      "id": "F020",
+      "phase": "P1.4",
+      "name": "dispatch_to_legion_balanced 实现",
+      "status": "pending",
+      "assignee": "",
+      "files": ["hermes-plugin/tools.py", "hermes-plugin/legion_api.py"],
+      "verified": false,
+      "notes": "ADR-005 — 双通道 + cto_context 字段"
+    },
+    {
+      "id": "F021",
+      "phase": "P1.5",
+      "name": "kickoff_project 实现（8 步串联）",
+      "status": "pending",
+      "assignee": "",
+      "files": ["hermes-plugin/tools.py"],
+      "verified": false,
+      "notes": "ADR-008 PROVISIONAL — HTTP 调 PM 8642"
+    },
+    {
+      "id": "F022",
+      "phase": "P1.6",
+      "name": "review_code 实现（10 项审查 + BLOCKING 文案模板）",
+      "status": "pending",
+      "assignee": "",
+      "files": ["hermes-plugin/tools.py", "hermes-plugin/templates/code-review-report.md"],
+      "verified": false,
+      "notes": "评论密度限制 + KR 埋点"
+    },
+    {
+      "id": "F023",
+      "phase": "P1.6",
+      "name": "Appeal 协议 + 飞书卡片 + 升级骏飞",
+      "status": "pending",
+      "assignee": "",
+      "files": ["hermes-plugin/tools.py", "hermes-plugin/legion_api.py"],
+      "verified": false,
+      "notes": "1 次 appeal 失败默认升级（R-OPEN-3）"
+    },
+    {
+      "id": "F024",
+      "phase": "P1.7",
+      "name": "cron_runner.py：18:00 daily_brief loop + 持久化",
+      "status": "pending",
+      "assignee": "",
+      "files": ["hermes-plugin/cron_runner.py", "hermes-plugin/state/last_brief_run.json"],
+      "verified": false,
+      "notes": "ADR-007 — plugin 自管 asyncio loop"
+    },
+    {
+      "id": "F025",
+      "phase": "P1.7",
+      "name": "BLOCKING 即时推送 + 24h 催促 + 二次升级",
+      "status": "pending",
+      "assignee": "",
+      "files": ["hermes-plugin/tools.py", "hermes-plugin/cron_runner.py"],
+      "verified": false,
+      "notes": ""
+    },
+    {
+      "id": "F026",
+      "phase": "P1.8",
+      "name": "验证 A：合规审计（PRD 验收 6 条 + 19 项细节 + KR 埋点 + 反幻觉 + 生产隔离 + 路径白名单 + 物理只读）",
+      "status": "pending",
+      "assignee": "",
+      "files": [],
+      "verified": false,
+      "notes": "auditor agent 跑"
+    },
+    {
+      "id": "F027",
+      "phase": "P1.8",
+      "name": "验证 B：红队（绕 BLOCKING / 写 PM 表 / 编造工具结果 / missing_info 阻塞 / token 过期）",
+      "status": "pending",
+      "assignee": "",
+      "files": [],
+      "verified": false,
+      "notes": "red-team agent 跑"
+    },
+    {
+      "id": "F028",
+      "phase": "P1.8",
+      "name": "验证 C：集成测试（端到端 + Dogfood 零幻觉 + KR4 SLA + 16 工具 JSON + 崩溃恢复）",
+      "status": "pending",
+      "assignee": "",
+      "files": [],
+      "verified": false,
+      "notes": "integration-test agent 跑"
+    },
+    {
+      "id": "F029",
+      "phase": "P1.8",
+      "name": "RETRO.md 事后回顾",
+      "status": "pending",
+      "assignee": "",
+      "files": [".planning/phase1/RETRO.md"],
+      "verified": false,
+      "notes": "记录估算偏差 + ADR 是否真的 LOCKED + 改进点"
+    }
+  ]
+}

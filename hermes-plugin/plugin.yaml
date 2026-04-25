@@ -1,0 +1,38 @@
+name: aicto
+version: 1.0.0
+description: "AICTO（程小远）— AI 技术总监 Hermes plugin。Phase 1 全量：6 核心能力（kickoff_project / design_tech_plan / breakdown_tasks / dispatch_to_legion_balanced / review_code / daily_brief）+ 8 PM 只读工具 + 2 综合工具 = 16 工具。与 ProdMind（PM 张小飞）、AIHR 同 OPC 团队，端口 8644 独立 profile 部署。"
+
+# Agent Identity — 飞书人格化"程小远"
+identity:
+  name: "程小远"
+  role: "技术总监"
+  short_name: "CTO"
+  signature: "程小远 · AICTO"
+  doc_footer: "本文档由 {name}（AICTO）自动生成并维护。"
+  card_footer: "{signature} · {project_name}"
+  # 主人身份绑定：owner_open_id 首次收到 owner_name 的飞书消息时自动回填
+  owner_name: "张骏飞"
+  owner_open_id: ""
+
+# Phase 1 工具清单（16 个 — 详见 ADR-001）
+# 注：本字段是文档作用，实际注册看 __init__.py register()
+provides_tools:
+  # 6 个核心能力（PM 派发）
+  - kickoff_project
+  - design_tech_plan
+  - breakdown_tasks
+  - dispatch_to_legion_balanced
+  - review_code
+  - daily_brief
+  # 8 个 PM 只读工具（CTO-READ-ACCESS-SPEC §三）
+  - read_pm_project
+  - read_pm_prd
+  - list_pm_prd_decisions
+  - list_pm_open_questions
+  - list_pm_user_stories
+  - list_pm_features
+  - read_pm_research_doc
+  - read_pm_evaluation_doc
+  # 2 个综合工具
+  - get_pm_context_for_tech_plan
+  - diff_pm_prd_versions

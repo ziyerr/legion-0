@@ -1,0 +1,77 @@
+"""AICTO（程小远）— AI 技术总监 Hermes plugin.
+
+云智 OPC 团队的技术决策伙伴，与 ProdMind（PM 张小飞）、AIHR 同 Hermes profile 拓扑。
+PM 定义 WHAT，CTO 决定 HOW。
+
+Phase 1 全量（2026-04-25 实施中）：
+- 6 个核心能力（kickoff_project / design_tech_plan / breakdown_tasks /
+  dispatch_to_legion_balanced / review_code / daily_brief）
+- 8 个 PM 只读工具（read_pm_*）+ 2 个综合工具
+- 端口 8644，独立飞书 app cli_a949...，独立 state.db
+
+实施进度详见 .planning/phase1/specs/PHASE-PLAN.md。
+"""
+
+from . import schemas, tools
+
+
+def register(ctx):
+    """Register all 16 AICTO tools with Hermes."""
+
+    _TOOLS = [
+        # 6 个核心能力（PM 派发）
+        ("kickoff_project",                schemas.KICKOFF_PROJECT,                tools.kickoff_project),
+        ("design_tech_plan",               schemas.DESIGN_TECH_PLAN,               tools.design_tech_plan),
+        ("breakdown_tasks",                schemas.BREAKDOWN_TASKS,                tools.breakdown_tasks),
+        ("dispatch_to_legion_balanced",    schemas.DISPATCH_TO_LEGION_BALANCED,    tools.dispatch_to_legion_balanced),
+        ("review_code",                    schemas.REVIEW_CODE,                    tools.review_code),
+        ("daily_brief",                    schemas.DAILY_BRIEF,                    tools.daily_brief),
+
+        # 8 个 PM 只读工具（CTO-READ-ACCESS-SPEC §三）
+        ("read_pm_project",                schemas.READ_PM_PROJECT,                tools.read_pm_project),
+        ("read_pm_prd",                    schemas.READ_PM_PRD,                    tools.read_pm_prd),
+        ("list_pm_prd_decisions",          schemas.LIST_PM_PRD_DECISIONS,          tools.list_pm_prd_decisions),
+        ("list_pm_open_questions",         schemas.LIST_PM_OPEN_QUESTIONS,         tools.list_pm_open_questions),
+        ("list_pm_user_stories",           schemas.LIST_PM_USER_STORIES,           tools.list_pm_user_stories),
+        ("list_pm_features",               schemas.LIST_PM_FEATURES,               tools.list_pm_features),
+        ("read_pm_research_doc",           schemas.READ_PM_RESEARCH_DOC,           tools.read_pm_research_doc),
+        ("read_pm_evaluation_doc",         schemas.READ_PM_EVALUATION_DOC,         tools.read_pm_evaluation_doc),
+
+        # 2 个综合工具
+        ("get_pm_context_for_tech_plan",   schemas.GET_PM_CONTEXT_FOR_TECH_PLAN,   tools.get_pm_context_for_tech_plan),
+        ("diff_pm_prd_versions",           schemas.DIFF_PM_PRD_VERSIONS,           tools.diff_pm_prd_versions),
+    ]
+
+    for name, schema, handler in _TOOLS:
+        ctx.register_tool(
+            name=name,
+            toolset="aicto",
+            schema=schema,
+            handler=handler,
+            emoji="🏗️",
+        )
+
+    # ------------------------------------------------------------------------
+    # Hook: 反幻觉 + CTO 纪律注入（每轮 LLM 必读）
+    # 5 条纪律已在 SOUL.md 嵌入（PRD §三要求），此处再做强化注入避免被忽略
+    # ------------------------------------------------------------------------
+    _ANTI_HALLUCINATION_NUDGE = (
+        "\n[程小远 · CTO 纪律 · 每轮必读]\n"
+        "1. 不得声称未做的事：不说\"评审完成\"、\"决策已记录\"、\"文档已创建\"，"
+        "除非实际调用工具并收到成功返回。承诺动作改为\"我来调用 X 工具\"。\n"
+        "2. 识别飞书引用回复：用户消息可能是引用回复拼接，前段是你历史发言。"
+        "聚焦最后一段新提问。\n"
+        "3. 承认缺失不编造：找不到记录直接说没记录，不推卸到\"另一个 Agent\"。\n"
+        "4. 技术决策要有根据：建议、评审、风险评估必须基于实际代码/文档/数据。"
+        "没数据时说\"我需要先看 X 才能判断\"。\n"
+        "5. stub 工具透明：当前 Phase 1 实施中，部分工具返回 not_implemented。"
+        "收到此返回必须告诉用户\"该工具未实现\"，不得编造结果。\n"
+        "6. 边界：CTO ⊥ PM 维度正交。我读 PM 的产出（dev.db / 飞书 doc）但不改。"
+        "我写自己的表（ADR / TechRisk / TechDebt / CodeReview / EngineerProfile）。\n"
+    )
+
+    def _pre_llm_aicto_nudge(user_message: str = "", **kwargs):
+        """Inject CTO discipline into every LLM turn."""
+        return {"context": _ANTI_HALLUCINATION_NUDGE}
+
+    ctx.register_hook("pre_llm_call", _pre_llm_aicto_nudge)
