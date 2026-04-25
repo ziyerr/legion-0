@@ -4,14 +4,16 @@ Phase 1 实施进度（详见 .planning/phase1/specs/PHASE-PLAN.md）：
 
 - ✅ P1.1（已完成）：8 PM 只读工具 + 2 综合工具 → 接入 pm_db_api 真实实现
 - ✅ P1.2（已完成）：design_tech_plan → 接入 design_tech_plan.run（6 步推理链 + KR4 SLA）
-- 🚧 P1.3 ~ P1.7：5 个核心能力（kickoff_project / breakdown_tasks
-  / dispatch_to_legion_balanced / review_code / daily_brief）—— 仍为 stub
+- ✅ P1.3（已完成）：breakdown_tasks → 接入 breakdown_tasks.run（4 步推理链 + DAG）
+- 🚧 P1.4 ~ P1.7：4 个核心能力（kickoff_project / dispatch_to_legion_balanced
+  / review_code / daily_brief）—— 仍为 stub
 
 stub 透明纪律：未实现的工具必须明确返回 not_implemented，不得伪造成功。
 违反此纪律 = 反幻觉 5 条违规（详见 SOUL.md / __init__.py hook）。
 """
 import json
 
+from . import breakdown_tasks as _breakdown_tasks
 from . import design_tech_plan as _design_tech_plan
 from . import pm_db_api
 
@@ -53,8 +55,12 @@ def design_tech_plan(args, **kwargs):
 
 
 def breakdown_tasks(args, **kwargs):
-    """能力 2：技术方案 → 任务 DAG + Given/When/Then。计划 P1.3 阶段实现。"""
-    return _not_implemented("breakdown_tasks", args, phase="P1.3")
+    """能力 2：技术方案 → 任务 DAG + Given/When/Then。
+
+    P1.3 已上线。4 步推理链委托给 breakdown_tasks.run（独立模块）。
+    详见 .planning/phase1/specs/PHASE-PLAN.md §4 + REQUIREMENTS.md §1.3。
+    """
+    return _breakdown_tasks.run(args, **kwargs)
 
 
 def dispatch_to_legion_balanced(args, **kwargs):
