@@ -5,8 +5,8 @@ Phase 1 实施进度（详见 .planning/phase1/specs/PHASE-PLAN.md）：
 - ✅ P1.1（已完成）：8 PM 只读工具 + 2 综合工具 → 接入 pm_db_api 真实实现
 - ✅ P1.2（已完成）：design_tech_plan → 接入 design_tech_plan.run（6 步推理链 + KR4 SLA）
 - ✅ P1.3（已完成）：breakdown_tasks → 接入 breakdown_tasks.run（4 步推理链 + DAG）
-- 🚧 P1.4 ~ P1.7：4 个核心能力（kickoff_project / dispatch_to_legion_balanced
-  / review_code / daily_brief）—— 仍为 stub
+- ✅ P1.4（已完成）：dispatch_to_legion_balanced → 接入 dispatch_balanced.run（5 步推理链 + 双通道）
+- 🚧 P1.5 ~ P1.7：3 个核心能力（kickoff_project / review_code / daily_brief）—— 仍为 stub
 
 stub 透明纪律：未实现的工具必须明确返回 not_implemented，不得伪造成功。
 违反此纪律 = 反幻觉 5 条违规（详见 SOUL.md / __init__.py hook）。
@@ -15,6 +15,7 @@ import json
 
 from . import breakdown_tasks as _breakdown_tasks
 from . import design_tech_plan as _design_tech_plan
+from . import dispatch_balanced as _dispatch_balanced
 from . import pm_db_api
 
 
@@ -64,8 +65,12 @@ def breakdown_tasks(args, **kwargs):
 
 
 def dispatch_to_legion_balanced(args, **kwargs):
-    """能力 3：智能调度（负载均衡 + DAG 拓扑延派）。计划 P1.4 阶段实现。"""
-    return _not_implemented("dispatch_to_legion_balanced", args, phase="P1.4")
+    """能力 3：智能调度（负载均衡 + DAG 拓扑延派 + 双通道派单）。
+
+    P1.4 已上线。5 步推理链委托给 dispatch_balanced.run（独立模块）。
+    详见 .planning/phase1/specs/PHASE-PLAN.md §5 + REQUIREMENTS.md §1.4。
+    """
+    return _dispatch_balanced.run(args, **kwargs)
 
 
 def review_code(args, **kwargs):
