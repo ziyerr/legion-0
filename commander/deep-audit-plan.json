@@ -1,0 +1,94 @@
+[
+  {
+    "id": "audit-static-quality",
+    "provider": "codex",
+    "role": "audit",
+    "task": "深度静态质量审计：对 install.sh / scripts/legion.sh(3538行) / scripts/legion / scripts/legion-init.sh(423行) / scripts/legion_core.py(2497行) / scripts/stack-verify.sh(436行) / scripts/hooks/post-tool-use.sh(404行) / tests/test_legion_core.py(1298行) / tests/test_roundtable_skill.py 做静态质量审计。必查：(1) bash -n 全过、shellcheck 主要 shell 全过、python -m py_compile 全过；(2) 项目历史坑必扫——tactic-80f12f（bash local 必须在函数内、case 分支内联用 local 必须包函数）、tactic-1abd3a（资源池 release 必须 null guard）、tactic-cbd061（破坏性清理先备份）、tactic-c57407（文件重组同步引用）；(3) shadowed bindings / unused vars / heredoc 未转义；(4) tests 是否真覆盖 R1-R17（看 .planning/REQUIREMENTS.md），是否用 mock 替代真实集成。输出 /Users/feijun/.claude/legion/bf21e79d/mixed/inbox/audit-static-quality-report-<your-id>.md，含每个发现的文件:行号 + 严重度(CRITICAL/HIGH/MEDIUM/LOW) + 三选一裁决(PASS/YES_WITH_WATCH/FAIL)。完成后用 legion.sh mixed msg L1-legion-0-星辰军团 通知报告路径。完整 spec 见 .planning/AUDIT-PLAN.md Branch A。",
+    "scope": [
+      "install.sh",
+      "scripts/legion.sh",
+      "scripts/legion",
+      "scripts/legion-init.sh",
+      "scripts/legion_core.py",
+      "scripts/stack-verify.sh",
+      "scripts/hooks/post-tool-use.sh",
+      "tests/test_legion_core.py",
+      "tests/test_roundtable_skill.py",
+      ".planning/AUDIT-PLAN.md"
+    ]
+  },
+  {
+    "id": "audit-security-redteam",
+    "provider": "codex",
+    "role": "audit",
+    "task": "红队安全审计：扫描 scripts/legion.sh / scripts/legion_core.py / scripts/legion-init.sh / scripts/hooks/post-tool-use.sh / scripts/stack-verify.sh / install.sh / .claude/commander/ / commander/ / memory/builder-journal.md 的攻击面。必查：(1) 命令注入——commander name / task description / scope / inbox 消息正文里若含 ;|&$()`\\n 是否进入 shell heredoc / send-keys / eval；(2) tmux send-keys 是否对未转义 payload 敏感（特别是 readiness 报告里的 \\n 与转义序列）；(3) 写入 ~/.claude/、/opt/homebrew/bin/legion 是否会覆盖用户既有非 Legion 文件（hooks 合并必须幂等且保留外部 hooks）；(4) post-tool-use hooks 是否能被恶意 tool 输出攻击（path traversal、stdout 注入、伪造 quality gate PASS）；(5) prompt injection 入口——mixed inbox 文本进入 L1 prompt context、events.jsonl 进入 status 输出；(6) tactic-1f3c41（禁止 secret 回显）、tactic-580e80（插件路径同等安全扫描）、tactic-126656（redirect 红队 payload）；(7) commander/initial-recon-*.json 与 .claude/commander/briefings 内容是否含敏感数据。输出 /Users/feijun/.claude/legion/bf21e79d/mixed/inbox/audit-security-redteam-report-<your-id>.md，每条发现给 PoC payload + 影响范围 + 修复建议 + 严重度。完整 spec 见 .planning/AUDIT-PLAN.md Branch B。",
+    "scope": [
+      "scripts/legion.sh",
+      "scripts/legion_core.py",
+      "scripts/legion-init.sh",
+      "scripts/hooks/post-tool-use.sh",
+      "scripts/stack-verify.sh",
+      "install.sh",
+      ".claude/commander/",
+      "commander/",
+      "memory/builder-journal.md",
+      ".planning/AUDIT-PLAN.md"
+    ]
+  },
+  {
+    "id": "audit-integration-contract",
+    "provider": "codex",
+    "role": "audit",
+    "task": "集成契约 + 生命周期审计：检查 scripts/legion.sh ↔ scripts/legion_core.py ↔ scripts/hooks/post-tool-use.sh ↔ scripts/legion-init.sh 的契约一致性，以及 tests/test_legion_core.py 对 R1-R17 的回归覆盖度。必查：(1) CLI 契约——mixed status/inbox/msg/broadcast/readiness/campaign 各子命令的参数 schema、--from/--l2-only/--parent/--expect/--wait/--timeout 的解析与 legion_core.py 实现是否对齐；(2) 事件 schema——host_convened / branch_commander_planned/launched/failed / commander_planned/launched/commanding / message_sent 字段是否齐全且向后兼容；(3) lifecycle=campaign 的 L2 disband 触发——completed && !retain_context → DISBAND:init-complete + tmux kill + commander completed；retain_context 或 failed/blocked 必须保留；(4) readiness handshake parent-scoped 过滤——roster 必须只算直属 L2，不能把历史/其他 L1 树的 L2 误算；(5) tmux 会话生命周期——session not alive 时 host 重生 L2 的路径；(6) 用 .planning/REQUIREMENTS.md 的 R1-R17 列表逐条比对 tests/test_legion_core.py 是否有 regression；指出缺测点；(7) tactic-af6bcc（外部 API 探针）、tactic-c57407（文件重组同步引用）、tactic-831152（DAG 条件捷径需失败传播守卫）。输出 /Users/feijun/.claude/legion/bf21e79d/mixed/inbox/audit-integration-contract-report-<your-id>.md，含 R1-R17 覆盖矩阵 + 每个 finding 的文件:行号 + 严重度 + 裁决。完整 spec 见 .planning/AUDIT-PLAN.md Branch C。",
+    "scope": [
+      "scripts/legion.sh",
+      "scripts/legion_core.py",
+      "scripts/hooks/post-tool-use.sh",
+      "scripts/legion-init.sh",
+      "tests/test_legion_core.py",
+      "README.md",
+      "AGENTS.md",
+      ".planning/STATE.md",
+      ".planning/REQUIREMENTS.md",
+      ".planning/DECISIONS.md",
+      ".planning/AUDIT-PLAN.md"
+    ]
+  },
+  {
+    "id": "audit-reversibility-and-skills",
+    "provider": "codex",
+    "role": "audit",
+    "task": "不可逆操作 + 新增 skills 审计。必查：(1) install.sh / scripts/legion-init.sh / scripts/legion.sh 的 legion 0 / legion h / legion view 写入 ~/.claude/scripts/、~/.claude/agents/、~/.claude/skills/、/opt/homebrew/bin/legion 路径——是否做备份、是否会覆盖用户既有非 Legion 文件、hooks merge 是否幂等且保留外部 hooks、agents/skills 同名是否冲突；(2) install.sh 13 行变更与 legion 软链/wrapper 安装策略；(3) 新增 9 个 skills 的安全合规——逐个验证 .claude/skills/{ai-tob-research,chrome-devtools,claw-roundtable-skill,e2e-test,prompt-optimizer,safe-exec,self-improving-agent,skill-creator,ui-ux-designer}/ 的 SKILL.md 是否符合规范；特别关注 self-improving-agent（声称自动改代码——审计代码执行路径与 sandbox）、safe-exec（反讽地需要自身先安全）、skill-creator（写文件路径与覆盖策略）、chrome-devtools（MCP 权限边界）；(4) .claude/skills/generated/ 自动生成内容的来源与审核；(5) .agents/skills/ 与 skills/ 与 .claude/skills/ 三处技能目录是否一致或有冲突；(6) tactic-cbd061（破坏性清理先备份不可先删后写）。输出 /Users/feijun/.claude/legion/bf21e79d/mixed/inbox/audit-reversibility-skills-report-<your-id>.md，含每个 skill 的 risk 评分 + 写入路径清单 + 备份策略缺失项 + 裁决。完整 spec 见 .planning/AUDIT-PLAN.md Branch D。",
+    "scope": [
+      "install.sh",
+      "scripts/legion.sh",
+      "scripts/legion-init.sh",
+      "scripts/legion",
+      ".claude/skills/ai-tob-research",
+      ".claude/skills/chrome-devtools",
+      ".claude/skills/claw-roundtable-skill",
+      ".claude/skills/e2e-test",
+      ".claude/skills/prompt-optimizer",
+      ".claude/skills/safe-exec",
+      ".claude/skills/self-improving-agent",
+      ".claude/skills/skill-creator",
+      ".claude/skills/ui-ux-designer",
+      ".claude/skills/generated",
+      ".agents/skills",
+      "skills",
+      ".planning/AUDIT-PLAN.md"
+    ]
+  },
+  {
+    "id": "verify-runtime",
+    "provider": "codex",
+    "role": "verify",
+    "task": "运行时实证验证（必须实跑命令，不允许只读代码）。在 /Users/feijun/Documents/legion-0 目录下顺序跑这些命令并记录每条 stdout 末 30 行 + stderr + exit code：(1) bash -n 对每个 modified shell 文件（install.sh, scripts/legion.sh, scripts/legion, scripts/legion-init.sh, scripts/stack-verify.sh, scripts/hooks/post-tool-use.sh）；(2) python -m py_compile scripts/legion_core.py；(3) python -m pytest tests/test_legion_core.py -x --tb=short（记录通过/失败数量、失败用例名）；(4) bash scripts/stack-verify.sh detect 并报告 exit code（必须为 0，参考 R2）；(5) /Users/feijun/.claude/scripts/legion.sh mixed status 跑通；(6) /Users/feijun/.claude/scripts/legion.sh mixed campaign --dry-run 用一个最小 plan（创建临时 /tmp/audit-min-plan.json：[{\"id\":\"probe\",\"provider\":\"codex\",\"role\":\"audit\",\"task\":\"probe\"}]）；(7) bash scripts/legion.sh host --dry-run 退出码（参考 R8/R10）。任一 PASS/FAIL 必须凭 exit code 与 stderr 凭据，不许凭代码阅读结论。输出 /Users/feijun/.claude/legion/bf21e79d/mixed/inbox/verify-runtime-report-<your-id>.md，含 7 项命令的精确证据 + 最终三选一裁决。完整 spec 见 .planning/AUDIT-PLAN.md Branch E。",
+    "depends_on": [
+      "audit-static-quality",
+      "audit-security-redteam",
+      "audit-integration-contract",
+      "audit-reversibility-and-skills"
+    ]
+  }
+]

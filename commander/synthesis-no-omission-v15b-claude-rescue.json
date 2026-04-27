@@ -1,0 +1,25 @@
+[
+  {
+    "id": "synthesis-no-omission-release-gate-v15b",
+    "provider": "claude",
+    "role": "review",
+    "task": "Replacement for synthesis-no-omission-release-gate-v15, which failed because Codex hit a usage limit before producing a result. Do not edit files. Read the completed v15 evidence artifacts: review-core-shell-retro-v15/result.md, verify-release-contract-v15/result.md, verify-runtime-parity-v15b/result.md, plus .planning/communication-upgrade/04-LEGACY-PARITY-MATRIX.md and .planning/STATE.md. Enumerate B1-B10 and rows 1-35. Return strict JSON only. Decide whether release is PASS or WATCH/FAIL. PASS is allowed only if every residual WATCH has fresh runtime evidence or a precise non-blocking rationale; otherwise return WATCH/FAIL and list exact remaining v16 repair tasks with owners/scopes. Historical failed runs should be treated as learning evidence unless the same current mechanism still fails. Final output must be exactly one JSON object with keys status, summary, files_touched, verification, findings, risks.",
+    "scope": [
+      ".planning/STATE.md",
+      ".planning/communication-upgrade/04-LEGACY-PARITY-MATRIX.md",
+      ".planning/communication-upgrade/05-RETROSPECTIVE-CONTRACT.md",
+      ".planning/retrospectives/2026-04-25-communication-upgrade.md",
+      "scripts/legion_core.py",
+      "scripts/legion.sh",
+      "scripts/legion-patrol.sh",
+      "scripts/hooks/pre-tool-use.sh",
+      "scripts/retrospector.sh",
+      "scripts/legion-commander.py"
+    ],
+    "depends_on": [
+      "review-core-shell-retro-v15",
+      "verify-release-contract-v15",
+      "verify-runtime-parity-v15b"
+    ]
+  }
+]

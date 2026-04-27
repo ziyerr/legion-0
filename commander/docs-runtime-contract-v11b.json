@@ -1,0 +1,23 @@
+[
+  {
+    "id": "repair-docs-runtime-contract-v11b",
+    "role": "implement",
+    "provider": "codex",
+    "sandbox": "workspace-write",
+    "complexity": "m",
+    "branch": "docs",
+    "task": "Replacement for blocked repair-docs-runtime-contract-v11. Update only README.md and .planning docs to reflect the restored legacy mechanisms plus mixed Claude+Codex upgrades: no L1 delivery, corps routing, durable inbox/events/result artifacts, readiness order_id/nonce/freshness, status vs reconcile read-only contract, patrol gate, retrospector/after-action learning, daemon evidence, strict worker result schema, scope ownership, repair workflow, dry-run non-mutation, independent review/verify/audit gates, Codex/Claude provider strengths, and the requirement that write-capable Codex delivery tasks use workspace-write. Preserve all useful legacy Claude-only principles; do not weaken or omit anything already documented.",
+    "scope": [
+      "README.md",
+      ".planning/REQUIREMENTS.md",
+      ".planning/DECISIONS.md",
+      ".planning/STATE.md",
+      ".planning/communication-upgrade/04-LEGACY-PARITY-MATRIX.md",
+      ".planning/communication-upgrade/05-RETROSPECTIVE-CONTRACT.md"
+    ],
+    "depends_on": [
+      "repair-core-scope-repair-v10b"
+    ],
+    "retain_context": true
+  }
+]

@@ -1,0 +1,44 @@
+[
+  {
+    "id": "repair-core-sender-auth-v14",
+    "provider": "claude",
+    "role": "implement",
+    "task": "Fix the remaining readiness sender-authentication blocker. _sender_authentication must fail closed when a registered commander has session or run_dir metadata but LEGION_COMMANDER_SESSION or LEGION_COMMANDER_RUN_DIR is absent or mismatched; a spoofed LEGION_COMMANDER_ID alone must not verify. Add focused regressions proving spoofed commander-id READY messages do not satisfy readiness, while real launch contexts with matching session/run_dir still verify. Keep behavior for Legion Core system messages and intentionally unbound external commanders compatible.",
+    "scope": [
+      "scripts/legion_core.py",
+      "tests/test_legion_core.py"
+    ],
+    "depends_on": [
+      "repair-core-security-audit-v13"
+    ]
+  },
+  {
+    "id": "repair-shell-daemon-runtime-v14",
+    "provider": "claude",
+    "role": "implement",
+    "task": "Fix shell/runtime blockers from isolated parity verification. Make top-level legion.sh dry-run/read-only entrypoints skip directory registration before mutating heredoc code: mixed campaign --dry-run, duo --dry-run, dou --dry-run, and existing status/inbox/readiness paths must work with invalid TMPDIR. Prefer the repository scripts/legion-commander.py over stale ~/.claude/scripts/legion-commander.py for this project, and ensure commander daemon startup writes at least one durable daemon_evidence.jsonl record with schema_version, evidence_id, project_hash, cwd, kind, and record_hash so retrospector has live daemon evidence after the daemon starts. Add focused tests or smoke checks without sharing write scope with tests/test_legion_core.py.",
+    "scope": [
+      "scripts/legion.sh",
+      "scripts/legion-commander.py",
+      "tests/test_legion_shell_contract.py"
+    ],
+    "depends_on": [
+      "repair-patrol-gate-readonly-v13",
+      "repair-retrospector-daemon-evidence-v13"
+    ]
+  },
+  {
+    "id": "repair-retrospector-project-boundary-v14",
+    "provider": "claude",
+    "role": "implement",
+    "task": "Fix retrospector project-boundary and contract mismatch. Direct `bash scripts/retrospector.sh quick` must default to cwd and must not silently combine a stale inherited PROJECT_DIR from another project with the current mixed runtime; either ignore stale PROJECT_DIR unless an explicit trust marker is set, or fail with a clear structured blocker. Update the retrospective contract so I7 accurately describes the non-mutating patrol evidence scan or captured patrol-status equivalent. Verify direct quick with PROJECT_DIR pointing at another repo while cwd is legion-0 no longer reads the wrong project truth paths.",
+    "scope": [
+      "scripts/retrospector.sh",
+      ".planning/communication-upgrade/05-RETROSPECTIVE-CONTRACT.md",
+      "tests/test_retrospector_contract.py"
+    ],
+    "depends_on": [
+      "repair-retrospector-daemon-evidence-v13"
+    ]
+  }
+]

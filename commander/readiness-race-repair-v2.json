@@ -1,0 +1,27 @@
+[
+  {
+    "id": "fix-readiness-race-v2",
+    "provider": "codex",
+    "role": "implement",
+    "complexity": "m",
+    "task": "Registry-clean replacement for failed fix-readiness-race. Root cause of prior failure: worker produced useful code/test evidence but final result failed schema because verification was a string instead of an array. Scope only scripts/legion_core.py and tests/test_legion_core.py. Inspect the current readiness-order delivery changes around INIT-READY-REQUEST, _deliver_tmux_message, and _tmux_pane_is_idle. Add or adjust focused tests if the current code lacks coverage for schema-critical behavior or readiness delivery. Run python3 -m py_compile scripts/legion_core.py and python3 -m unittest tests/test_legion_core.py -v. Final output must be strict JSON only with exactly keys status, summary, files_touched, verification, findings, risks. verification must be an array of objects with command/result/details.",
+    "scope": [
+      "scripts/legion_core.py",
+      "tests/test_legion_core.py"
+    ]
+  },
+  {
+    "id": "verify-readiness-fix-v2",
+    "provider": "codex",
+    "role": "verify",
+    "complexity": "m",
+    "task": "Independent read-only verification for fix-readiness-race-v2. Do not edit files. Verify that the current mixed readiness protocol can count fresh order_id/nonce replies, that strict worker result schema accepts verification arrays, and that core tests pass. Run the smallest sufficient commands, including python3 -m py_compile scripts/legion_core.py, python3 -m unittest tests/test_legion_core.py -v, and a live mixed readiness check for L1-legion-0-星辰军团 with expected L2-implement-1777274453 and L2-audit-1777274453. If live readiness remains blocked because L2s have not replied to the newest order, report BLOCKED with exact missing commanders rather than PASS. Final output must be strict JSON only with exactly keys status, summary, files_touched, verification, findings, risks. verification must be an array of objects with command/result/details.",
+    "scope": [
+      "scripts/legion_core.py",
+      "tests/test_legion_core.py"
+    ],
+    "depends_on": [
+      "fix-readiness-race-v2"
+    ]
+  }
+]

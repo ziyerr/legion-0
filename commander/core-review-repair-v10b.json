@@ -1,0 +1,18 @@
+[
+  {
+    "id": "repair-core-scope-repair-v10b",
+    "role": "implement",
+    "provider": "codex",
+    "complexity": "l",
+    "branch": "implement",
+    "task": "Self-contained task: do not consult /Users/feijun/.codex/memories or emit memory citations; final output JSON only. Scope only scripts/legion_core.py and tests/test_legion_core.py. Build on completed repair-core-completion-readiness-v10a. Fix the remaining core review findings: (1) delivery tasks must declare non-empty file scope; normalize scope paths as project-relative paths, reject traversal/absolute/out-of-project paths, and detect overlaps between files/directories instead of exact-string only. (2) campaign scope ownership must be transactionally checked under the registry lock across active-scope read, conflict detection, branch commander reuse/creation, and task insertion; preserve no-delivery and existing lifecycle behavior. (3) branch commander reuse must respect provider compatibility instead of reusing a same-branch commander with the wrong provider. (4) repair_dependents must validate replacement_task_id exists, is not failed/blocked, and does not mutate on invalid replacement; it must unblock transitive dependents whose dependency graph is repaired, not only direct children. (5) dry-run campaign and dry-run commander paths must not mutate registry/events/run dirs; add regressions because current dry-run emitted task_planned in the real events log. Add focused tests for each item and keep full tests passing.",
+    "scope": [
+      "scripts/legion_core.py",
+      "tests/test_legion_core.py"
+    ],
+    "depends_on": [
+      "repair-core-completion-readiness-v10a"
+    ],
+    "retain_context": true
+  }
+]

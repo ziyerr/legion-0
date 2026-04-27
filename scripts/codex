@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+# Legion-aware Codex shim.
+#
+#   codex l1 [name]     -> Legion Codex L1 commander
+#   codex l1+1 [name]   -> fresh Legion Codex L1 commander
+#   codex ...           -> real Codex CLI
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LEGION_SH="${CODEX_LEGION_SH:-$SCRIPT_DIR/legion.sh}"
+
+case "${1:-}" in
+  l1)
+    shift
+    exec "$LEGION_SH" codex l1 "$@"
+    ;;
+  l1+1)
+    shift
+    exec "$LEGION_SH" codex l1+1 "$@"
+    ;;
+esac
+
+find_real_codex() {
+  if [[ -n "${CODEX_REAL_BIN:-}" ]]; then
+    printf '%s\n' "$CODEX_REAL_BIN"
+    return 0
+  fi
+
+  local self
+  self="$(cd -P "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")"
+
+  local old_ifs="$IFS"
+  IFS=':'
+  read -r -a path_entries <<< "${PATH:-}"
+  IFS="$old_ifs"
+
+  local dir candidate candidate_abs
+  for dir in "${path_entries[@]}"; do
+    [[ -n "$dir" ]] || dir="."
+    candidate="$dir/codex"
+    [[ -x "$candidate" ]] || continue
+    candidate_abs="$(cd -P "$(dirname "$candidate")" 2>/dev/null && pwd)/$(basename "$candidate")" || continue
+    [[ "$candidate_abs" != "$self" ]] || continue
+    printf '%s\n' "$candidate"
+    return 0
+  done
+
+  return 1
+}
+
+REAL_CODEX="$(find_real_codex)" || {
+  echo "codex shim: real Codex CLI not found. Set CODEX_REAL_BIN=/path/to/codex." >&2
+  exit 127
+}
+
+exec "$REAL_CODEX" "$@"

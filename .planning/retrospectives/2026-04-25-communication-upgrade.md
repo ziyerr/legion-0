@@ -1,0 +1,1210 @@
+# Retrospective retro-20260425T100736Z-a3953ab9
+
+- campaign: communication-upgrade
+- timestamp: 2026-04-25T10:07:36Z
+- command: `bash /Users/feijun/Documents/legion-0/scripts/retrospector.sh full`
+- cwd: `/Users/feijun/Documents/legion-0`
+- classification: extracted
+- verdict: fail
+- content_hash: `6c1a7653dc4d2da87b2744ab6440fd8c3bfc4bf9d783b0e8f3b1c13027ffaaed`
+
+## Inputs Opened
+
+- I1 Mixed registry snapshot: opened count=154 paths=`/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json`
+- I2 Event log: opened count=1287 paths=`/Users/feijun/.claude/legion/bf21e79d/mixed/events.jsonl`
+- I3 Worker run results: opened count=154 paths=`/Users/feijun/.claude/legion/bf21e79d/mixed/runs/explore-architecture/result.md`, `/Users/feijun/.claude/legion/bf21e79d/mixed/runs/explore-architecture-rerun/result.md`, `/Users/feijun/.claude/legion/bf21e79d/mixed/runs/explore-architecture-schemafix/result.md`, `/Users/feijun/.claude/legion/bf21e79d/mixed/runs/audit-recon-state/result.md`, `/Users/feijun/.claude/legion/bf21e79d/mixed/runs/audit-shell-static/result.md`, `/Users/feijun/.claude/legion/bf21e79d/mixed/runs/audit-python-core/result.md`
+- I4 Failed and blocked task records: opened count=116 paths=`/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json`
+- I5 Inspector / daemon memory: opened count=1 paths=`/Users/feijun/.claude/legion/bf21e79d/inspector_memory.json`, `/Users/feijun/.claude/legion/bf21e79d/daemon_evidence.jsonl`
+- I6 Project truth state: opened count=3 paths=`/Users/feijun/Documents/legion-0/.planning/STATE.md`, `/Users/feijun/Documents/legion-0/.planning/REQUIREMENTS.md`, `/Users/feijun/Documents/legion-0/.planning/DECISIONS.md`
+- I7 Patrol evidence: opened count=1 paths=`/Users/feijun/Documents/legion-0/scripts/legion-patrol.sh`
+- I8 Legacy parity matrix: opened count=11 paths=`/Users/feijun/Documents/legion-0/.planning/communication-upgrade/04-LEGACY-PARITY-MATRIX.md`
+
+## Extracted Learnings
+
+- C0001 [WATCH] incident from mixed_registry: task_failed
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "explore-architecture"}`
+  - content: [failed explore/codex] explore-architecture — Map the repository architecture, the mixed Legion Core control flow, and the main implementation risks for future worker dispatch.
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0002 [WATCH] incident from mixed_registry: task_failed
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "explore-architecture-rerun"}`
+  - content: [failed explore/codex] explore-architecture-rerun — Map the repository architecture, the mixed Legion Core control flow, and the main implementation risks for future worker dispatch.
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0003 [WATCH] incident from mixed_registry: task_blocked
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "audit-recon-state"}`
+  - content: [blocked explore/codex] audit-recon-state — 审计靶场摸底，输出 .planning/audit/00-SCOPE-MAP.md。具体：(1) 用 git show --stat b7dfda5 与 7e63557 列出 mixed legion 两次大变更覆盖文件与改动规模，标出本次审计 hot-files；(2) 解释当前 working tree 异常——`.claude/skills/{claw
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0004 [WATCH] incident from mixed_registry: task_blocked
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "audit-shell-static"}`
+  - content: [blocked audit/codex] audit-shell-static — dependency audit-recon-state is blocked
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0005 [WATCH] incident from mixed_registry: task_blocked
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "audit-python-core"}`
+  - content: [blocked audit/codex] audit-python-core — dependency audit-recon-state is blocked
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0006 [WATCH] incident from mixed_registry: task_blocked
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "audit-redteam"}`
+  - content: [blocked audit/codex] audit-redteam — dependency audit-recon-state is blocked
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0007 [WATCH] incident from mixed_registry: task_blocked
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "audit-process-gates"}`
+  - content: [blocked audit/codex] audit-process-gates — dependency audit-recon-state is blocked
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0008 [WATCH] incident from mixed_registry: task_blocked
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "verify-integration"}`
+  - content: [blocked verify/claude] verify-integration — dependency audit-recon-state is blocked
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0009 [WATCH] incident from mixed_registry: task_blocked
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "audit-static-v2"}`
+  - content: [blocked audit/codex] audit-static-v2 — 深度静态质量审计 v2。Scope：install.sh / scripts/legion.sh(3538行) / scripts/legion(wrapper) / scripts/legion-init.sh / scripts/legion_core.py(2632行) / scripts/legion-commander.py(1630行) / sc
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0010 [WATCH] incident from mixed_registry: task_failed
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "audit-redteam-v2"}`
+  - content: [failed audit/codex] audit-redteam-v2 — worker exited with status 1
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0011 [WATCH] incident from mixed_registry: task_blocked
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "audit-contract-v2"}`
+  - content: [blocked audit/codex] audit-contract-v2 — 集成契约 + 生命周期审计 v2。Scope：scripts/legion.sh / scripts/legion_core.py / scripts/legion-commander.py / scripts/hooks/post-tool-use.sh / scripts/legion-init.sh / scripts/legion-mixed.sh 
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0012 [WATCH] incident from mixed_registry: task_blocked
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "audit-skills-v2"}`
+  - content: [blocked audit/codex] audit-skills-v2 — 不可逆操作 + 技能库一致性审计 v2。必查：(1) **写入路径**——install.sh / scripts/legion-init.sh / scripts/legion.sh 的 legion 0 / legion h / legion view 写入 ~/.claude/scripts/、~/.claude/agents/、~/.claude/s
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0013 [WATCH] incident from mixed_registry: task_blocked
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "audit-process-v2"}`
+  - content: [blocked audit/codex] audit-process-v2 — 流程纪律与质量门审计 v2。验证设计意图 vs 实际行为的差距。必查：(1) **L1/L2 startup 自检是否真强制**——能否跳过/截断（grep 启动 prompt 是否被强制 block 在自检前）；新 L1/L2 启动时如不执行 status/inbox/events 检查会怎样；(2) **readiness handshake 是否可绕过
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0014 [WATCH] incident from mixed_registry: task_blocked
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "verify-runtime-v2"}`
+  - content: [blocked verify/claude] verify-runtime-v2 — dependency audit-redteam-v2 is failed
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0015 [WATCH] incident from mixed_registry: task_blocked
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "audit-synthesis-v2"}`
+  - content: [blocked audit/claude] audit-synthesis-v2 — dependency audit-redteam-v2 is failed
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0016 [WATCH] incident from mixed_registry: task_blocked
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "verify-runtime-v3"}`
+  - content: [blocked verify/claude] verify-runtime-v3 — dependency audit-skills-v2 is blocked
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0017 [WATCH] incident from mixed_registry: task_blocked
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "audit-synthesis-v3"}`
+  - content: [blocked audit/claude] audit-synthesis-v3 — dependency audit-skills-v2 is blocked
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0018 [WATCH] incident from mixed_registry: task_failed
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "comm-spec-shared-contract"}`
+  - content: [failed product/claude] comm-spec-shared-contract — worker exited with status 1
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0019 [WATCH] incident from mixed_registry: task_failed
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "comm-audit-readiness-forgery"}`
+  - content: [failed audit/codex] comm-audit-readiness-forgery — worker exited with status 1
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0020 [WATCH] incident from mixed_registry: task_blocked
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "comm-test-contracts"}`
+  - content: [blocked implement/claude] comm-test-contracts — dependency comm-spec-shared-contract is failed
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0021 [WATCH] incident from mixed_registry: task_blocked
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "comm-impl-core-durable-state"}`
+  - content: [blocked implement/claude] comm-impl-core-durable-state — dependency comm-audit-readiness-forgery is failed
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0022 [WATCH] incident from mixed_registry: task_blocked
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "comm-impl-shell-bridge"}`
+  - content: [blocked implement/claude] comm-impl-shell-bridge — dependency comm-spec-shared-contract is failed
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0023 [WATCH] incident from mixed_registry: task_blocked
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "comm-doc-runtime-contract"}`
+  - content: [blocked product/claude] comm-doc-runtime-contract — dependency comm-impl-core-durable-state is blocked
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0024 [WATCH] incident from mixed_registry: task_blocked
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "comm-review-core-durable-state"}`
+  - content: [blocked review/codex] comm-review-core-durable-state — dependency comm-impl-core-durable-state is blocked
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0025 [WATCH] incident from mixed_registry: task_blocked
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "comm-review-shell-bridge"}`
+  - content: [blocked review/codex] comm-review-shell-bridge — dependency comm-impl-shell-bridge is blocked
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0026 [WATCH] incident from mixed_registry: task_blocked
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "comm-verify-concurrency-runtime"}`
+  - content: [blocked verify/codex] comm-verify-concurrency-runtime — dependency comm-impl-core-durable-state is blocked
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0027 [WATCH] incident from mixed_registry: task_blocked
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "comm-verify-integration-runtime"}`
+  - content: [blocked verify/codex] comm-verify-integration-runtime — dependency comm-impl-core-durable-state is blocked
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0028 [WATCH] incident from mixed_registry: task_blocked
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "comm-audit-final-redteam"}`
+  - content: [blocked audit/codex] comm-audit-final-redteam — dependency comm-impl-core-durable-state is blocked
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0029 [WATCH] incident from mixed_registry: task_blocked
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "comm-synthesis-release-gate"}`
+  - content: [blocked audit/codex] comm-synthesis-release-gate — dependency comm-review-core-durable-state is blocked
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0030 [WATCH] incident from mixed_registry: task_failed
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "comm-impl-core-durable-state-v2"}`
+  - content: [failed implement/claude] comm-impl-core-durable-state-v2 — worker exited with status 1
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0031 [WATCH] incident from mixed_registry: task_failed
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "comm-impl-shell-bridge-v2"}`
+  - content: [failed implement/claude] comm-impl-shell-bridge-v2 — worker exited with status 1
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0032 [WATCH] incident from mixed_registry: task_blocked
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "comm-doc-runtime-contract-v2"}`
+  - content: [blocked product/claude] comm-doc-runtime-contract-v2 — dependency comm-impl-shell-bridge-v2 is failed
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0033 [WATCH] incident from mixed_registry: task_blocked
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "comm-review-core-durable-state-v2"}`
+  - content: [blocked review/codex] comm-review-core-durable-state-v2 — dependency comm-impl-core-durable-state-v2 is failed
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0034 [WATCH] incident from mixed_registry: task_blocked
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "comm-review-shell-bridge-v2"}`
+  - content: [blocked review/codex] comm-review-shell-bridge-v2 — dependency comm-impl-shell-bridge-v2 is failed
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0035 [WATCH] incident from mixed_registry: task_blocked
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "comm-verify-concurrency-runtime-v2"}`
+  - content: [blocked verify/codex] comm-verify-concurrency-runtime-v2 — dependency comm-impl-core-durable-state-v2 is failed
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0036 [WATCH] incident from mixed_registry: task_blocked
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "comm-verify-integration-runtime-v2"}`
+  - content: [blocked verify/codex] comm-verify-integration-runtime-v2 — dependency comm-impl-shell-bridge-v2 is failed
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0037 [WATCH] incident from mixed_registry: task_blocked
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "comm-audit-final-redteam-v2"}`
+  - content: [blocked audit/codex] comm-audit-final-redteam-v2 — dependency comm-review-shell-bridge-v2 is blocked
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0038 [WATCH] incident from mixed_registry: task_blocked
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "comm-synthesis-release-gate-v2"}`
+  - content: [blocked audit/codex] comm-synthesis-release-gate-v2 — dependency comm-review-shell-bridge-v2 is blocked
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0039 [WATCH] incident from mixed_registry: task_blocked
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "legacy-parity-requirements-lock"}`
+  - content: [blocked product/claude] legacy-parity-requirements-lock — worker result says BLOCKED on file-write permissions; registry had incorrectly marked Claude non-structured blocked output as completed
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0040 [WATCH] incident from mixed_registry: task_failed
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "implement-mixed-core-contract"}`
+  - content: [failed implement/claude] implement-mixed-core-contract — aborted by护航: launched from false product-lock completion and stale prompt; will be relaunched after launcher/completion repair
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0041 [WATCH] incident from mixed_registry: task_failed
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "implement-patrol-hooks"}`
+  - content: [failed implement/claude] implement-patrol-hooks — aborted by护航: launched from false product-lock completion and stale prompt; previous task_failed event was lost from registry by unlocked concurrent writes
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0042 [WATCH] incident from mixed_registry: task_failed
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "implement-retrospector-mixed-sources"}`
+  - content: [failed implement/claude] implement-retrospector-mixed-sources — aborted by护航: launched from false product-lock completion and stale prompt; will be relaunched after launcher/completion repair
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0043 [WATCH] incident from mixed_registry: task_failed
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "implement-commander-daemon-learning"}`
+  - content: [failed implement/claude] implement-commander-daemon-learning — aborted by护航: launched from false product-lock completion and stale prompt; will be relaunched after launcher/completion repair
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0044 [WATCH] incident from mixed_registry: task_failed
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "implement-shell-ops-ux"}`
+  - content: [failed implement/claude] implement-shell-ops-ux — aborted by护航: launched from false product-lock completion and stale prompt; will be relaunched after launcher/completion repair
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0045 [WATCH] incident from mixed_registry: task_blocked
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "implement-docs-runtime-contract"}`
+  - content: [blocked product/claude] implement-docs-runtime-contract — blocked by repaired false product-lock dependency and aborted implementation wave
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0046 [WATCH] incident from mixed_registry: task_blocked
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "review-core-policy-and-state"}`
+  - content: [blocked review/codex] review-core-policy-and-state — blocked by aborted implementation wave
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0047 [WATCH] incident from mixed_registry: task_blocked
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "review-patrol-retro-learning"}`
+  - content: [blocked review/codex] review-patrol-retro-learning — blocked by aborted implementation wave
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0048 [WATCH] incident from mixed_registry: task_blocked
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "verify-isolated-runtime-parity"}`
+  - content: [blocked verify/codex] verify-isolated-runtime-parity — blocked by aborted implementation wave
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0049 [WATCH] incident from mixed_registry: task_blocked
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "audit-adversarial-legacy-parity"}`
+  - content: [blocked audit/codex] audit-adversarial-legacy-parity — blocked by aborted implementation wave
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0050 [WATCH] incident from mixed_registry: task_blocked
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "synthesis-no-omission-release-gate"}`
+  - content: [blocked audit/codex] synthesis-no-omission-release-gate — blocked by aborted implementation wave
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0051 [WATCH] incident from mixed_registry: task_failed
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "repair-mixed-core-contract-v2"}`
+  - content: [failed implement/claude] repair-mixed-core-contract-v2 — worker exited with status 1
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0052 [WATCH] incident from mixed_registry: task_failed
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "repair-patrol-hooks-v2"}`
+  - content: [failed implement/claude] repair-patrol-hooks-v2 — worker exited with status 1
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0053 [WATCH] incident from mixed_registry: task_failed
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "repair-retrospector-mixed-sources-v2"}`
+  - content: [failed implement/claude] repair-retrospector-mixed-sources-v2 — worker exited with status 1
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0054 [WATCH] incident from mixed_registry: task_failed
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "repair-commander-daemon-learning-v2"}`
+  - content: [failed implement/claude] repair-commander-daemon-learning-v2 — worker exited with status 1
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0055 [WATCH] incident from mixed_registry: task_failed
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "repair-shell-ops-ux-v2"}`
+  - content: [failed implement/claude] repair-shell-ops-ux-v2 — worker exited with status 1
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0056 [WATCH] incident from mixed_registry: task_blocked
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "repair-docs-runtime-contract-v2"}`
+  - content: [blocked product/claude] repair-docs-runtime-contract-v2 — dependency repair-patrol-hooks-v2 is failed
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0057 [WATCH] incident from mixed_registry: task_blocked
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "review-core-policy-state-v2"}`
+  - content: [blocked review/codex] review-core-policy-state-v2 — dependency repair-mixed-core-contract-v2 is failed
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0058 [WATCH] incident from mixed_registry: task_blocked
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "review-patrol-retro-learning-v2"}`
+  - content: [blocked review/codex] review-patrol-retro-learning-v2 — dependency repair-patrol-hooks-v2 is failed
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0059 [WATCH] incident from mixed_registry: task_blocked
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "verify-isolated-runtime-parity-v2"}`
+  - content: [blocked verify/codex] verify-isolated-runtime-parity-v2 — dependency review-patrol-retro-learning-v2 is blocked
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0060 [WATCH] incident from mixed_registry: task_blocked
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "audit-adversarial-legacy-parity-v2"}`
+  - content: [blocked audit/codex] audit-adversarial-legacy-parity-v2 — dependency verify-isolated-runtime-parity-v2 is blocked
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0061 [WATCH] incident from mixed_registry: task_blocked
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "synthesis-no-omission-release-gate-v2"}`
+  - content: [blocked audit/codex] synthesis-no-omission-release-gate-v2 — dependency audit-adversarial-legacy-parity-v2 is blocked
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0062 [WATCH] incident from mixed_registry: task_blocked
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "repair-docs-runtime-contract-v3"}`
+  - content: [blocked product/claude] repair-docs-runtime-contract-v3 — dependency repair-mixed-core-contract-v2 is failed
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0063 [WATCH] incident from mixed_registry: task_blocked
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "review-patrol-retro-learning-v3"}`
+  - content: [blocked review/codex] review-patrol-retro-learning-v3 — dependency repair-docs-runtime-contract-v3 is blocked
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0064 [WATCH] incident from mixed_registry: task_blocked
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "verify-isolated-runtime-parity-v3"}`
+  - content: [blocked verify/codex] verify-isolated-runtime-parity-v3 — dependency review-core-policy-state-v2 is blocked
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0065 [WATCH] incident from mixed_registry: task_blocked
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "audit-adversarial-legacy-parity-v3"}`
+  - content: [blocked audit/codex] audit-adversarial-legacy-parity-v3 — dependency verify-isolated-runtime-parity-v3 is blocked
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0066 [WATCH] incident from mixed_registry: task_blocked
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "synthesis-no-omission-release-gate-v3"}`
+  - content: [blocked audit/codex] synthesis-no-omission-release-gate-v3 — dependency audit-adversarial-legacy-parity-v3 is blocked
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0067 [WATCH] incident from mixed_registry: task_blocked
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "repair-docs-runtime-contract-v4"}`
+  - content: [blocked product/claude] repair-docs-runtime-contract-v4 — dependency failed or blocked
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0068 [WATCH] incident from mixed_registry: task_blocked
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "review-patrol-retro-learning-v4"}`
+  - content: [blocked review/codex] review-patrol-retro-learning-v4 — dependency repair-docs-runtime-contract-v4 is blocked
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0069 [WATCH] incident from mixed_registry: task_blocked
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "verify-isolated-runtime-parity-v4"}`
+  - content: [blocked verify/codex] verify-isolated-runtime-parity-v4 — dependency failed or blocked
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0070 [WATCH] incident from mixed_registry: task_blocked
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "audit-adversarial-legacy-parity-v4"}`
+  - content: [blocked audit/codex] audit-adversarial-legacy-parity-v4 — dependency failed or blocked
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0071 [WATCH] incident from mixed_registry: task_blocked
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "synthesis-no-omission-release-gate-v4"}`
+  - content: [blocked audit/codex] synthesis-no-omission-release-gate-v4 — dependency failed or blocked
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0072 [WATCH] incident from mixed_registry: task_failed
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "repair-shell-ops-ux-v5"}`
+  - content: [failed implement/claude] repair-shell-ops-ux-v5 — worker exited with status 1
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0073 [WATCH] incident from mixed_registry: task_blocked
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "repair-docs-runtime-contract-v5"}`
+  - content: [blocked product/claude] repair-docs-runtime-contract-v5 — dependency repair-commander-daemon-learning-v2 is failed
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0074 [WATCH] incident from mixed_registry: task_blocked
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "review-patrol-retro-learning-v5"}`
+  - content: [blocked review/codex] review-patrol-retro-learning-v5 — dependency repair-commander-daemon-learning-v2 is failed
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0075 [WATCH] incident from mixed_registry: task_blocked
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "verify-isolated-runtime-parity-v5"}`
+  - content: [blocked verify/codex] verify-isolated-runtime-parity-v5 — dependency review-patrol-retro-learning-v5 is blocked
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0076 [WATCH] incident from mixed_registry: task_blocked
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "audit-adversarial-legacy-parity-v5"}`
+  - content: [blocked audit/codex] audit-adversarial-legacy-parity-v5 — dependency verify-isolated-runtime-parity-v5 is blocked
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0077 [WATCH] incident from mixed_registry: task_blocked
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "synthesis-no-omission-release-gate-v5"}`
+  - content: [blocked audit/codex] synthesis-no-omission-release-gate-v5 — dependency audit-adversarial-legacy-parity-v5 is blocked
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0078 [WATCH] incident from mixed_registry: task_blocked
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "repair-docs-runtime-contract-v6"}`
+  - content: [blocked product/claude] repair-docs-runtime-contract-v6 — dependency repair-shell-ops-ux-v5 is failed
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0079 [WATCH] incident from mixed_registry: task_blocked
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "review-patrol-retro-learning-v6"}`
+  - content: [blocked review/codex] review-patrol-retro-learning-v6 — dependency repair-shell-ops-ux-v5 is failed
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0080 [WATCH] incident from mixed_registry: task_blocked
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "verify-isolated-runtime-parity-v6"}`
+  - content: [blocked verify/codex] verify-isolated-runtime-parity-v6 — dependency review-patrol-retro-learning-v6 is blocked
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0081 [WATCH] incident from mixed_registry: task_blocked
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "audit-adversarial-legacy-parity-v6"}`
+  - content: [blocked audit/codex] audit-adversarial-legacy-parity-v6 — dependency verify-isolated-runtime-parity-v6 is blocked
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0082 [WATCH] incident from mixed_registry: task_blocked
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "synthesis-no-omission-release-gate-v6"}`
+  - content: [blocked audit/codex] synthesis-no-omission-release-gate-v6 — dependency audit-adversarial-legacy-parity-v6 is blocked
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0083 [WATCH] incident from mixed_registry: task_failed
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "repair-docs-runtime-contract-v7"}`
+  - content: [failed product/claude] repair-docs-runtime-contract-v7 — worker exited with status 1
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0084 [WATCH] incident from mixed_registry: task_blocked
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "review-patrol-retro-learning-v7"}`
+  - content: [blocked review/codex] review-patrol-retro-learning-v7 — dependency repair-docs-runtime-contract-v7 is failed
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0085 [WATCH] incident from mixed_registry: task_blocked
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "verify-isolated-runtime-parity-v7"}`
+  - content: [blocked verify/codex] verify-isolated-runtime-parity-v7 — dependency review-patrol-retro-learning-v7 is blocked
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0086 [WATCH] incident from mixed_registry: task_blocked
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "audit-adversarial-legacy-parity-v7"}`
+  - content: [blocked audit/codex] audit-adversarial-legacy-parity-v7 — dependency verify-isolated-runtime-parity-v7 is blocked
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0087 [WATCH] incident from mixed_registry: task_blocked
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "synthesis-no-omission-release-gate-v7"}`
+  - content: [blocked audit/codex] synthesis-no-omission-release-gate-v7 — dependency audit-adversarial-legacy-parity-v7 is blocked
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0088 [WATCH] incident from mixed_registry: task_failed
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "repair-core-review-findings-v8"}`
+  - content: [failed implement/codex] repair-core-review-findings-v8 — worker did not produce a valid structured result
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0089 [WATCH] incident from mixed_registry: task_blocked
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "review-core-policy-state-v8"}`
+  - content: [blocked review/codex] review-core-policy-state-v8 — dependency repair-core-review-findings-v8 is failed
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0090 [WATCH] incident from mixed_registry: task_blocked
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "repair-docs-runtime-contract-v8"}`
+  - content: [blocked product/codex] repair-docs-runtime-contract-v8 — dependency review-core-policy-state-v8 is blocked
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0091 [WATCH] incident from mixed_registry: task_blocked
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "review-patrol-retro-learning-v8"}`
+  - content: [blocked review/codex] review-patrol-retro-learning-v8 — dependency repair-docs-runtime-contract-v8 is blocked
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0092 [WATCH] incident from mixed_registry: task_blocked
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "verify-isolated-runtime-parity-v8"}`
+  - content: [blocked verify/codex] verify-isolated-runtime-parity-v8 — dependency review-core-policy-state-v8 is blocked
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0093 [WATCH] incident from mixed_registry: task_blocked
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "audit-adversarial-legacy-parity-v8"}`
+  - content: [blocked audit/codex] audit-adversarial-legacy-parity-v8 — dependency verify-isolated-runtime-parity-v8 is blocked
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0094 [WATCH] incident from mixed_registry: task_blocked
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "synthesis-no-omission-release-gate-v8"}`
+  - content: [blocked audit/codex] synthesis-no-omission-release-gate-v8 — dependency audit-adversarial-legacy-parity-v8 is blocked
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0095 [WATCH] incident from mixed_registry: task_failed
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "repair-core-review-findings-v9"}`
+  - content: [failed implement/codex] repair-core-review-findings-v9 — worker did not produce a valid structured result
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0096 [WATCH] incident from mixed_registry: task_blocked
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "review-core-policy-state-v9"}`
+  - content: [blocked review/codex] review-core-policy-state-v9 — dependency repair-core-review-findings-v9 is failed
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0097 [WATCH] incident from mixed_registry: task_blocked
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "repair-docs-runtime-contract-v9"}`
+  - content: [blocked product/codex] repair-docs-runtime-contract-v9 — dependency review-core-policy-state-v9 is blocked
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0098 [WATCH] incident from mixed_registry: task_blocked
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "review-patrol-retro-learning-v9"}`
+  - content: [blocked review/codex] review-patrol-retro-learning-v9 — dependency repair-docs-runtime-contract-v9 is blocked
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0099 [WATCH] incident from mixed_registry: task_blocked
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "verify-isolated-runtime-parity-v9"}`
+  - content: [blocked verify/codex] verify-isolated-runtime-parity-v9 — dependency review-core-policy-state-v9 is blocked
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0100 [WATCH] incident from mixed_registry: task_blocked
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "audit-adversarial-legacy-parity-v9"}`
+  - content: [blocked audit/codex] audit-adversarial-legacy-parity-v9 — dependency verify-isolated-runtime-parity-v9 is blocked
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0101 [WATCH] incident from mixed_registry: task_blocked
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "synthesis-no-omission-release-gate-v9"}`
+  - content: [blocked audit/codex] synthesis-no-omission-release-gate-v9 — dependency audit-adversarial-legacy-parity-v9 is blocked
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0102 [WATCH] incident from mixed_registry: task_blocked
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "repair-docs-runtime-contract-v11"}`
+  - content: [blocked product/codex] repair-docs-runtime-contract-v11 — Docs/runtime contract implementation. Update only README.md and .planning docs to reflect the restored legacy mechanisms plus mixed Claude+Codex upgrades: no L1 delivery, corps rou
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0103 [WATCH] incident from mixed_registry: task_blocked
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "verify-isolated-runtime-parity-v11"}`
+  - content: [blocked verify/codex] verify-isolated-runtime-parity-v11 — Independent verification. Run the smallest sufficient local checks for mixed core, shell, patrol, retrospector, daemon compile/smoke, and isolated HOME/state behavior. Include test
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0104 [WATCH] incident from mixed_registry: task_failed
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "audit-adversarial-legacy-parity-v11"}`
+  - content: [failed audit/codex] audit-adversarial-legacy-parity-v11 — Adversarial audit. Attack the mixed architecture for any omission of useful legacy Claude-only mechanisms or any broken chain in delegation, approval, inbox, readiness, patrol, ret
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0105 [WATCH] incident from mixed_registry: task_blocked
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "synthesis-no-omission-release-gate-v11"}`
+  - content: [blocked review/codex] synthesis-no-omission-release-gate-v11 — dependency audit-adversarial-legacy-parity-v11 is failed
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0106 [WATCH] incident from mixed_registry: task_failed
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "verify-isolated-runtime-parity-v12"}`
+  - content: [failed verify/codex] verify-isolated-runtime-parity-v12 — Independent verification after core v12 and docs v11b. Run focused commands for tests/test_legion_core.py, bash -n shell scripts, mixed dry-run non-mutation, status/readiness read-
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0107 [WATCH] incident from mixed_registry: task_failed
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "audit-adversarial-legacy-parity-v12"}`
+  - content: [failed audit/codex] audit-adversarial-legacy-parity-v12 — Adversarial audit after core v12 and docs v11b. Attack the mixed system for omitted legacy strengths or broken chains in delegation, approval, inbox, readiness, patrol, retrospecti
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0108 [WATCH] incident from mixed_registry: task_blocked
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "synthesis-no-omission-release-gate-v12"}`
+  - content: [blocked review/codex] synthesis-no-omission-release-gate-v12 — dependency audit-adversarial-legacy-parity-v12 is failed
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0109 [WATCH] incident from mixed_registry: task_failed
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "review-core-policy-state-v13"}`
+  - content: [failed review/codex] review-core-policy-state-v13 — Read-only final core review after repair-core-security-audit-v13. Verify v13 fixed readiness sender authenticity, unknown commander rejection, L2 supervision fail-closed, tmux live
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0110 [WATCH] incident from mixed_registry: task_failed
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "verify-isolated-runtime-parity-v13"}`
+  - content: [failed verify/codex] verify-isolated-runtime-parity-v13 — Independent verification after all v13 repairs. Run focused local checks for tests.test_legion_core, shell syntax, legion.sh mixed dry-run non-mutation, patrol status with invalid 
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0111 [WATCH] incident from mixed_registry: task_failed
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "audit-adversarial-legacy-parity-v13"}`
+  - content: [failed audit/codex] audit-adversarial-legacy-parity-v13 — worker exited with status 1
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0112 [WATCH] incident from mixed_registry: task_blocked
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "synthesis-no-omission-release-gate-v13"}`
+  - content: [blocked review/codex] synthesis-no-omission-release-gate-v13 — dependency review-core-policy-state-v13 is failed
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0113 [WATCH] incident from mixed_registry: task_failed
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "verify-release-contract-v14"}`
+  - content: [failed verify/codex] verify-release-contract-v14 — Independent release-contract verification for the mixed Claude+Codex Legion upgrade. Use only read-only code inspection and non-destructive local commands. Do not perform offensive
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0114 [WATCH] incident from mixed_registry: task_failed
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "repair-core-sender-auth-v14"}`
+  - content: [failed implement/claude] repair-core-sender-auth-v14 — worker exited with status 1
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0115 [WATCH] incident from mixed_registry: task_failed
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "repair-shell-daemon-runtime-v14"}`
+  - content: [failed implement/claude] repair-shell-daemon-runtime-v14 — worker exited with status 1
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0116 [WATCH] incident from mixed_registry: task_failed
+  - evidence: `{"input": "I4", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/mixed-registry.json", "task_id": "repair-retrospector-project-boundary-v14"}`
+  - content: [failed implement/claude] repair-retrospector-project-boundary-v14 — worker exited with status 1
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0117 [WATCH] incident from events: task_blocked
+  - evidence: `{"event_hash": "89918661b26a493d", "input": "I2", "line": 1018, "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/events.jsonl"}`
+  - content: [task_blocked] verify-isolated-runtime-parity-v8
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0118 [WATCH] incident from events: task_blocked
+  - evidence: `{"event_hash": "a3588ddf801f97a8", "input": "I2", "line": 1019, "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/events.jsonl"}`
+  - content: [task_blocked] audit-adversarial-legacy-parity-v8
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0119 [WATCH] incident from events: task_blocked
+  - evidence: `{"event_hash": "8890f58617d63b45", "input": "I2", "line": 1020, "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/events.jsonl"}`
+  - content: [task_blocked] synthesis-no-omission-release-gate-v8
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0120 [WATCH] incident from events: task_failed
+  - evidence: `{"event_hash": "1a2f911999a89b24", "input": "I2", "line": 1058, "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/events.jsonl"}`
+  - content: [task_failed] repair-core-review-findings-v9
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0121 [WATCH] incident from events: task_blocked
+  - evidence: `{"event_hash": "fa2c28ee468f3ef5", "input": "I2", "line": 1059, "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/events.jsonl"}`
+  - content: [task_blocked] review-core-policy-state-v9
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0122 [WATCH] incident from events: task_blocked
+  - evidence: `{"event_hash": "3f9dda2485b85a5a", "input": "I2", "line": 1060, "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/events.jsonl"}`
+  - content: [task_blocked] repair-docs-runtime-contract-v9
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0123 [WATCH] incident from events: task_blocked
+  - evidence: `{"event_hash": "99c6f65f694077d9", "input": "I2", "line": 1061, "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/events.jsonl"}`
+  - content: [task_blocked] review-patrol-retro-learning-v9
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0124 [WATCH] incident from events: task_blocked
+  - evidence: `{"event_hash": "040a23f0e93f8903", "input": "I2", "line": 1062, "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/events.jsonl"}`
+  - content: [task_blocked] verify-isolated-runtime-parity-v9
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0125 [WATCH] incident from events: task_blocked
+  - evidence: `{"event_hash": "413d473a1589ff8d", "input": "I2", "line": 1063, "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/events.jsonl"}`
+  - content: [task_blocked] audit-adversarial-legacy-parity-v9
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0126 [WATCH] incident from events: task_blocked
+  - evidence: `{"event_hash": "f4a53c411d387328", "input": "I2", "line": 1064, "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/events.jsonl"}`
+  - content: [task_blocked] synthesis-no-omission-release-gate-v9
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0127 [WATCH] incident from events: task_blocked
+  - evidence: `{"event_hash": "65cda74b656c32aa", "input": "I2", "line": 1113, "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/events.jsonl"}`
+  - content: [task_blocked] repair-docs-runtime-contract-v11
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0128 [WATCH] incident from events: task_blocked
+  - evidence: `{"event_hash": "4284bf73dcae0608", "input": "I2", "line": 1114, "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/events.jsonl"}`
+  - content: [task_blocked] review-patrol-retro-learning-v11
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0129 [WATCH] incident from events: task_blocked
+  - evidence: `{"event_hash": "3584a733c691ac37", "input": "I2", "line": 1115, "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/events.jsonl"}`
+  - content: [task_blocked] synthesis-no-omission-release-gate-v11
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0130 [WATCH] incident from events: task_blocked
+  - evidence: `{"event_hash": "a281f5d570244177", "input": "I2", "line": 1116, "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/events.jsonl"}`
+  - content: [task_blocked] verify-isolated-runtime-parity-v11
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0131 [WATCH] incident from events: task_blocked
+  - evidence: `{"event_hash": "482e3a9c0214e48c", "input": "I2", "line": 1117, "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/events.jsonl"}`
+  - content: [task_blocked] audit-adversarial-legacy-parity-v11
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0132 [WATCH] incident from events: task_failed
+  - evidence: `{"event_hash": "9f0c24a714a06691", "input": "I2", "line": 1178, "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/events.jsonl"}`
+  - content: [task_failed] audit-adversarial-legacy-parity-v11
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0133 [WATCH] incident from events: task_blocked
+  - evidence: `{"event_hash": "ecbad0f618a1b64a", "input": "I2", "line": 1179, "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/events.jsonl"}`
+  - content: [task_blocked] synthesis-no-omission-release-gate-v11
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0134 [WATCH] incident from events: task_blocked
+  - evidence: `{"event_hash": "042901becc2b6fb7", "input": "I2", "line": 1180, "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/events.jsonl"}`
+  - content: [task_blocked] verify-isolated-runtime-parity-v11
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0135 [WATCH] incident from events: task_failed
+  - evidence: `{"event_hash": "a71ce83a1112b858", "input": "I2", "line": 1182, "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/events.jsonl"}`
+  - content: [task_failed] audit-adversarial-legacy-parity-v12
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0136 [WATCH] incident from events: task_blocked
+  - evidence: `{"event_hash": "24ee3cc2a7f7364f", "input": "I2", "line": 1183, "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/events.jsonl"}`
+  - content: [task_blocked] synthesis-no-omission-release-gate-v12
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0137 [WATCH] incident from events: task_failed
+  - evidence: `{"event_hash": "78a1e3aaa1d02a35", "input": "I2", "line": 1184, "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/events.jsonl"}`
+  - content: [task_failed] verify-isolated-runtime-parity-v12
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0138 [WATCH] incident from events: task_failed
+  - evidence: `{"event_hash": "8022766b85a25abe", "input": "I2", "line": 1238, "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/events.jsonl"}`
+  - content: [task_failed] audit-adversarial-legacy-parity-v13
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0139 [WATCH] incident from events: task_blocked
+  - evidence: `{"event_hash": "83ba6bbb33a075e2", "input": "I2", "line": 1239, "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/events.jsonl"}`
+  - content: [task_blocked] synthesis-no-omission-release-gate-v13
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0140 [WATCH] incident from events: task_failed
+  - evidence: `{"event_hash": "fa018ccf15a4e3e2", "input": "I2", "line": 1248, "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/events.jsonl"}`
+  - content: [task_failed] review-core-policy-state-v13
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0141 [WATCH] incident from events: task_blocked
+  - evidence: `{"event_hash": "2e2743a2858c2562", "input": "I2", "line": 1249, "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/events.jsonl"}`
+  - content: [task_blocked] synthesis-no-omission-release-gate-v13
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0142 [WATCH] incident from events: task_failed
+  - evidence: `{"event_hash": "d3382005da1e315b", "input": "I2", "line": 1250, "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/events.jsonl"}`
+  - content: [task_failed] verify-isolated-runtime-parity-v13
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0143 [WATCH] incident from events: task_failed
+  - evidence: `{"event_hash": "8bfdfdab67e6d194", "input": "I2", "line": 1266, "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/events.jsonl"}`
+  - content: [task_failed] repair-shell-daemon-runtime-v14
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0144 [WATCH] incident from events: task_failed
+  - evidence: `{"event_hash": "deeebdf1ddb83f68", "input": "I2", "line": 1267, "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/events.jsonl"}`
+  - content: [task_failed] repair-retrospector-project-boundary-v14
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0145 [WATCH] incident from events: task_failed
+  - evidence: `{"event_hash": "c5baf0705821efab", "input": "I2", "line": 1268, "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/events.jsonl"}`
+  - content: [task_failed] verify-release-contract-v14
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0146 [WATCH] incident from events: task_failed
+  - evidence: `{"event_hash": "5736b2398af06c6f", "input": "I2", "line": 1269, "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/events.jsonl"}`
+  - content: [task_failed] repair-core-sender-auth-v14
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0147 [WATCH] incident from run_results: missing_result_md_failed
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/explore-architecture/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/explore-architecture", "task_id": "explore-architecture"}`
+  - content: explore-architecture status=failed but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/explore-architecture)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0148 [WATCH] incident from run_results: missing_result_md_failed
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/explore-architecture-rerun/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/explore-architecture-rerun", "task_id": "explore-architecture-rerun"}`
+  - content: explore-architecture-rerun status=failed but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/explore-architecture-rerun)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0149 [WATCH] incident from run_results: missing_result_md_blocked
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/audit-recon-state/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/audit-recon-state", "task_id": "audit-recon-state"}`
+  - content: audit-recon-state status=blocked but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/audit-recon-state)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0150 [WATCH] incident from run_results: missing_result_md_blocked
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/audit-shell-static/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/audit-shell-static", "task_id": "audit-shell-static"}`
+  - content: audit-shell-static status=blocked but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/audit-shell-static)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0151 [WATCH] incident from run_results: missing_result_md_blocked
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/audit-python-core/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/audit-python-core", "task_id": "audit-python-core"}`
+  - content: audit-python-core status=blocked but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/audit-python-core)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0152 [WATCH] incident from run_results: missing_result_md_blocked
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/audit-redteam/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/audit-redteam", "task_id": "audit-redteam"}`
+  - content: audit-redteam status=blocked but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/audit-redteam)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0153 [WATCH] incident from run_results: missing_result_md_blocked
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/audit-process-gates/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/audit-process-gates", "task_id": "audit-process-gates"}`
+  - content: audit-process-gates status=blocked but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/audit-process-gates)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0154 [WATCH] incident from run_results: missing_result_md_blocked
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/verify-integration/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/verify-integration", "task_id": "verify-integration"}`
+  - content: verify-integration status=blocked but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/verify-integration)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0155 [WATCH] incident from run_results: result_status_blocked
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/audit-static-v2/result.md", "result_hash": "6a1bfebcd87f2ac9", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/audit-static-v2", "task_id": "audit-static-v2"}`
+  - content: audit-static-v2 worker result status=blocked requires learning/blocker extraction.
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0156 [WATCH] incident from run_results: missing_result_md_failed
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/audit-redteam-v2/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/audit-redteam-v2", "task_id": "audit-redteam-v2"}`
+  - content: audit-redteam-v2 status=failed but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/audit-redteam-v2)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0157 [WATCH] incident from run_results: result_status_blocked
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/audit-contract-v2/result.md", "result_hash": "e3343b8748830af7", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/audit-contract-v2", "task_id": "audit-contract-v2"}`
+  - content: audit-contract-v2 worker result status=blocked requires learning/blocker extraction.
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0158 [WATCH] incident from run_results: result_status_blocked
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/audit-skills-v2/result.md", "result_hash": "7ae9f997e4d76ac7", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/audit-skills-v2", "task_id": "audit-skills-v2"}`
+  - content: audit-skills-v2 worker result status=blocked requires learning/blocker extraction.
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0159 [WATCH] incident from run_results: result_status_blocked
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/audit-process-v2/result.md", "result_hash": "ea898c8c73a4a1e7", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/audit-process-v2", "task_id": "audit-process-v2"}`
+  - content: audit-process-v2 worker result status=blocked requires learning/blocker extraction.
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0160 [WATCH] incident from run_results: missing_result_md_blocked
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/verify-runtime-v2/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/verify-runtime-v2", "task_id": "verify-runtime-v2"}`
+  - content: verify-runtime-v2 status=blocked but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/verify-runtime-v2)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0161 [WATCH] incident from run_results: missing_result_md_blocked
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/audit-synthesis-v2/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/audit-synthesis-v2", "task_id": "audit-synthesis-v2"}`
+  - content: audit-synthesis-v2 status=blocked but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/audit-synthesis-v2)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0162 [WATCH] incident from run_results: missing_result_md_blocked
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/verify-runtime-v3/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/verify-runtime-v3", "task_id": "verify-runtime-v3"}`
+  - content: verify-runtime-v3 status=blocked but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/verify-runtime-v3)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0163 [WATCH] incident from run_results: missing_result_md_blocked
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/audit-synthesis-v3/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/audit-synthesis-v3", "task_id": "audit-synthesis-v3"}`
+  - content: audit-synthesis-v3 status=blocked but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/audit-synthesis-v3)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0164 [FAIL] incident from run_results: schema_invalid_result_md
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/comm-spec-shared-contract/result.md", "result_hash": "5ac98b8d9035f96a", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/comm-spec-shared-contract", "task_id": "comm-spec-shared-contract"}`
+  - content: comm-spec-shared-contract result.md is not strict whole-file JSON.
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0165 [WATCH] incident from run_results: missing_result_md_failed
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/comm-audit-readiness-forgery/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/comm-audit-readiness-forgery", "task_id": "comm-audit-readiness-forgery"}`
+  - content: comm-audit-readiness-forgery status=failed but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/comm-audit-readiness-forgery)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0166 [WATCH] incident from run_results: missing_result_md_blocked
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/comm-test-contracts/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/comm-test-contracts", "task_id": "comm-test-contracts"}`
+  - content: comm-test-contracts status=blocked but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/comm-test-contracts)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0167 [WATCH] incident from run_results: missing_result_md_blocked
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/comm-impl-core-durable-state/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/comm-impl-core-durable-state", "task_id": "comm-impl-core-durable-state"}`
+  - content: comm-impl-core-durable-state status=blocked but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/comm-impl-core-durable-state)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0168 [WATCH] incident from run_results: missing_result_md_blocked
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/comm-impl-shell-bridge/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/comm-impl-shell-bridge", "task_id": "comm-impl-shell-bridge"}`
+  - content: comm-impl-shell-bridge status=blocked but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/comm-impl-shell-bridge)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0169 [WATCH] incident from run_results: missing_result_md_blocked
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/comm-doc-runtime-contract/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/comm-doc-runtime-contract", "task_id": "comm-doc-runtime-contract"}`
+  - content: comm-doc-runtime-contract status=blocked but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/comm-doc-runtime-contract)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0170 [WATCH] incident from run_results: missing_result_md_blocked
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/comm-review-core-durable-state/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/comm-review-core-durable-state", "task_id": "comm-review-core-durable-state"}`
+  - content: comm-review-core-durable-state status=blocked but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/comm-review-core-durable-state)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0171 [WATCH] incident from run_results: missing_result_md_blocked
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/comm-review-shell-bridge/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/comm-review-shell-bridge", "task_id": "comm-review-shell-bridge"}`
+  - content: comm-review-shell-bridge status=blocked but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/comm-review-shell-bridge)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0172 [WATCH] incident from run_results: missing_result_md_blocked
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/comm-verify-concurrency-runtime/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/comm-verify-concurrency-runtime", "task_id": "comm-verify-concurrency-runtime"}`
+  - content: comm-verify-concurrency-runtime status=blocked but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/comm-verify-concurrency-runtime)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0173 [WATCH] incident from run_results: missing_result_md_blocked
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/comm-verify-integration-runtime/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/comm-verify-integration-runtime", "task_id": "comm-verify-integration-runtime"}`
+  - content: comm-verify-integration-runtime status=blocked but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/comm-verify-integration-runtime)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0174 [WATCH] incident from run_results: missing_result_md_blocked
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/comm-audit-final-redteam/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/comm-audit-final-redteam", "task_id": "comm-audit-final-redteam"}`
+  - content: comm-audit-final-redteam status=blocked but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/comm-audit-final-redteam)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0175 [WATCH] incident from run_results: missing_result_md_blocked
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/comm-synthesis-release-gate/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/comm-synthesis-release-gate", "task_id": "comm-synthesis-release-gate"}`
+  - content: comm-synthesis-release-gate status=blocked but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/comm-synthesis-release-gate)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0176 [FAIL] incident from run_results: schema_invalid_result_md
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/comm-test-contracts-v2/result.md", "result_hash": "6954e0cb9fa8baca", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/comm-test-contracts-v2", "task_id": "comm-test-contracts-v2"}`
+  - content: comm-test-contracts-v2 result.md is not strict whole-file JSON.
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0177 [FAIL] incident from run_results: schema_invalid_result_md
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/comm-impl-core-durable-state-v2/result.md", "result_hash": "5ac98b8d9035f96a", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/comm-impl-core-durable-state-v2", "task_id": "comm-impl-core-durable-state-v2"}`
+  - content: comm-impl-core-durable-state-v2 result.md is not strict whole-file JSON.
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0178 [FAIL] incident from run_results: schema_invalid_result_md
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/comm-impl-shell-bridge-v2/result.md", "result_hash": "5ac98b8d9035f96a", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/comm-impl-shell-bridge-v2", "task_id": "comm-impl-shell-bridge-v2"}`
+  - content: comm-impl-shell-bridge-v2 result.md is not strict whole-file JSON.
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0179 [WATCH] incident from run_results: missing_result_md_blocked
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/comm-doc-runtime-contract-v2/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/comm-doc-runtime-contract-v2", "task_id": "comm-doc-runtime-contract-v2"}`
+  - content: comm-doc-runtime-contract-v2 status=blocked but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/comm-doc-runtime-contract-v2)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0180 [WATCH] incident from run_results: missing_result_md_blocked
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/comm-review-core-durable-state-v2/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/comm-review-core-durable-state-v2", "task_id": "comm-review-core-durable-state-v2"}`
+  - content: comm-review-core-durable-state-v2 status=blocked but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/comm-review-core-durable-state-v2)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0181 [WATCH] incident from run_results: missing_result_md_blocked
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/comm-review-shell-bridge-v2/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/comm-review-shell-bridge-v2", "task_id": "comm-review-shell-bridge-v2"}`
+  - content: comm-review-shell-bridge-v2 status=blocked but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/comm-review-shell-bridge-v2)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0182 [WATCH] incident from run_results: missing_result_md_blocked
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/comm-verify-concurrency-runtime-v2/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/comm-verify-concurrency-runtime-v2", "task_id": "comm-verify-concurrency-runtime-v2"}`
+  - content: comm-verify-concurrency-runtime-v2 status=blocked but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/comm-verify-concurrency-runtime-v2)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0183 [WATCH] incident from run_results: missing_result_md_blocked
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/comm-verify-integration-runtime-v2/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/comm-verify-integration-runtime-v2", "task_id": "comm-verify-integration-runtime-v2"}`
+  - content: comm-verify-integration-runtime-v2 status=blocked but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/comm-verify-integration-runtime-v2)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0184 [WATCH] incident from run_results: missing_result_md_blocked
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/comm-audit-final-redteam-v2/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/comm-audit-final-redteam-v2", "task_id": "comm-audit-final-redteam-v2"}`
+  - content: comm-audit-final-redteam-v2 status=blocked but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/comm-audit-final-redteam-v2)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0185 [WATCH] incident from run_results: missing_result_md_blocked
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/comm-synthesis-release-gate-v2/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/comm-synthesis-release-gate-v2", "task_id": "comm-synthesis-release-gate-v2"}`
+  - content: comm-synthesis-release-gate-v2 status=blocked but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/comm-synthesis-release-gate-v2)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0186 [FAIL] incident from run_results: schema_invalid_result_md
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/legacy-parity-requirements-lock/result.md", "result_hash": "4533ade9bcf27181", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/legacy-parity-requirements-lock", "task_id": "legacy-parity-requirements-lock"}`
+  - content: legacy-parity-requirements-lock result.md is not strict whole-file JSON.
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0187 [WATCH] incident from run_results: missing_result_md_failed
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/implement-mixed-core-contract/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/implement-mixed-core-contract", "task_id": "implement-mixed-core-contract"}`
+  - content: implement-mixed-core-contract status=failed but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/implement-mixed-core-contract)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0188 [WATCH] incident from run_results: missing_result_md_failed
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/implement-patrol-hooks/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/implement-patrol-hooks", "task_id": "implement-patrol-hooks"}`
+  - content: implement-patrol-hooks status=failed but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/implement-patrol-hooks)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0189 [WATCH] incident from run_results: missing_result_md_failed
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/implement-retrospector-mixed-sources/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/implement-retrospector-mixed-sources", "task_id": "implement-retrospector-mixed-sources"}`
+  - content: implement-retrospector-mixed-sources status=failed but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/implement-retrospector-mixed-sources)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0190 [WATCH] incident from run_results: missing_result_md_failed
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/implement-commander-daemon-learning/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/implement-commander-daemon-learning", "task_id": "implement-commander-daemon-learning"}`
+  - content: implement-commander-daemon-learning status=failed but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/implement-commander-daemon-learning)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0191 [WATCH] incident from run_results: missing_result_md_failed
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/implement-shell-ops-ux/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/implement-shell-ops-ux", "task_id": "implement-shell-ops-ux"}`
+  - content: implement-shell-ops-ux status=failed but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/implement-shell-ops-ux)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0192 [WATCH] incident from run_results: missing_result_md_blocked
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/implement-docs-runtime-contract/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/implement-docs-runtime-contract", "task_id": "implement-docs-runtime-contract"}`
+  - content: implement-docs-runtime-contract status=blocked but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/implement-docs-runtime-contract)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0193 [WATCH] incident from run_results: missing_result_md_blocked
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/review-core-policy-and-state/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/review-core-policy-and-state", "task_id": "review-core-policy-and-state"}`
+  - content: review-core-policy-and-state status=blocked but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/review-core-policy-and-state)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0194 [WATCH] incident from run_results: missing_result_md_blocked
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/review-patrol-retro-learning/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/review-patrol-retro-learning", "task_id": "review-patrol-retro-learning"}`
+  - content: review-patrol-retro-learning status=blocked but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/review-patrol-retro-learning)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0195 [WATCH] incident from run_results: missing_result_md_blocked
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/verify-isolated-runtime-parity/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/verify-isolated-runtime-parity", "task_id": "verify-isolated-runtime-parity"}`
+  - content: verify-isolated-runtime-parity status=blocked but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/verify-isolated-runtime-parity)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0196 [WATCH] incident from run_results: missing_result_md_blocked
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/audit-adversarial-legacy-parity/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/audit-adversarial-legacy-parity", "task_id": "audit-adversarial-legacy-parity"}`
+  - content: audit-adversarial-legacy-parity status=blocked but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/audit-adversarial-legacy-parity)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0197 [WATCH] incident from run_results: missing_result_md_blocked
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/synthesis-no-omission-release-gate/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/synthesis-no-omission-release-gate", "task_id": "synthesis-no-omission-release-gate"}`
+  - content: synthesis-no-omission-release-gate status=blocked but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/synthesis-no-omission-release-gate)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0198 [FAIL] incident from run_results: schema_invalid_result_md
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/relock-legacy-parity-contract-v2/result.md", "result_hash": "a2eb7202d174b98e", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/relock-legacy-parity-contract-v2", "task_id": "relock-legacy-parity-contract-v2"}`
+  - content: relock-legacy-parity-contract-v2 result.md is not strict whole-file JSON.
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0199 [FAIL] incident from run_results: schema_invalid_result_md
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/repair-mixed-core-contract-v2/result.md", "result_hash": "5ac98b8d9035f96a", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/repair-mixed-core-contract-v2", "task_id": "repair-mixed-core-contract-v2"}`
+  - content: repair-mixed-core-contract-v2 result.md is not strict whole-file JSON.
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0200 [FAIL] incident from run_results: schema_invalid_result_md
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/repair-patrol-hooks-v2/result.md", "result_hash": "5ac98b8d9035f96a", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/repair-patrol-hooks-v2", "task_id": "repair-patrol-hooks-v2"}`
+  - content: repair-patrol-hooks-v2 result.md is not strict whole-file JSON.
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0201 [FAIL] incident from run_results: schema_invalid_result_md
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/repair-retrospector-mixed-sources-v2/result.md", "result_hash": "5ac98b8d9035f96a", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/repair-retrospector-mixed-sources-v2", "task_id": "repair-retrospector-mixed-sources-v2"}`
+  - content: repair-retrospector-mixed-sources-v2 result.md is not strict whole-file JSON.
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0202 [FAIL] incident from run_results: schema_invalid_result_md
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/repair-commander-daemon-learning-v2/result.md", "result_hash": "5ac98b8d9035f96a", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/repair-commander-daemon-learning-v2", "task_id": "repair-commander-daemon-learning-v2"}`
+  - content: repair-commander-daemon-learning-v2 result.md is not strict whole-file JSON.
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0203 [FAIL] incident from run_results: schema_invalid_result_md
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/repair-shell-ops-ux-v2/result.md", "result_hash": "5ac98b8d9035f96a", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/repair-shell-ops-ux-v2", "task_id": "repair-shell-ops-ux-v2"}`
+  - content: repair-shell-ops-ux-v2 result.md is not strict whole-file JSON.
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0204 [WATCH] incident from run_results: missing_result_md_blocked
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/repair-docs-runtime-contract-v2/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/repair-docs-runtime-contract-v2", "task_id": "repair-docs-runtime-contract-v2"}`
+  - content: repair-docs-runtime-contract-v2 status=blocked but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/repair-docs-runtime-contract-v2)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0205 [WATCH] incident from run_results: missing_result_md_blocked
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/review-core-policy-state-v2/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/review-core-policy-state-v2", "task_id": "review-core-policy-state-v2"}`
+  - content: review-core-policy-state-v2 status=blocked but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/review-core-policy-state-v2)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0206 [WATCH] incident from run_results: missing_result_md_blocked
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/review-patrol-retro-learning-v2/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/review-patrol-retro-learning-v2", "task_id": "review-patrol-retro-learning-v2"}`
+  - content: review-patrol-retro-learning-v2 status=blocked but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/review-patrol-retro-learning-v2)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0207 [WATCH] incident from run_results: missing_result_md_blocked
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/verify-isolated-runtime-parity-v2/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/verify-isolated-runtime-parity-v2", "task_id": "verify-isolated-runtime-parity-v2"}`
+  - content: verify-isolated-runtime-parity-v2 status=blocked but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/verify-isolated-runtime-parity-v2)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0208 [WATCH] incident from run_results: missing_result_md_blocked
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/audit-adversarial-legacy-parity-v2/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/audit-adversarial-legacy-parity-v2", "task_id": "audit-adversarial-legacy-parity-v2"}`
+  - content: audit-adversarial-legacy-parity-v2 status=blocked but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/audit-adversarial-legacy-parity-v2)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0209 [WATCH] incident from run_results: missing_result_md_blocked
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/synthesis-no-omission-release-gate-v2/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/synthesis-no-omission-release-gate-v2", "task_id": "synthesis-no-omission-release-gate-v2"}`
+  - content: synthesis-no-omission-release-gate-v2 status=blocked but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/synthesis-no-omission-release-gate-v2)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0210 [FAIL] incident from run_results: schema_invalid_result_md
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/repair-patrol-status-v3/result.md", "result_hash": "67264905e2d16f26", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/repair-patrol-status-v3", "task_id": "repair-patrol-status-v3"}`
+  - content: repair-patrol-status-v3 result.md is not strict whole-file JSON.
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0211 [FAIL] incident from run_results: schema_invalid_result_md
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/repair-patrol-hook-gate-v3/result.md", "result_hash": "f08125d2d26894ed", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/repair-patrol-hook-gate-v3", "task_id": "repair-patrol-hook-gate-v3"}`
+  - content: repair-patrol-hook-gate-v3 result.md is not strict whole-file JSON.
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0212 [WATCH] incident from run_results: missing_result_md_blocked
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/repair-docs-runtime-contract-v3/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/repair-docs-runtime-contract-v3", "task_id": "repair-docs-runtime-contract-v3"}`
+  - content: repair-docs-runtime-contract-v3 status=blocked but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/repair-docs-runtime-contract-v3)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0213 [WATCH] incident from run_results: missing_result_md_blocked
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/review-patrol-retro-learning-v3/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/review-patrol-retro-learning-v3", "task_id": "review-patrol-retro-learning-v3"}`
+  - content: review-patrol-retro-learning-v3 status=blocked but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/review-patrol-retro-learning-v3)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0214 [WATCH] incident from run_results: missing_result_md_blocked
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/verify-isolated-runtime-parity-v3/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/verify-isolated-runtime-parity-v3", "task_id": "verify-isolated-runtime-parity-v3"}`
+  - content: verify-isolated-runtime-parity-v3 status=blocked but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/verify-isolated-runtime-parity-v3)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0215 [WATCH] incident from run_results: missing_result_md_blocked
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/audit-adversarial-legacy-parity-v3/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/audit-adversarial-legacy-parity-v3", "task_id": "audit-adversarial-legacy-parity-v3"}`
+  - content: audit-adversarial-legacy-parity-v3 status=blocked but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/audit-adversarial-legacy-parity-v3)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0216 [WATCH] incident from run_results: missing_result_md_blocked
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/synthesis-no-omission-release-gate-v3/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/synthesis-no-omission-release-gate-v3", "task_id": "synthesis-no-omission-release-gate-v3"}`
+  - content: synthesis-no-omission-release-gate-v3 status=blocked but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/synthesis-no-omission-release-gate-v3)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0217 [FAIL] incident from run_results: schema_invalid_result_md
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/repair-retrospector-script-v4/result.md", "result_hash": "7a7551ae82445c0d", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/repair-retrospector-script-v4", "task_id": "repair-retrospector-script-v4"}`
+  - content: repair-retrospector-script-v4 result.md is not strict whole-file JSON.
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0218 [FAIL] incident from run_results: schema_invalid_result_md
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/repair-retrospective-contract-v4/result.md", "result_hash": "14d6134916c0d530", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/repair-retrospective-contract-v4", "task_id": "repair-retrospective-contract-v4"}`
+  - content: repair-retrospective-contract-v4 result.md is not strict whole-file JSON.
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0219 [WATCH] incident from run_results: missing_result_md_blocked
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/repair-docs-runtime-contract-v4/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/repair-docs-runtime-contract-v4", "task_id": "repair-docs-runtime-contract-v4"}`
+  - content: repair-docs-runtime-contract-v4 status=blocked but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/repair-docs-runtime-contract-v4)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0220 [WATCH] incident from run_results: missing_result_md_blocked
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/review-patrol-retro-learning-v4/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/review-patrol-retro-learning-v4", "task_id": "review-patrol-retro-learning-v4"}`
+  - content: review-patrol-retro-learning-v4 status=blocked but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/review-patrol-retro-learning-v4)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0221 [WATCH] incident from run_results: missing_result_md_blocked
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/verify-isolated-runtime-parity-v4/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/verify-isolated-runtime-parity-v4", "task_id": "verify-isolated-runtime-parity-v4"}`
+  - content: verify-isolated-runtime-parity-v4 status=blocked but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/verify-isolated-runtime-parity-v4)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0222 [WATCH] incident from run_results: missing_result_md_blocked
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/audit-adversarial-legacy-parity-v4/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/audit-adversarial-legacy-parity-v4", "task_id": "audit-adversarial-legacy-parity-v4"}`
+  - content: audit-adversarial-legacy-parity-v4 status=blocked but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/audit-adversarial-legacy-parity-v4)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0223 [WATCH] incident from run_results: missing_result_md_blocked
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/synthesis-no-omission-release-gate-v4/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/synthesis-no-omission-release-gate-v4", "task_id": "synthesis-no-omission-release-gate-v4"}`
+  - content: synthesis-no-omission-release-gate-v4 status=blocked but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/synthesis-no-omission-release-gate-v4)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0224 [FAIL] incident from run_results: schema_invalid_result_md
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/repair-mixed-core-contract-v5/result.md", "result_hash": "62b525d95b37d595", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/repair-mixed-core-contract-v5", "task_id": "repair-mixed-core-contract-v5"}`
+  - content: repair-mixed-core-contract-v5 result.md is not strict whole-file JSON.
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0225 [FAIL] incident from run_results: schema_invalid_result_md
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/repair-shell-ops-ux-v5/result.md", "result_hash": "a4f4fbe07d7a7c8e", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/repair-shell-ops-ux-v5", "task_id": "repair-shell-ops-ux-v5"}`
+  - content: repair-shell-ops-ux-v5 result.md is not strict whole-file JSON.
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0226 [WATCH] incident from run_results: missing_result_md_blocked
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/repair-docs-runtime-contract-v5/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/repair-docs-runtime-contract-v5", "task_id": "repair-docs-runtime-contract-v5"}`
+  - content: repair-docs-runtime-contract-v5 status=blocked but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/repair-docs-runtime-contract-v5)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0227 [WATCH] incident from run_results: missing_result_md_blocked
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/review-patrol-retro-learning-v5/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/review-patrol-retro-learning-v5", "task_id": "review-patrol-retro-learning-v5"}`
+  - content: review-patrol-retro-learning-v5 status=blocked but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/review-patrol-retro-learning-v5)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0228 [WATCH] incident from run_results: missing_result_md_blocked
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/verify-isolated-runtime-parity-v5/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/verify-isolated-runtime-parity-v5", "task_id": "verify-isolated-runtime-parity-v5"}`
+  - content: verify-isolated-runtime-parity-v5 status=blocked but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/verify-isolated-runtime-parity-v5)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0229 [WATCH] incident from run_results: missing_result_md_blocked
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/audit-adversarial-legacy-parity-v5/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/audit-adversarial-legacy-parity-v5", "task_id": "audit-adversarial-legacy-parity-v5"}`
+  - content: audit-adversarial-legacy-parity-v5 status=blocked but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/audit-adversarial-legacy-parity-v5)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0230 [WATCH] incident from run_results: missing_result_md_blocked
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/synthesis-no-omission-release-gate-v5/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/synthesis-no-omission-release-gate-v5", "task_id": "synthesis-no-omission-release-gate-v5"}`
+  - content: synthesis-no-omission-release-gate-v5 status=blocked but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/synthesis-no-omission-release-gate-v5)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0231 [FAIL] incident from run_results: schema_invalid_result_md
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/repair-commander-daemon-learning-v6/result.md", "result_hash": "a6532762d8210f96", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/repair-commander-daemon-learning-v6", "task_id": "repair-commander-daemon-learning-v6"}`
+  - content: repair-commander-daemon-learning-v6 result.md is not strict whole-file JSON.
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0232 [WATCH] incident from run_results: missing_result_md_blocked
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/repair-docs-runtime-contract-v6/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/repair-docs-runtime-contract-v6", "task_id": "repair-docs-runtime-contract-v6"}`
+  - content: repair-docs-runtime-contract-v6 status=blocked but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/repair-docs-runtime-contract-v6)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0233 [WATCH] incident from run_results: missing_result_md_blocked
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/review-patrol-retro-learning-v6/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/review-patrol-retro-learning-v6", "task_id": "review-patrol-retro-learning-v6"}`
+  - content: review-patrol-retro-learning-v6 status=blocked but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/review-patrol-retro-learning-v6)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0234 [WATCH] incident from run_results: missing_result_md_blocked
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/verify-isolated-runtime-parity-v6/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/verify-isolated-runtime-parity-v6", "task_id": "verify-isolated-runtime-parity-v6"}`
+  - content: verify-isolated-runtime-parity-v6 status=blocked but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/verify-isolated-runtime-parity-v6)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0235 [WATCH] incident from run_results: missing_result_md_blocked
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/audit-adversarial-legacy-parity-v6/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/audit-adversarial-legacy-parity-v6", "task_id": "audit-adversarial-legacy-parity-v6"}`
+  - content: audit-adversarial-legacy-parity-v6 status=blocked but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/audit-adversarial-legacy-parity-v6)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0236 [WATCH] incident from run_results: missing_result_md_blocked
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/synthesis-no-omission-release-gate-v6/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/synthesis-no-omission-release-gate-v6", "task_id": "synthesis-no-omission-release-gate-v6"}`
+  - content: synthesis-no-omission-release-gate-v6 status=blocked but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/synthesis-no-omission-release-gate-v6)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0237 [FAIL] incident from run_results: schema_invalid_result_md
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/repair-docs-runtime-contract-v7/result.md", "result_hash": "42c4212129ee41c7", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/repair-docs-runtime-contract-v7", "task_id": "repair-docs-runtime-contract-v7"}`
+  - content: repair-docs-runtime-contract-v7 result.md is not strict whole-file JSON.
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0238 [WATCH] incident from run_results: missing_result_md_blocked
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/review-patrol-retro-learning-v7/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/review-patrol-retro-learning-v7", "task_id": "review-patrol-retro-learning-v7"}`
+  - content: review-patrol-retro-learning-v7 status=blocked but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/review-patrol-retro-learning-v7)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0239 [WATCH] incident from run_results: missing_result_md_blocked
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/verify-isolated-runtime-parity-v7/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/verify-isolated-runtime-parity-v7", "task_id": "verify-isolated-runtime-parity-v7"}`
+  - content: verify-isolated-runtime-parity-v7 status=blocked but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/verify-isolated-runtime-parity-v7)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0240 [WATCH] incident from run_results: missing_result_md_blocked
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/audit-adversarial-legacy-parity-v7/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/audit-adversarial-legacy-parity-v7", "task_id": "audit-adversarial-legacy-parity-v7"}`
+  - content: audit-adversarial-legacy-parity-v7 status=blocked but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/audit-adversarial-legacy-parity-v7)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0241 [WATCH] incident from run_results: missing_result_md_blocked
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/synthesis-no-omission-release-gate-v7/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/synthesis-no-omission-release-gate-v7", "task_id": "synthesis-no-omission-release-gate-v7"}`
+  - content: synthesis-no-omission-release-gate-v7 status=blocked but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/synthesis-no-omission-release-gate-v7)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0242 [WATCH] incident from run_results: missing_result_md_failed
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/repair-core-review-findings-v8/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/repair-core-review-findings-v8", "task_id": "repair-core-review-findings-v8"}`
+  - content: repair-core-review-findings-v8 status=failed but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/repair-core-review-findings-v8)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0243 [WATCH] incident from run_results: missing_result_md_blocked
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/review-core-policy-state-v8/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/review-core-policy-state-v8", "task_id": "review-core-policy-state-v8"}`
+  - content: review-core-policy-state-v8 status=blocked but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/review-core-policy-state-v8)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0244 [WATCH] incident from run_results: missing_result_md_blocked
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/repair-docs-runtime-contract-v8/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/repair-docs-runtime-contract-v8", "task_id": "repair-docs-runtime-contract-v8"}`
+  - content: repair-docs-runtime-contract-v8 status=blocked but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/repair-docs-runtime-contract-v8)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0245 [WATCH] incident from run_results: missing_result_md_blocked
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/review-patrol-retro-learning-v8/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/review-patrol-retro-learning-v8", "task_id": "review-patrol-retro-learning-v8"}`
+  - content: review-patrol-retro-learning-v8 status=blocked but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/review-patrol-retro-learning-v8)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0246 [WATCH] incident from run_results: missing_result_md_blocked
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/verify-isolated-runtime-parity-v8/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/verify-isolated-runtime-parity-v8", "task_id": "verify-isolated-runtime-parity-v8"}`
+  - content: verify-isolated-runtime-parity-v8 status=blocked but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/verify-isolated-runtime-parity-v8)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0247 [WATCH] incident from run_results: missing_result_md_blocked
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/audit-adversarial-legacy-parity-v8/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/audit-adversarial-legacy-parity-v8", "task_id": "audit-adversarial-legacy-parity-v8"}`
+  - content: audit-adversarial-legacy-parity-v8 status=blocked but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/audit-adversarial-legacy-parity-v8)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0248 [WATCH] incident from run_results: missing_result_md_blocked
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/synthesis-no-omission-release-gate-v8/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/synthesis-no-omission-release-gate-v8", "task_id": "synthesis-no-omission-release-gate-v8"}`
+  - content: synthesis-no-omission-release-gate-v8 status=blocked but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/synthesis-no-omission-release-gate-v8)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0249 [WATCH] incident from run_results: missing_result_md_failed
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/repair-core-review-findings-v9/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/repair-core-review-findings-v9", "task_id": "repair-core-review-findings-v9"}`
+  - content: repair-core-review-findings-v9 status=failed but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/repair-core-review-findings-v9)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0250 [WATCH] incident from run_results: missing_result_md_blocked
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/review-core-policy-state-v9/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/review-core-policy-state-v9", "task_id": "review-core-policy-state-v9"}`
+  - content: review-core-policy-state-v9 status=blocked but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/review-core-policy-state-v9)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0251 [WATCH] incident from run_results: missing_result_md_blocked
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/repair-docs-runtime-contract-v9/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/repair-docs-runtime-contract-v9", "task_id": "repair-docs-runtime-contract-v9"}`
+  - content: repair-docs-runtime-contract-v9 status=blocked but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/repair-docs-runtime-contract-v9)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0252 [WATCH] incident from run_results: missing_result_md_blocked
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/review-patrol-retro-learning-v9/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/review-patrol-retro-learning-v9", "task_id": "review-patrol-retro-learning-v9"}`
+  - content: review-patrol-retro-learning-v9 status=blocked but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/review-patrol-retro-learning-v9)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0253 [WATCH] incident from run_results: missing_result_md_blocked
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/verify-isolated-runtime-parity-v9/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/verify-isolated-runtime-parity-v9", "task_id": "verify-isolated-runtime-parity-v9"}`
+  - content: verify-isolated-runtime-parity-v9 status=blocked but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/verify-isolated-runtime-parity-v9)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0254 [WATCH] incident from run_results: missing_result_md_blocked
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/audit-adversarial-legacy-parity-v9/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/audit-adversarial-legacy-parity-v9", "task_id": "audit-adversarial-legacy-parity-v9"}`
+  - content: audit-adversarial-legacy-parity-v9 status=blocked but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/audit-adversarial-legacy-parity-v9)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0255 [WATCH] incident from run_results: missing_result_md_blocked
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/synthesis-no-omission-release-gate-v9/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/synthesis-no-omission-release-gate-v9", "task_id": "synthesis-no-omission-release-gate-v9"}`
+  - content: synthesis-no-omission-release-gate-v9 status=blocked but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/synthesis-no-omission-release-gate-v9)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0256 [WATCH] incident from run_results: result_status_blocked
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/repair-docs-runtime-contract-v11/result.md", "result_hash": "19b74c3e09e25e12", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/repair-docs-runtime-contract-v11", "task_id": "repair-docs-runtime-contract-v11"}`
+  - content: repair-docs-runtime-contract-v11 worker result status=blocked requires learning/blocker extraction.
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0257 [WATCH] incident from run_results: result_status_blocked
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/verify-isolated-runtime-parity-v11/result.md", "result_hash": "3128cfab9e5b0c7d", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/verify-isolated-runtime-parity-v11", "task_id": "verify-isolated-runtime-parity-v11"}`
+  - content: verify-isolated-runtime-parity-v11 worker result status=blocked requires learning/blocker extraction.
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0258 [WATCH] incident from run_results: result_status_failed
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/audit-adversarial-legacy-parity-v11/result.md", "result_hash": "c56a8606bbce28b0", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/audit-adversarial-legacy-parity-v11", "task_id": "audit-adversarial-legacy-parity-v11"}`
+  - content: audit-adversarial-legacy-parity-v11 worker result status=failed requires learning/blocker extraction.
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0259 [WATCH] incident from run_results: missing_result_md_blocked
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/synthesis-no-omission-release-gate-v11/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/synthesis-no-omission-release-gate-v11", "task_id": "synthesis-no-omission-release-gate-v11"}`
+  - content: synthesis-no-omission-release-gate-v11 status=blocked but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/synthesis-no-omission-release-gate-v11)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0260 [WATCH] incident from run_results: result_status_failed
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/verify-isolated-runtime-parity-v12/result.md", "result_hash": "3549ef20293d13bf", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/verify-isolated-runtime-parity-v12", "task_id": "verify-isolated-runtime-parity-v12"}`
+  - content: verify-isolated-runtime-parity-v12 worker result status=failed requires learning/blocker extraction.
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0261 [WATCH] incident from run_results: result_status_failed
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/audit-adversarial-legacy-parity-v12/result.md", "result_hash": "02998c9c35cc00c5", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/audit-adversarial-legacy-parity-v12", "task_id": "audit-adversarial-legacy-parity-v12"}`
+  - content: audit-adversarial-legacy-parity-v12 worker result status=failed requires learning/blocker extraction.
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0262 [WATCH] incident from run_results: missing_result_md_blocked
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/synthesis-no-omission-release-gate-v12/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/synthesis-no-omission-release-gate-v12", "task_id": "synthesis-no-omission-release-gate-v12"}`
+  - content: synthesis-no-omission-release-gate-v12 status=blocked but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/synthesis-no-omission-release-gate-v12)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0263 [WATCH] incident from run_results: result_status_failed
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/review-core-policy-state-v13/result.md", "result_hash": "0b11cb7883a515fb", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/review-core-policy-state-v13", "task_id": "review-core-policy-state-v13"}`
+  - content: review-core-policy-state-v13 worker result status=failed requires learning/blocker extraction.
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0264 [WATCH] incident from run_results: result_status_failed
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/verify-isolated-runtime-parity-v13/result.md", "result_hash": "3bb45244db685f73", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/verify-isolated-runtime-parity-v13", "task_id": "verify-isolated-runtime-parity-v13"}`
+  - content: verify-isolated-runtime-parity-v13 worker result status=failed requires learning/blocker extraction.
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0265 [WATCH] incident from run_results: missing_result_md_failed
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/audit-adversarial-legacy-parity-v13/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/audit-adversarial-legacy-parity-v13", "task_id": "audit-adversarial-legacy-parity-v13"}`
+  - content: audit-adversarial-legacy-parity-v13 status=failed but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/audit-adversarial-legacy-parity-v13)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0266 [WATCH] incident from run_results: missing_result_md_blocked
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/synthesis-no-omission-release-gate-v13/result.md", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/synthesis-no-omission-release-gate-v13", "task_id": "synthesis-no-omission-release-gate-v13"}`
+  - content: synthesis-no-omission-release-gate-v13 status=blocked but result.md is missing or empty (run_dir=/Users/feijun/.claude/legion/bf21e79d/mixed/runs/synthesis-no-omission-release-gate-v13)
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0267 [WATCH] incident from run_results: result_status_failed
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/verify-release-contract-v14/result.md", "result_hash": "b6dd27a2bbae196e", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/verify-release-contract-v14", "task_id": "verify-release-contract-v14"}`
+  - content: verify-release-contract-v14 worker result status=failed requires learning/blocker extraction.
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0268 [FAIL] incident from run_results: schema_invalid_result_md
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/repair-core-sender-auth-v14/result.md", "result_hash": "52d51fe85d335c6e", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/repair-core-sender-auth-v14", "task_id": "repair-core-sender-auth-v14"}`
+  - content: repair-core-sender-auth-v14 result.md is not strict whole-file JSON.
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0269 [FAIL] incident from run_results: schema_invalid_result_md
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/repair-shell-daemon-runtime-v14/result.md", "result_hash": "52d51fe85d335c6e", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/repair-shell-daemon-runtime-v14", "task_id": "repair-shell-daemon-runtime-v14"}`
+  - content: repair-shell-daemon-runtime-v14 result.md is not strict whole-file JSON.
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0270 [FAIL] incident from run_results: schema_invalid_result_md
+  - evidence: `{"input": "I3", "path": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/repair-retrospector-project-boundary-v14/result.md", "result_hash": "52d51fe85d335c6e", "run_dir": "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/repair-retrospector-project-boundary-v14", "task_id": "repair-retrospector-project-boundary-v14"}`
+  - content: repair-retrospector-project-boundary-v14 result.md is not strict whole-file JSON.
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0271 [WATCH] incident from planning_state_md: planning_blocker_or_reversal
+  - evidence: `{"input": "I6", "path": "/Users/feijun/Documents/legion-0/.planning/STATE.md"}`
+  - content: Residual risk: the current mixed registry contains several stale test commanders from validation runs; they do not block readiness because parent-scoped filtering ignores other L1/L2 trees.
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0272 [WATCH] incident from planning_state_md: planning_blocker_or_reversal
+  - evidence: `{"input": "I6", "path": "/Users/feijun/Documents/legion-0/.planning/STATE.md"}`
+  - content: Residual risk: this round updates only the shared specification; runtime code still needs implementation and gate verification before the communication upgrade can be considered complete.
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0273 [WATCH] incident from planning_state_md: planning_blocker_or_reversal
+  - evidence: `{"input": "I6", "path": "/Users/feijun/Documents/legion-0/.planning/STATE.md"}`
+  - content: Residual risk: the legacy inheritance tasklist has not yet been deployed as a live mixed campaign in this entry; implementation, review, verify, audit, and final synthesis remain pending.
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0274 [WATCH] incident from planning_state_md: planning_blocker_or_reversal
+  - evidence: `{"input": "I6", "path": "/Users/feijun/Documents/legion-0/.planning/STATE.md"}`
+  - content: Reversal: prior framing that the communication-upgrade contract was "completed" once `00-RUNTIME-CONTRACT.md`, `01-IMPLEMENTATION-PLAN.md`, and `02-VERIFICATION-GATES.md` existed has been retracted. Those documents define the contract; runtime enforcement in `
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0275 [WATCH] incident from planning_state_md: planning_blocker_or_reversal
+  - evidence: `{"input": "I6", "path": "/Users/feijun/Documents/legion-0/.planning/STATE.md"}`
+  - content: Partial watch item: legacy `patrol`, `gate`, and `retrospector` release surfaces now have mixed-aware evidence paths, but broader top-level `locks`, `board`, `sitrep`, `watch`, and `mailbox` surfaces still require final synthesis proof as retained, bridged, or
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0276 [WATCH] incident from planning_state_md: planning_blocker_or_reversal
+  - evidence: `{"input": "I6", "path": "/Users/feijun/Documents/legion-0/.planning/STATE.md"}`
+  - content: Watch item: event log append durability is restored by `_file_append_lock()`, but stable event ids, schema versions, fsync, and correlation ids remain release-gate watch items unless a later gate proves them.
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0277 [WATCH] incident from planning_state_md: planning_blocker_or_reversal
+  - evidence: `{"input": "I6", "path": "/Users/feijun/Documents/legion-0/.planning/STATE.md"}`
+  - content: Release-gate watch item: the no-omission matrix remains fail-closed. Until every row carries runtime evidence and no WATCH/BLK row remains, final release verdict cannot PASS.
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0278 [WATCH] incident from planning_state_md: planning_blocker_or_reversal
+  - evidence: `{"input": "I6", "path": "/Users/feijun/Documents/legion-0/.planning/STATE.md"}`
+  - content: Residual risk: full repository test discovery is still not green in the current worktree because `.claude/skills/claw-roundtable-skill/roundtable_health.py` and `roundtable_engine_v2` are missing outside the declared repair scope. `repair-core-scope-repair-v10
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0279 [WATCH] incident from planning_state_md: planning_blocker_or_reversal
+  - evidence: `{"input": "I6", "path": "/Users/feijun/Documents/legion-0/.planning/STATE.md"}`
+  - content: Residual risk: `events.jsonl` is append-locked by the restored file append lock, but release-grade stable event ids, schema versions, and correlation ids remain a watch item unless a later gate proves them. Do not erase row 34 from the parity matrix without ex
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0280 [WATCH] incident from planning_state_md: planning_blocker_or_reversal
+  - evidence: `{"input": "I6", "path": "/Users/feijun/Documents/legion-0/.planning/STATE.md"}`
+  - content: Residual risk: docs and scoped repair results do not constitute final release PASS. Independent review, verify, audit, patrol, retrospective, and no-omission synthesis gates still decide the final verdict.
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0281 [WATCH] protocol-evolution from legacy_parity_matrix: legacy_parity_watch
+  - evidence: `{"input": "I8", "line": 47, "path": "/Users/feijun/Documents/legion-0/.planning/communication-upgrade/04-LEGACY-PARITY-MATRIX.md"}`
+  - content: | B1 | RESTORED + WATCH(B9) | Registry / inbox / events `flock` transactions | `scripts/legion_core.py` now has `_registry_lock()` plus `_file_append_lock()` for inbox/event JSONL appends; `repair-core-scope-repair-v10b` verified registry-locked scope/task insertion. Event id/schema/correlation details remain B9. |
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0282 [WATCH] protocol-evolution from legacy_parity_matrix: legacy_parity_watch
+  - evidence: `{"input": "I8", "line": 52, "path": "/Users/feijun/Documents/legion-0/.planning/communication-upgrade/04-LEGACY-PARITY-MATRIX.md"}`
+  - content: | B6 | PARTIAL WATCH | Legacy shell / patrol / gate / retrospector bridge | Patrol hook gate, mixed patrol status, and retrospector mixed sources are restored. Broader legacy surfaces (`locks`, `board`, `sitrep`, `watch`, `mailbox`) remain watch items unless final synthesis proves mixed-native equivalents or records exact blockers. |
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0283 [WATCH] protocol-evolution from legacy_parity_matrix: legacy_parity_watch
+  - evidence: `{"input": "I8", "line": 55, "path": "/Users/feijun/Documents/legion-0/.planning/communication-upgrade/04-LEGACY-PARITY-MATRIX.md"}`
+  - content: | B9 | WATCH | Event log id / schema / correlation id | Event appends are locked, but stable event id, schema version, and correlation id still require explicit final-gate evidence before PASS. |
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0284 [WATCH] protocol-evolution from legacy_parity_matrix: legacy_parity_watch
+  - evidence: `{"input": "I8", "line": 56, "path": "/Users/feijun/Documents/legion-0/.planning/communication-upgrade/04-LEGACY-PARITY-MATRIX.md"}`
+  - content: | B10 | RELEASE-GATE WATCH | No-omission release matrix is fail-closed | this document; PASS still requires independent review/verify/audit, patrol, retrospective, and synthesis evidence. |
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0285 [WATCH] protocol-evolution from legacy_parity_matrix: legacy_parity_watch
+  - evidence: `{"input": "I8", "line": 74, "path": "/Users/feijun/Documents/legion-0/.planning/communication-upgrade/04-LEGACY-PARITY-MATRIX.md"}`
+  - content: | 5 | Locks (registry/inbox/events `flock` transactions) | `registry.json` + `locks.json` mutated under shell `flock` paths in legacy `legion.sh` | `fcntl.flock` registry lock plus inbox/event append locks in `scripts/legion_core.py` | UPG + WATCH(B9) | Evidence: `_registry_lock()` guards registry read-modify-write and `_file_append_lock()` guards inbox/events JSONL append; v10b verified campaign 
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0286 [WATCH] protocol-evolution from legacy_parity_matrix: legacy_parity_watch
+  - evidence: `{"input": "I8", "line": 78, "path": "/Users/feijun/Documents/legion-0/.planning/communication-upgrade/04-LEGACY-PARITY-MATRIX.md"}`
+  - content: | 9 | Approval gates | Gate files + hooks + quality checks | Mixed gate records with fail-closed patrol/gate enforcement and release evidence | UPG + WATCH(B9) | Evidence: `repair-patrol-hook-gate-v3` preserved legacy 1-5/6-10/11+ escalation for L1 and L2, blocks unresolved notices and unapproved/unknown/corrupt gates, and `repair-patrol-status-v3` surfaces gate files plus related mixed events. WA
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0287 [WATCH] protocol-evolution from legacy_parity_matrix: legacy_parity_watch
+  - evidence: `{"input": "I8", "line": 80, "path": "/Users/feijun/Documents/legion-0/.planning/communication-upgrade/04-LEGACY-PARITY-MATRIX.md"}`
+  - content: | 11 | Inspector | Legacy LLM patrol, warning escalation, adaptive false-positive memory | Legacy daemon/inspector evidence retained and fed into mixed retrospective; active mixed inspector remains release-gate evidence | RAS + UPG + WATCH | Evidence: `retrospector.sh` reads `inspector_memory.json` and legacy observations alongside mixed sources, preserving daemon evidence for after-action learnin
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0288 [WATCH] protocol-evolution from legacy_parity_matrix: legacy_parity_watch
+  - evidence: `{"input": "I8", "line": 92, "path": "/Users/feijun/Documents/legion-0/.planning/communication-upgrade/04-LEGACY-PARITY-MATRIX.md"}`
+  - content: | 23 | War-room / status UX | Operator sees the whole team via legacy view + L1/team tmux | Mixed `legion view` Claude-Team split + read-only `mixed status`, plus patrol/retro gate evidence surfaces | UPG + WATCH | Evidence: `legion view` embeds live L1/L2 sessions; `mixed status` is read-only; patrol and retrospector scripts expose release-gate evidence. WATCH: final UX synthesis must prove all b
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0289 [WATCH] protocol-evolution from legacy_parity_matrix: legacy_parity_watch
+  - evidence: `{"input": "I8", "line": 102, "path": "/Users/feijun/Documents/legion-0/.planning/communication-upgrade/04-LEGACY-PARITY-MATRIX.md"}`
+  - content: | 33 | Legacy shell / patrol / gate / mailbox / board / sitrep / watch / retrospector | Active surfaces at 137d861 over `registry.json`, `locks.json`, `taskboard.json`, mailbox/inbox, patrol notices, gate files, retrospector outputs | Preserve useful legacy surfaces and expose mixed-native evidence the release gate consumes | UPG (patrol/retro) + WATCH | Evidence: patrol and retrospector are mixed
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0290 [WATCH] protocol-evolution from legacy_parity_matrix: legacy_parity_watch
+  - evidence: `{"input": "I8", "line": 103, "path": "/Users/feijun/Documents/legion-0/.planning/communication-upgrade/04-LEGACY-PARITY-MATRIX.md"}`
+  - content: | 34 | Event log durability | Legacy `events.jsonl` (where present) was unstructured | Locked event append plus stable event id, schema version, type, timestamp, and correlation id linking registry transaction / inbox message / dependency edge / readiness order | UPG (append lock) + WATCH(B9) | Evidence: `_file_append_lock()` protects event JSONL append. WATCH: stable event ids, schema versions, a
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+- C0291 [WATCH] protocol-evolution from legacy_parity_matrix: legacy_parity_watch
+  - evidence: `{"input": "I8", "line": 104, "path": "/Users/feijun/Documents/legion-0/.planning/communication-upgrade/04-LEGACY-PARITY-MATRIX.md"}`
+  - content: | 35 | No-omission release gate | Implicit at 137d861 (audit FAIL = release FAIL) | Fail-closed final matrix consumed by release synthesis | WATCH (B10) | Owner: Codex audit T34. Verification: synthesis report enumerates every row above; any remaining WATCH/BLK row, unverified upgrade claim, docs-only "implemented" claim, failed review/verify/audit, unresolved patrol notice, or pending retrospecti
+  - proposed_destination: project-truth first; memory/tactics/skill only after synthesis accepts reuse value
+
+## Rejected Candidates
+
+- none rejected by deterministic extraction; every candidate remains visible for release synthesis.
+
+## Blockers And Watch
+
+- none
+
+verdict: fail
+
+## Writeback Summary
+
+- retrospective_record: `.planning/retrospectives/2026-04-25-communication-upgrade.md`
+- state_summary: `.planning/STATE.md`
+- mixed_event: `events.jsonl` when MIXED_DIR/events.jsonl is writable
+
+## v16 Disposition Update
+
+- task: `repair-retrospective-disposition-v16`
+- verification: `python3 -m unittest tests.test_retrospector_contract` passed (4 tests OK); `bash -n scripts/retrospector.sh` passed.
+- disposition: this record remains the historical full extraction record for `retro-20260425T100736Z-a3953ab9`. Its 291 candidates remain visible for learning and synthesis traceability, but after `repair-retrospective-disposition-v16`, historical-only candidates do not force release WATCH by themselves.
+- still blocks PASS: any explicit blocker, current WATCH source, or current FAIL candidate found by `synthesis-no-omission-release-gate-v16`; the remaining matrix WATCH rows are row 11 (active mixed inspector loop or accepted replacement evidence), row 23 (unified blocker/patrol/retro/gate UX evidence), and row 35/B10 (final synthesis).

@@ -1,0 +1,16 @@
+[
+  {
+    "id": "repair-inspector-parity-active-loop-v17b",
+    "provider": "codex",
+    "role": "implement",
+    "complexity": "m",
+    "task": "Replacement for repair-inspector-parity-active-loop-v17, which produced useful row-11 tests but failed the strict worker result contract by wrapping JSON in prose. Reuse the current working-tree changes in tests/test_legion_commander_contract.py and scripts/legion-commander.py. Verify row 11 active mixed inspector evidence: main loop dispatch, mixed commander discovery, mixed tmux capture target, daemon_evidence schema/hash, and inspector_memory path consumed by retrospector. Fix only if the current test/code is actually wrong. Final output must be one strict JSON object only.",
+    "scope": [
+      "scripts/legion-commander.py",
+      "tests/test_legion_commander_contract.py"
+    ],
+    "depends_on": [
+      "synthesis-no-omission-release-gate-v16b"
+    ]
+  }
+]

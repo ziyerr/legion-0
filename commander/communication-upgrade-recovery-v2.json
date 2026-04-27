@@ -1,0 +1,253 @@
+[
+  {
+    "id": "comm-spec-shared-contract-v2",
+    "branch": "implement",
+    "provider": "codex",
+    "role": "implement",
+    "complexity": "xl",
+    "task": "修复 v1 规格任务 max-turns 失败后的共享真相源。读取已完成结果：comm-recon-current-state、comm-recon-legacy-claude、comm-audit-concurrency-races、comm-audit-tmux-delivery、comm-audit-readiness-boundary-rerun 的 result.md；不要重做大范围调研。只写最小必要规格：.planning/communication-upgrade/00-RUNTIME-CONTRACT.md、01-IMPLEMENTATION-PLAN.md、02-VERIFICATION-GATES.md，并在 .planning/REQUIREMENTS.md 追加 R20-R26，在 .planning/STATE.md 追加本轮状态。必须明确：L1 不交付，所有交付经 L2/worker；registry/inbox/events 必须 flock；readiness 必须有新鲜度、直属 L2 验证、不可伪造 sender；tmux 通知必须先持久化 inbox 再通知。",
+    "scope": [
+      ".planning/REQUIREMENTS.md",
+      ".planning/STATE.md",
+      ".planning/communication-upgrade/"
+    ],
+    "depends_on": [
+      "comm-recon-current-state",
+      "comm-recon-legacy-claude",
+      "comm-audit-concurrency-races",
+      "comm-audit-tmux-delivery",
+      "comm-audit-readiness-boundary-rerun"
+    ],
+    "context_policy": "retain"
+  },
+  {
+    "id": "comm-test-contracts-v2",
+    "branch": "implement",
+    "provider": "claude",
+    "role": "implement",
+    "complexity": "xl",
+    "task": "实现通信/共享状态回归测试，文件范围只允许 tests/test_legion_core.py。覆盖：registry 事务锁不丢并发 upsert；inbox append 有 lock 且离线消息保留；events append 有 lock；readiness 忽略过期记录、非直属 L2、inactive sender、缺少 READY tag 的 type=readiness；L1 delivery 默认不 direct；dependency 只在 completed 后解锁。测试可以先暴露当前缺口，最终必须与实现任务配合到通过。",
+    "scope": [
+      "tests/test_legion_core.py"
+    ],
+    "depends_on": [
+      "comm-spec-shared-contract-v2"
+    ],
+    "context_policy": "retain"
+  },
+  {
+    "id": "comm-impl-core-durable-state-v2",
+    "branch": "implement",
+    "provider": "claude",
+    "role": "implement",
+    "complexity": "xl",
+    "task": "实现 mixed core 持久共享状态升级，文件范围只允许 scripts/legion_core.py。必须修复：registry read-modify-write 全事务 flock；inbox append flock 并限制单条消息大小；events append flock；message 先持久化 inbox 再 tmux 通知；readiness 只接受当前 order 之后、注册为 parent 直属 active L2、包含 READY:init-complete 的记录；显式 --expect 也必须校验 parent/status。不得修改 tests 或 docs。",
+    "scope": [
+      "scripts/legion_core.py"
+    ],
+    "depends_on": [
+      "comm-spec-shared-contract-v2",
+      "comm-audit-concurrency-races",
+      "comm-audit-tmux-delivery",
+      "comm-audit-readiness-boundary-rerun"
+    ],
+    "context_policy": "retain"
+  },
+  {
+    "id": "comm-impl-shell-bridge-v2",
+    "branch": "implement",
+    "provider": "claude",
+    "role": "implement",
+    "complexity": "xl",
+    "task": "硬化 shell bridge 与 legacy 通信入口，文件范围只允许 scripts/legion.sh。重点修复用户输入嵌入 python -c、legacy msg/inbox 写入无锁、tmux send-keys 非 literal 注入、破坏性覆盖缺 marker/备份。不要修改 Python core 或 tests。",
+    "scope": [
+      "scripts/legion.sh"
+    ],
+    "depends_on": [
+      "comm-spec-shared-contract-v2",
+      "comm-recon-legacy-claude",
+      "comm-audit-tmux-delivery"
+    ],
+    "context_policy": "retain"
+  },
+  {
+    "id": "comm-doc-runtime-contract-v2",
+    "branch": "product",
+    "provider": "claude",
+    "role": "product",
+    "complexity": "xl",
+    "task": "更新用户可见运行规则，文件范围只允许 README.md、AGENTS.md、CLAUDE.md、.planning/communication-upgrade/。必须写清 L1 不交付、L2/worker 交付、所有 worker tmux 可见、registry/inbox/events/readiness 持久链路检查命令、readiness 的新鲜度和直属 L2 约束。不要改代码或 tests。",
+    "scope": [
+      "README.md",
+      "AGENTS.md",
+      "CLAUDE.md",
+      ".planning/communication-upgrade/"
+    ],
+    "depends_on": [
+      "comm-impl-core-durable-state-v2",
+      "comm-impl-shell-bridge-v2"
+    ],
+    "context_policy": "retain"
+  },
+  {
+    "id": "comm-review-core-durable-state-v2",
+    "branch": "review",
+    "provider": "codex",
+    "role": "review",
+    "complexity": "xl",
+    "task": "只读审查 scripts/legion_core.py 和 tests/test_legion_core.py 的 v2 改动。重点：锁边界、死锁、并发丢更新、readiness 伪造/过期、离线消息持久化、status/reconcile 副作用。输出 PASS/FAIL、具体行号、缺口。",
+    "scope": [
+      "scripts/legion_core.py",
+      "tests/test_legion_core.py",
+      ".planning/communication-upgrade/"
+    ],
+    "depends_on": [
+      "comm-impl-core-durable-state-v2",
+      "comm-test-contracts-v2"
+    ],
+    "context_policy": "retain"
+  },
+  {
+    "id": "comm-review-shell-bridge-v2",
+    "branch": "review",
+    "provider": "codex",
+    "role": "review",
+    "complexity": "xl",
+    "task": "只读审查 scripts/legion.sh 的 v2 改动。重点：python -c 输入注入、tmux send-keys literal、legacy inbox flock、不可逆覆盖备份。输出 PASS/FAIL、具体行号、缺口。",
+    "scope": [
+      "scripts/legion.sh",
+      ".planning/communication-upgrade/"
+    ],
+    "depends_on": [
+      "comm-impl-shell-bridge-v2"
+    ],
+    "context_policy": "retain"
+  },
+  {
+    "id": "comm-verify-concurrency-runtime-v2",
+    "branch": "verify",
+    "provider": "codex",
+    "role": "verify",
+    "complexity": "xl",
+    "task": "运行时验证并发与持久化。必须用隔离 legion-home，不污染当前 live registry。运行 tests/test_legion_core.py 相关测试，并额外实测并发 msg/upsert/mark 不丢记录、events/inbox JSONL 可解析、offline commander 消息保留。输出命令、exit code、证据。",
+    "scope": [
+      "scripts/legion_core.py",
+      "tests/test_legion_core.py",
+      "schemas/"
+    ],
+    "depends_on": [
+      "comm-impl-core-durable-state-v2",
+      "comm-test-contracts-v2"
+    ],
+    "context_policy": "retain"
+  },
+  {
+    "id": "comm-verify-integration-runtime-v2",
+    "branch": "verify",
+    "provider": "codex",
+    "role": "verify",
+    "complexity": "xl",
+    "task": "运行时集成验证 mixed CLI 链路。必须用隔离 legion-home/tmux socket。验证 mixed campaign --dry-run、mixed msg、broadcast --l2-only --parent、readiness --expect、inbox、status/reconcile。不得破坏当前 live sessions。输出命令、exit code、registry/inbox/events 证据。",
+    "scope": [
+      "scripts/legion_core.py",
+      "scripts/legion.sh",
+      "tests/test_legion_core.py",
+      "README.md"
+    ],
+    "depends_on": [
+      "comm-impl-core-durable-state-v2",
+      "comm-impl-shell-bridge-v2",
+      "comm-doc-runtime-contract-v2"
+    ],
+    "context_policy": "retain"
+  },
+  {
+    "id": "comm-audit-final-redteam-v2",
+    "branch": "audit",
+    "provider": "codex",
+    "role": "audit",
+    "complexity": "xl",
+    "task": "最终只读红队 v2。攻击面：恶意 commander、畸形 message、并发 campaign、offline session、伪造 readiness、超大 inbox/event、legacy shell msg。不要写 payload 到 live tmux。输出 PASS/FAIL、critical/major 复现路径、建议修复。",
+    "scope": [
+      "scripts/legion_core.py",
+      "scripts/legion.sh",
+      "tests/test_legion_core.py",
+      ".planning/communication-upgrade/"
+    ],
+    "depends_on": [
+      "comm-review-core-durable-state-v2",
+      "comm-review-shell-bridge-v2"
+    ],
+    "context_policy": "retain"
+  },
+  {
+    "id": "comm-patrol-release-gate-v2",
+    "branch": "audit",
+    "provider": "codex",
+    "role": "audit",
+    "complexity": "xl",
+    "task": "巡查延续放行门 v2。读取 scripts/legion-patrol.sh、scripts/hooks/pre-tool-use.sh、mixed registry/events/inbox、.planning/communication-upgrade/。运行 bash scripts/legion-patrol.sh status 和 scripts/legion.sh mixed status。输出 PASS/FAIL：未解决巡查通知、未审批 gate、L1 直接交付、巡查脚本不可达都必须阻塞 PASS。不得修改文件。",
+    "scope": [
+      "scripts/legion-patrol.sh",
+      "scripts/hooks/pre-tool-use.sh",
+      "scripts/legion_core.py",
+      ".planning/communication-upgrade/"
+    ],
+    "depends_on": [
+      "comm-review-core-durable-state-v2",
+      "comm-review-shell-bridge-v2",
+      "comm-verify-concurrency-runtime-v2",
+      "comm-verify-integration-runtime-v2",
+      "comm-audit-final-redteam-v2"
+    ],
+    "context_policy": "retain"
+  },
+  {
+    "id": "comm-retrospective-release-gate-v2",
+    "branch": "audit",
+    "provider": "codex",
+    "role": "audit",
+    "complexity": "xl",
+    "task": "回顾延续放行门 v2。读取 scripts/retrospector.sh、scripts/legion-commander.py、mixed registry/events/run results、.planning/communication-upgrade/。运行 bash scripts/retrospector.sh quick。输出 PASS/FAIL：缺少回顾证据、quick 有候选但未运行 full 或未记录 blocker、mixed-native 数据源未纳入后续计划，都不得 PASS。不得修改文件。",
+    "scope": [
+      "scripts/retrospector.sh",
+      "scripts/legion-commander.py",
+      ".planning/communication-upgrade/"
+    ],
+    "depends_on": [
+      "comm-review-core-durable-state-v2",
+      "comm-review-shell-bridge-v2",
+      "comm-verify-concurrency-runtime-v2",
+      "comm-verify-integration-runtime-v2",
+      "comm-audit-final-redteam-v2"
+    ],
+    "context_policy": "retain"
+  },
+  {
+    "id": "comm-synthesis-release-gate-v2",
+    "branch": "audit",
+    "provider": "codex",
+    "role": "audit",
+    "complexity": "xl",
+    "task": "综合裁决 v2。读取所有 comm-*-v2 result.md、git diff、.planning/communication-upgrade/、测试输出、巡查放行门、回顾放行门、旧版优点无遗漏矩阵。输出本轮通信/数据共享升级 PASS/FAIL，列出已验证命令、仍需修复项、未验证风险。任何巡查/回顾/旧版继承项缺失或未验证都不得 PASS。不得修改文件。",
+    "scope": [
+      ".planning/communication-upgrade/",
+      "scripts/legion_core.py",
+      "scripts/legion.sh",
+      "tests/test_legion_core.py",
+      "README.md",
+      "AGENTS.md",
+      "CLAUDE.md"
+    ],
+    "depends_on": [
+      "comm-review-core-durable-state-v2",
+      "comm-review-shell-bridge-v2",
+      "comm-verify-concurrency-runtime-v2",
+      "comm-verify-integration-runtime-v2",
+      "comm-audit-final-redteam-v2",
+      "comm-patrol-release-gate-v2",
+      "comm-retrospective-release-gate-v2"
+    ],
+    "context_policy": "retain"
+  }
+]

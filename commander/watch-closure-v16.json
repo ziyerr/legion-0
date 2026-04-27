@@ -1,0 +1,79 @@
+[
+  {
+    "id": "repair-event-correlation-evidence-v16",
+    "provider": "codex",
+    "role": "implement",
+    "task": "Close B9 / row 34 event-log WATCH with runtime-grade tests. Add focused coverage proving events.jsonl records include schema_version, id, type, timestamp, correlation_id, event, task_id, subject_id, and payload.transition; prove message_sent preserves the same correlation id across inbox record and event payload; prove dependency repair emits task_repair/task_planned with release-grade event fields. Edit only the scoped code/tests if code gaps are found. Final output strict JSON only.",
+    "scope": [
+      "scripts/legion_core.py",
+      "tests/test_legion_core.py"
+    ],
+    "depends_on": [
+      "verify-runtime-parity-v15b"
+    ]
+  },
+  {
+    "id": "repair-legacy-surface-contract-v16",
+    "provider": "codex",
+    "role": "implement",
+    "task": "Close B6 / row 33 shell-surface WATCH with executable contract tests and minimal fixes if needed. Cover top-level read-only surfaces locks, board, sitrep, watch, mailbox, patrol, retro/retrospector, and mixed status/inbox/readiness. Prove read-only subcommands do not initialize project .claude or global directory registration under isolated HOME/project and invalid TMPDIR, except documented write actions such as mailbox send/broadcast/clear and gate block/approve. Keep edits scoped. Final output strict JSON only.",
+    "scope": [
+      "scripts/legion.sh",
+      "tests/test_legion_shell_contract.py"
+    ],
+    "depends_on": [
+      "verify-runtime-parity-v15b"
+    ]
+  },
+  {
+    "id": "repair-retrospective-disposition-v16",
+    "provider": "codex",
+    "role": "implement",
+    "task": "Close retrospective release WATCH without losing learning value. The full retrospective currently extracts historical candidates and returns verdict=fail/watch, which blocks release. Implement a deterministic disposition path or report field that separates current release blockers from historical learning candidates, so full mode can record extracted candidates while release synthesis can tell whether any current blocker remains. Preserve fail-closed behavior for true FAIL severity/current blockers. Add tests covering historical-only candidates versus active blockers. Final output strict JSON only.",
+    "scope": [
+      "scripts/retrospector.sh",
+      "tests/test_retrospector_contract.py"
+    ],
+    "depends_on": [
+      "verify-runtime-parity-v15b"
+    ]
+  },
+  {
+    "id": "repair-matrix-state-watch-closure-v16",
+    "provider": "codex",
+    "role": "implement",
+    "task": "After the v16 event/shell/retrospective repairs complete, update planning truth only. Close or reclassify residual WATCH rows in .planning/communication-upgrade/04-LEGACY-PARITY-MATRIX.md and .planning/STATE.md using concrete runtime evidence from v15b/v16 result artifacts. Do not claim PASS unless every B1-B10 and rows 1-35 item has evidence or a named blocker/repair task. Include event ids/run ids/result artifact paths in the docs. Final output strict JSON only.",
+    "scope": [
+      ".planning/STATE.md",
+      ".planning/communication-upgrade/04-LEGACY-PARITY-MATRIX.md",
+      ".planning/communication-upgrade/05-RETROSPECTIVE-CONTRACT.md",
+      ".planning/retrospectives/2026-04-25-communication-upgrade.md"
+    ],
+    "depends_on": [
+      "repair-event-correlation-evidence-v16",
+      "repair-legacy-surface-contract-v16",
+      "repair-retrospective-disposition-v16"
+    ]
+  },
+  {
+    "id": "synthesis-no-omission-release-gate-v16",
+    "provider": "codex",
+    "role": "review",
+    "task": "Final read-only no-omission synthesis after v16 repairs. Enumerate B1-B10 and rows 1-35. Verify current evidence from v15b and v16 artifacts, run the smallest read-only checks needed, and return PASS only if no current WATCH/BLK/FAIL remains. If not PASS, return WATCH/FAIL and list exact remaining tasks. Final output strict JSON only.",
+    "scope": [
+      ".planning/STATE.md",
+      ".planning/communication-upgrade/04-LEGACY-PARITY-MATRIX.md",
+      ".planning/communication-upgrade/05-RETROSPECTIVE-CONTRACT.md",
+      ".planning/retrospectives/2026-04-25-communication-upgrade.md",
+      "scripts/legion_core.py",
+      "scripts/legion.sh",
+      "scripts/retrospector.sh",
+      "tests/test_legion_core.py",
+      "tests/test_legion_shell_contract.py",
+      "tests/test_retrospector_contract.py"
+    ],
+    "depends_on": [
+      "repair-matrix-state-watch-closure-v16"
+    ]
+  }
+]

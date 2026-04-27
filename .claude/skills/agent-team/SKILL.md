@@ -422,7 +422,7 @@ Agent(
   "task_id": "简短标识",
   "timestamp": "ISO时间",
   "complexity": "S|M|L|XL",
-  
+
   "scale": {
     "team_size": 8,
     "impl_count": 3,
@@ -431,7 +431,7 @@ Agent(
     "recon_routes": 2,
     "files_changed": 6
   },
-  
+
   "timing": {
     "total_minutes": 45,
     "impl_minutes": 20,

@@ -1,0 +1,40 @@
+[
+  {
+    "id": "repair-matrix-state-watch-closure-v16b",
+    "provider": "codex",
+    "role": "implement",
+    "task": "Replacement for repair-matrix-state-watch-closure-v16, which was stopped after scanning too much history without producing docs changes. Do not scan all mixed/runs. Read only these artifacts: repair-event-correlation-evidence-v16/result.md, repair-legacy-surface-contract-v16/result.md, repair-retrospective-disposition-v16/result.md, verify-runtime-parity-v15b/result.md, .planning/STATE.md, .planning/communication-upgrade/04-LEGACY-PARITY-MATRIX.md, .planning/communication-upgrade/05-RETROSPECTIVE-CONTRACT.md. Update planning truth only. Close WATCH rows only when the named artifact provides evidence; otherwise keep WATCH and name a concrete blocker/repair. Include v16 task ids and verification commands in the evidence cells. Keep output strict JSON only.",
+    "scope": [
+      ".planning/STATE.md",
+      ".planning/communication-upgrade/04-LEGACY-PARITY-MATRIX.md",
+      ".planning/communication-upgrade/05-RETROSPECTIVE-CONTRACT.md",
+      ".planning/retrospectives/2026-04-25-communication-upgrade.md"
+    ],
+    "depends_on": [
+      "repair-event-correlation-evidence-v16",
+      "repair-legacy-surface-contract-v16",
+      "repair-retrospective-disposition-v16"
+    ]
+  },
+  {
+    "id": "synthesis-no-omission-release-gate-v16b",
+    "provider": "codex",
+    "role": "review",
+    "task": "Final read-only no-omission synthesis after v16b matrix closure. Do not edit files. Read only v15b/v16 result artifacts and planning files. Enumerate B1-B10 and rows 1-35. PASS only if every residual WATCH/BLK/FAIL is cleared with runtime evidence or reclassified with a named blocker/repair; otherwise return WATCH/FAIL with exact remaining tasks. Final output strict JSON only.",
+    "scope": [
+      ".planning/STATE.md",
+      ".planning/communication-upgrade/04-LEGACY-PARITY-MATRIX.md",
+      ".planning/communication-upgrade/05-RETROSPECTIVE-CONTRACT.md",
+      ".planning/retrospectives/2026-04-25-communication-upgrade.md",
+      "scripts/legion_core.py",
+      "scripts/legion.sh",
+      "scripts/retrospector.sh",
+      "tests/test_legion_core.py",
+      "tests/test_legion_shell_contract.py",
+      "tests/test_retrospector_contract.py"
+    ],
+    "depends_on": [
+      "repair-matrix-state-watch-closure-v16b"
+    ]
+  }
+]

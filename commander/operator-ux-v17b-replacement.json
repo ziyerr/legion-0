@@ -1,0 +1,16 @@
+[
+  {
+    "id": "repair-operator-ux-surfacing-v17b",
+    "provider": "codex",
+    "role": "implement",
+    "complexity": "m",
+    "task": "Replacement for repair-operator-ux-surfacing-v17, which produced useful row-23 ops UX changes but failed the strict worker result contract by wrapping JSON in Markdown. Reuse current working-tree changes in scripts/legion.sh and tests/test_legion_shell_contract.py. Verify that `legion.sh ops` is one read-only operator surface showing mixed commanders, blocked/failed tasks, patrol notices/status, gate status, retrospective release status, and recent relevant mixed events; verify isolated HOME/project invalid TMPDIR does not initialize .claude or directory registration. Fix only if current code/tests are actually wrong. Final output must be one strict JSON object only.",
+    "scope": [
+      "scripts/legion.sh",
+      "tests/test_legion_shell_contract.py"
+    ],
+    "depends_on": [
+      "synthesis-no-omission-release-gate-v16b"
+    ]
+  }
+]

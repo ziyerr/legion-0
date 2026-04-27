@@ -1,0 +1,46 @@
+[
+  {
+    "id": "repair-core-security-audit-v13",
+    "role": "implement",
+    "provider": "codex",
+    "sandbox": "workspace-write",
+    "complexity": "xl",
+    "branch": "core",
+    "task": "Self-contained task: final output JSON only. Scope only scripts/legion_core.py and tests/test_legion_core.py. Fix the core blockers from audit-adversarial-legacy-parity-v12: (1) readiness sender authenticity: readiness/control-plane READY cannot be satisfied by arbitrary CLI --from text; derive/validate sender from registered commander execution context/session/run binding and structured order_id/nonce fields. (2) corps delegation fail-closed: if create_branch_commander fails or lacks live active L2, do not launch workers; block/fail assigned tasks. _launch_ready_tasks must verify assigned commander is registered active/live. (3) reject unknown commanders instead of treating unknown --commander as level 0 and bypassing L1 no-delivery. (4) tmux probe classification: live/missing/inaccessible; reconcile must not mark failed on inaccessible/permission/socket errors. (5) release-grade events: stable event id, schema_version, type/timestamp/correlation id/non-empty transition payloads for registry/inbox/dependency/readiness/repair/status events; keep backward compatibility for readers. (6) broadcast recipient snapshot under registry lock with idempotent inbox records/correlation. (7) enforce Codex sandbox invariants: read-only gates cannot be escalated to workspace-write via sandbox, and Codex delivery roles cannot be forced read-only; explicit sandbox override must be validated. (8) re-check delivery scope conflicts at running/launched transition and persist inspectable scope-conflict block/event instead of only raising SystemExit during campaign planning. Add focused tests and keep tests.test_legion_core passing.",
+    "scope": [
+      "scripts/legion_core.py",
+      "tests/test_legion_core.py"
+    ],
+    "retain_context": true
+  },
+  {
+    "id": "repair-patrol-gate-readonly-v13",
+    "role": "implement",
+    "provider": "codex",
+    "sandbox": "workspace-write",
+    "complexity": "l",
+    "branch": "patrol",
+    "task": "Self-contained task: final output JSON only. Scope only scripts/legion-patrol.sh, scripts/hooks/pre-tool-use.sh, and scripts/legion.sh. Fix patrol/gate blockers from v11/v12 review/audit: (1) `legion-patrol.sh status` and mixed read-only patrol evidence must not use shell heredocs that fail in no-temp/read-only Codex workers; move embedded logic to no-temp python -c or checked-in helper-free shell. (2) status must not mkdir patrol dirs; missing patrol dir prints empty. (3) patrol remediation/reinspect must validate against the target mixed commander subtree/live tmux sessions, not unrelated ~/.claude/teams configs. (4) bridge `legion.sh gate block/approve` evidence into mixed events/inboxes or clearly route through Legion Core so gate block/approve is auditable by release gates. Add focused smoke tests or shell/Python checks runnable locally, and preserve legacy warn->violation->gate behavior.",
+    "scope": [
+      "scripts/legion-patrol.sh",
+      "scripts/hooks/pre-tool-use.sh",
+      "scripts/legion.sh"
+    ],
+    "retain_context": true
+  },
+  {
+    "id": "repair-retrospector-daemon-evidence-v13",
+    "role": "implement",
+    "provider": "codex",
+    "sandbox": "workspace-write",
+    "complexity": "l",
+    "branch": "retro",
+    "task": "Self-contained task: final output JSON only. Scope only scripts/retrospector.sh, scripts/legion-commander.py, and .planning/communication-upgrade/05-RETROSPECTIVE-CONTRACT.md. Fix retrospector/daemon blockers from v11/v12 review/audit: (1) `retrospector.sh quick` must run in no-temp/read-only Codex workers; remove shell heredoc dependency from read-only paths. (2) quick/full must discover and parse LEGION_DIR/daemon_evidence.jsonl in addition to inspector_memory and observations, include source counts/candidates, and make missing daemon evidence explicit WATCH when docs require it. (3) implement the documented retrospective contract enough for release gates: I1-I8 input accounting, classification of zero/pending/blocked, command/timestamp/cwd/run-id or hash evidence, full extraction/writeback to .planning/retrospectives, STATE.md summary, and mixed event evidence when write mode is used. Preserve existing quick JSON output compatibility where possible and add focused verification.",
+    "scope": [
+      "scripts/retrospector.sh",
+      "scripts/legion-commander.py",
+      ".planning/communication-upgrade/05-RETROSPECTIVE-CONTRACT.md"
+    ],
+    "retain_context": true
+  }
+]

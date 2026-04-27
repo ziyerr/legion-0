@@ -1,0 +1,30 @@
+[
+  {
+    "id": "inspector-v17c",
+    "provider": "codex",
+    "role": "implement",
+    "complexity": "m",
+    "task": "Formal registry-clean replacement for repair-inspector-parity-active-loop-v17. Reuse the existing v17/v17b row-11 evidence and the current working-tree test tests/test_legion_commander_contract.py. Verify active mixed inspector parity: main-loop dispatch cadence, mixed commander discovery, mixed tmux capture targeting, daemon_evidence schema/hash, and inspector_memory path consumed by retrospector. Do not broaden scope. Edit only if verification proves the current code/test is wrong. Final response must be one strict JSON object only, with keys status, summary, files_touched, verification, findings, risks.",
+    "scope": [
+      "scripts/legion-commander.py",
+      "tests/test_legion_commander_contract.py"
+    ],
+    "depends_on": [
+      "synthesis-no-omission-release-gate-v16b"
+    ]
+  },
+  {
+    "id": "ops-v17c",
+    "provider": "codex",
+    "role": "implement",
+    "complexity": "m",
+    "task": "Formal registry-clean replacement for repair-operator-ux-surfacing-v17. Reuse the existing v17/v17b row-23 evidence and the current working-tree changes in scripts/legion.sh and tests/test_legion_shell_contract.py. Verify legion.sh ops is read-only and surfaces mixed commanders, blocked/failed tasks with causes, patrol notice/status, release gate state, retrospective release status, and recent relevant mixed events under isolated HOME/project invalid TMPDIR without directory registration. Do not broaden scope. Edit only if verification proves the current code/test is wrong. Final response must be one strict JSON object only, with keys status, summary, files_touched, verification, findings, risks.",
+    "scope": [
+      "scripts/legion.sh",
+      "tests/test_legion_shell_contract.py"
+    ],
+    "depends_on": [
+      "synthesis-no-omission-release-gate-v16b"
+    ]
+  }
+]

@@ -1,0 +1,14 @@
+[
+  {
+    "id": "dual-l1-control-plane-review-v2",
+    "role": "review",
+    "provider": "codex",
+    "complexity": "s",
+    "task": "Read-only follow-up review for the two shell compatibility findings from dual-l1-control-plane-review. Do not edit files. Verify only: (1) scripts/legion.sh mixed host --dry-run --host-only is covered by the read-only exemption and does not initialize HOME/project state; (2) top-level scripts/legion.sh host --dry-run --host-only routes to legacy legion_core.py host, not dual-host argparse failure; (3) tests/test_legion_shell_contract.py has dry-run contract coverage for both paths. Suggested commands: bash -n scripts/legion.sh; HOME=/tmp/legion-readonly-home TMPDIR=/tmp/legion-missing-tmp PYTHONDONTWRITEBYTECODE=1 bash scripts/legion.sh mixed host --dry-run --host-only; HOME=/tmp/legion-readonly-home TMPDIR=/tmp/legion-missing-tmp PYTHONDONTWRITEBYTECODE=1 bash scripts/legion.sh host --dry-run --host-only; rg -n \"mixed.*host|host.*host-only|dual-host\" tests/test_legion_shell_contract.py scripts/legion.sh. Final output JSON only using worker-result schema.",
+    "scope": [
+      "scripts/legion.sh",
+      "tests/test_legion_shell_contract.py"
+    ],
+    "context_policy": "discard"
+  }
+]

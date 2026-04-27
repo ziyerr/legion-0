@@ -1,0 +1,25 @@
+[
+  {
+    "id": "verify-runtime-parity-v15b",
+    "provider": "codex",
+    "role": "rescue",
+    "task": "Replacement for verify-runtime-parity-v15, which ran the checks successfully but failed the strict worker-output contract by wrapping JSON in prose/markdown. Do not edit project files. Use workspace-write only for normal temp files needed by tests. Re-run the same concrete release checks: focused unittest suite for tests.test_legion_core, tests.test_legion_shell_contract, and tests.test_retrospector_contract; shell syntax for scripts/legion.sh, scripts/legion-patrol.sh, scripts/hooks/pre-tool-use.sh, scripts/retrospector.sh; Python compile/AST checks for changed Python/test files; invalid-TMPDIR dry-run non-mutation checks for scripts/legion.sh mixed campaign --dry-run, duo --dry-run, and dou --dry-run; direct retrospector quick with PROJECT_DIR set to another repo while cwd is legion-0; daemon_evidence.jsonl schema/hash presence. Final output must be exactly one strict JSON object matching the worker schema: status, summary, files_touched, verification, findings, risks. Use lowercase verification results pass/fail/not-run and finding severities critical/major/minor/suggestion.",
+    "scope": [
+      "scripts/legion_core.py",
+      "scripts/legion.sh",
+      "scripts/legion-commander.py",
+      "scripts/retrospector.sh",
+      "scripts/legion-patrol.sh",
+      "scripts/hooks/pre-tool-use.sh",
+      "tests/test_legion_core.py",
+      "tests/test_legion_shell_contract.py",
+      "tests/test_retrospector_contract.py",
+      "commander/runtime-hardening-v14b-codex-retry.json"
+    ],
+    "depends_on": [
+      "repair-core-sender-auth-v14b",
+      "repair-shell-daemon-runtime-v14b",
+      "repair-retrospector-project-boundary-v14b"
+    ]
+  }
+]

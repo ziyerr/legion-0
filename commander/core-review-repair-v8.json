@@ -1,0 +1,134 @@
+[
+  {
+    "id": "repair-core-review-findings-v8",
+    "role": "implement",
+    "provider": "codex",
+    "complexity": "xl",
+    "branch": "implement",
+    "task": "Fix the major findings from review-core-policy-state-v7. Scope only scripts/legion_core.py and tests/test_legion_core.py. Address all review findings: strict whole-file JSON worker result parsing plus schema-equivalent validation for status, summary, files_touched, verification, findings, risks; reject prose-wrapped JSON and missing required keys; make scope ownership transactional across conflict check and task/commander mutation; require non-empty normalized file scope for delivery roles/branches; detect path overlap/containment such as src vs src/app.py and ./src/app.py; readiness must not count stale direct L2 commanders whose tmux session is missing/inaccessible; repair_dependents must validate replacement task exists and is not failed/blocked before rewriting/unblocking; branch commander reuse must include provider compatibility or refresh/refuse wrong-provider commanders. Preserve previous v5 behavior and tests. Add regression tests for every fixed finding. Do not edit shell, daemon, patrol, retrospector, docs, or schemas unless impossible; if schema import is unavailable, implement local schema-equivalent validation in legion_core.py.",
+    "scope": [
+      "scripts/legion_core.py",
+      "tests/test_legion_core.py"
+    ],
+    "depends_on": [
+      "review-core-policy-state-v7"
+    ],
+    "retain_context": true
+  },
+  {
+    "id": "review-core-policy-state-v8",
+    "role": "review",
+    "provider": "codex",
+    "complexity": "xl",
+    "branch": "review",
+    "task": "Independently re-review scripts/legion_core.py and tests/test_legion_core.py after repair-core-review-findings-v8. Verify every review-core-policy-state-v7 major finding is fixed, and look for regressions in structured completion, scope ownership, readiness trust, repair semantics, provider-role defaults, status/reconcile split, locks, and dependency unblock behavior. Do not edit files.",
+    "scope": [
+      "scripts/legion_core.py",
+      "tests/test_legion_core.py"
+    ],
+    "depends_on": [
+      "repair-core-review-findings-v8"
+    ],
+    "retain_context": true
+  },
+  {
+    "id": "repair-docs-runtime-contract-v8",
+    "role": "product",
+    "provider": "codex",
+    "complexity": "xl",
+    "branch": "product",
+    "task": "Recover failed docs v7 under Codex because Claude quota is currently exhausted. Update operator docs and planning runtime contract. Scope README.md, AGENTS.md, CLAUDE.md, and .planning/communication-upgrade/. Document exact commands, parity guarantees, no-omission matrix, patrol/retro gates, commander daemon learning evidence, strict structured worker completion, dependency repair/unblock, read-only status vs reconcile, shell operator commands, v8 core review repairs, and the observed Claude quota fallback to Codex. Do not edit scripts or tests.",
+    "scope": [
+      "README.md",
+      "AGENTS.md",
+      "CLAUDE.md",
+      ".planning/communication-upgrade/"
+    ],
+    "depends_on": [
+      "review-core-policy-state-v8",
+      "repair-patrol-status-v3",
+      "repair-patrol-hook-gate-v3",
+      "repair-retrospective-contract-v4",
+      "repair-commander-daemon-learning-v6",
+      "repair-shell-ops-ux-v7"
+    ],
+    "retain_context": true
+  },
+  {
+    "id": "review-patrol-retro-learning-v8",
+    "role": "review",
+    "provider": "codex",
+    "complexity": "xl",
+    "branch": "review",
+    "task": "Independently review patrol status, patrol hook gate, retrospector script, retrospective contract, commander daemon learning, shell UX, v8 core repair, and docs changes. Focus on legacy parity, split-brain bridging, no-omission matrix, release gates, daemon_evidence consumer gap, learning loop continuity, and whether docs match runtime evidence. Do not edit files.",
+    "scope": [
+      "scripts/legion-patrol.sh",
+      "scripts/hooks/pre-tool-use.sh",
+      "scripts/retrospector.sh",
+      "scripts/legion-commander.py",
+      "scripts/legion_core.py",
+      "tests/test_legion_core.py",
+      "scripts/legion.sh",
+      "README.md",
+      "AGENTS.md",
+      "CLAUDE.md",
+      ".planning/communication-upgrade/"
+    ],
+    "depends_on": [
+      "repair-docs-runtime-contract-v8"
+    ],
+    "retain_context": true
+  },
+  {
+    "id": "verify-isolated-runtime-parity-v8",
+    "role": "verify",
+    "provider": "codex",
+    "complexity": "xl",
+    "branch": "verify",
+    "task": "Run isolated runtime verification for mixed campaign, msg, broadcast, readiness, status/reconcile, strict worker completion, scope ownership conflicts, repair replacement validation, patrol, retrospector, commander daemon learning evidence, shell operator commands, and docs gates. Use isolated HOME/tmux where feasible and report exact commands. Do not edit files.",
+    "scope": [
+      "scripts/",
+      "tests/",
+      ".planning/communication-upgrade/"
+    ],
+    "depends_on": [
+      "review-core-policy-state-v8",
+      "review-patrol-retro-learning-v8"
+    ],
+    "retain_context": true
+  },
+  {
+    "id": "audit-adversarial-legacy-parity-v8",
+    "role": "audit",
+    "provider": "codex",
+    "complexity": "xl",
+    "branch": "audit",
+    "task": "Red-team the upgraded mixed Legion parity. Attack prose-wrapped/fake worker JSON, missing schema keys, concurrent same-scope campaigns, scope path normalization bypasses, stale readiness from dead L2 tmux sessions, forged readiness, stale inbox rows, malicious commander ids, offline sessions, oversized messages, prompt injection, direct L1 delivery, dependency repair to missing replacement, missing patrol/retro/daemon/shell evidence, fake no-omission rows, and split-brain docs. Any FAIL blocks release. Do not edit files.",
+    "scope": [
+      "scripts/",
+      "tests/",
+      ".planning/communication-upgrade/",
+      "/Users/feijun/.claude/legion/bf21e79d/mixed/"
+    ],
+    "depends_on": [
+      "verify-isolated-runtime-parity-v8"
+    ],
+    "retain_context": true
+  },
+  {
+    "id": "synthesis-no-omission-release-gate-v8",
+    "role": "audit",
+    "provider": "codex",
+    "complexity": "xl",
+    "branch": "audit",
+    "task": "Produce the final release synthesis matrix. Every preserved legacy mechanism must be retained/upgraded/replaced/blocker with evidence. Include v7 review findings and v8 repair evidence. Final verdict must be FAIL or WATCH if any review, verify, audit, patrol, retrospective, commander-daemon learning, shell operator UX, strict structured completion, or no-omission item lacks runtime evidence. Do not edit files.",
+    "scope": [
+      ".planning/communication-upgrade/",
+      "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/"
+    ],
+    "depends_on": [
+      "audit-adversarial-legacy-parity-v8"
+    ],
+    "retain_context": true
+  }
+]

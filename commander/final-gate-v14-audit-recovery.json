@@ -1,0 +1,24 @@
+[
+  {
+    "id": "verify-release-contract-v14",
+    "provider": "codex",
+    "role": "verify",
+    "task": "Independent release-contract verification for the mixed Claude+Codex Legion upgrade. Use only read-only code inspection and non-destructive local commands. Do not perform offensive testing and do not provide exploit steps. Confirm whether the release contract is satisfied: L1 does not perform delivery, delivery is routed through live L2 branch commanders, durable messages/inbox/events/readiness remain valid, state mutations are locked, dry-run and status/readiness paths are non-mutating, patrol/gate mechanisms are retained, retrospective learning/writeback is retained, daemon evidence is durable, shell UX stays functional, and legacy Claude Legion strengths are preserved while Codex adds independent review/verify value. Report PASS/FAIL with file/line evidence, exact commands run, and residual WATCH items.",
+    "scope": [
+      "scripts/legion_core.py",
+      "scripts/legion.sh",
+      "scripts/legion-patrol.sh",
+      "scripts/hooks/pre-tool-use.sh",
+      "scripts/retrospector.sh",
+      "scripts/legion-commander.py",
+      "tests/test_legion_core.py",
+      ".planning/communication-upgrade/04-LEGACY-PARITY-MATRIX.md",
+      ".planning/communication-upgrade/05-RETROSPECTIVE-CONTRACT.md"
+    ],
+    "depends_on": [
+      "repair-core-security-audit-v13",
+      "repair-patrol-gate-readonly-v13",
+      "repair-retrospector-daemon-evidence-v13"
+    ]
+  }
+]

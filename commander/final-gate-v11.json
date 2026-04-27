@@ -1,0 +1,121 @@
+[
+  {
+    "id": "review-core-policy-state-v11",
+    "role": "review",
+    "provider": "codex",
+    "complexity": "m",
+    "branch": "review",
+    "task": "Read-only review. Verify the mixed core after v10a/v10b against all prior findings from v5/v6/v7 and the newly discovered dry-run mutation bug. Inspect scripts/legion_core.py, tests/test_legion_core.py, v10a/v10b result files under /Users/feijun/.claude/legion/bf21e79d/mixed/runs, and relevant registry/events evidence. Report only remaining bugs, missing tests, or policy gaps; do not edit files.",
+    "scope": [
+      "scripts/legion_core.py",
+      "tests/test_legion_core.py"
+    ],
+    "depends_on": [
+      "repair-core-scope-repair-v10b"
+    ],
+    "retain_context": true
+  },
+  {
+    "id": "repair-docs-runtime-contract-v11",
+    "role": "product",
+    "provider": "codex",
+    "complexity": "m",
+    "branch": "docs",
+    "task": "Docs/runtime contract implementation. Update only README.md and .planning docs to reflect the restored legacy mechanisms plus mixed Claude+Codex upgrades: no L1 delivery, corps routing, durable inbox/events/result artifacts, readiness order_id/nonce/freshness, status vs reconcile read-only contract, patrol gate, retrospector/after-action learning, daemon evidence, strict worker result schema, scope ownership, repair workflow, dry-run non-mutation, independent review/verify/audit gates, and provider strengths. Preserve all useful legacy Claude-only principles; do not weaken or omit anything already documented.",
+    "scope": [
+      "README.md",
+      ".planning/REQUIREMENTS.md",
+      ".planning/DECISIONS.md",
+      ".planning/STATE.md",
+      ".planning/communication-upgrade/04-LEGACY-PARITY-MATRIX.md",
+      ".planning/communication-upgrade/05-RETROSPECTIVE-CONTRACT.md"
+    ],
+    "depends_on": [
+      "repair-core-scope-repair-v10b"
+    ],
+    "retain_context": true
+  },
+  {
+    "id": "review-patrol-retro-learning-v11",
+    "role": "review",
+    "provider": "codex",
+    "complexity": "m",
+    "branch": "review",
+    "task": "Read-only review of preserved legacy independent mechanisms. Inspect scripts/legion-patrol.sh, scripts/hooks/pre-tool-use.sh, scripts/retrospector.sh, scripts/legion-commander.py, related .planning docs, and worker result files from v3/v4/v6/v7. Confirm patrol/督察, retrospector/回顾, daemon learning/evidence, gates, and communication durability are actually retained and usable in the mixed system. Report actionable gaps only; do not edit.",
+    "scope": [
+      "scripts/legion-patrol.sh",
+      "scripts/hooks/pre-tool-use.sh",
+      "scripts/retrospector.sh",
+      "scripts/legion-commander.py",
+      ".planning/communication-upgrade/04-LEGACY-PARITY-MATRIX.md",
+      ".planning/communication-upgrade/05-RETROSPECTIVE-CONTRACT.md"
+    ],
+    "depends_on": [
+      "repair-core-scope-repair-v10b",
+      "repair-docs-runtime-contract-v11"
+    ],
+    "retain_context": true
+  },
+  {
+    "id": "verify-isolated-runtime-parity-v11",
+    "role": "verify",
+    "provider": "codex",
+    "complexity": "m",
+    "branch": "verify",
+    "task": "Independent verification. Run the smallest sufficient local checks for mixed core, shell, patrol, retrospector, daemon compile/smoke, and isolated HOME/state behavior. Include tests for strict result validation, dry-run non-mutation, read-only status/readiness, readiness liveness, scope conflict/overlap, repair dependents, patrol status/gate, retro quick, and shell routing. Do not edit files; report commands and exact results.",
+    "scope": [
+      "scripts/legion_core.py",
+      "tests/test_legion_core.py",
+      "scripts/legion.sh",
+      "scripts/legion-patrol.sh",
+      "scripts/hooks/pre-tool-use.sh",
+      "scripts/retrospector.sh",
+      "scripts/legion-commander.py"
+    ],
+    "depends_on": [
+      "repair-core-scope-repair-v10b",
+      "repair-docs-runtime-contract-v11"
+    ],
+    "retain_context": true
+  },
+  {
+    "id": "audit-adversarial-legacy-parity-v11",
+    "role": "audit",
+    "provider": "codex",
+    "complexity": "m",
+    "branch": "audit",
+    "task": "Adversarial audit. Attack the mixed architecture for any omission of useful legacy Claude-only mechanisms or any broken chain in delegation, approval, inbox, readiness, patrol, retrospective, learning, status/reconcile, repair, dry-run, scope ownership, result validation, and independent gate enforcement. Use code, docs, registry/events, and worker result artifacts. Do not edit files; any FAIL must name concrete evidence and blocking severity.",
+    "scope": [
+      "scripts/legion_core.py",
+      "scripts/legion.sh",
+      "scripts/legion-patrol.sh",
+      "scripts/hooks/pre-tool-use.sh",
+      "scripts/retrospector.sh",
+      "scripts/legion-commander.py",
+      ".planning"
+    ],
+    "depends_on": [
+      "repair-core-scope-repair-v10b",
+      "repair-docs-runtime-contract-v11"
+    ],
+    "retain_context": true
+  },
+  {
+    "id": "synthesis-no-omission-release-gate-v11",
+    "role": "review",
+    "provider": "codex",
+    "complexity": "m",
+    "branch": "synthesis",
+    "task": "Read-only synthesis gate. Wait for review-core-policy-state-v11, review-patrol-retro-learning-v11, verify-isolated-runtime-parity-v11, and audit-adversarial-legacy-parity-v11. Read result files under /Users/feijun/.claude/legion/bf21e79d/mixed/runs. Produce a concise release-gate verdict: PASS only if no unresolved major/critical gaps remain and no useful legacy mechanism that can be inherited is missing. Do not edit files.",
+    "scope": [
+      ".planning"
+    ],
+    "depends_on": [
+      "review-core-policy-state-v11",
+      "review-patrol-retro-learning-v11",
+      "verify-isolated-runtime-parity-v11",
+      "audit-adversarial-legacy-parity-v11"
+    ],
+    "retain_context": true
+  }
+]

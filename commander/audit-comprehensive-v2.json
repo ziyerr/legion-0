@@ -1,0 +1,136 @@
+[
+  {
+    "id": "audit-static-v2",
+    "provider": "codex",
+    "role": "audit",
+    "task": "深度静态质量审计 v2。Scope：install.sh / scripts/legion.sh(3538行) / scripts/legion(wrapper) / scripts/legion-init.sh / scripts/legion_core.py(2632行) / scripts/legion-commander.py(1630行) / scripts/legion-mixed.sh / scripts/codex_skill_budget.py / scripts/memory-recall.py / scripts/stack-verify.sh / scripts/skill-health.sh / scripts/hooks/{install-hooks,legion-env,post-commit,post-tool-use,pre-commit,pre-tool-use,stop-hook}.sh / tests/{test_legion_core,test_codex_skill_budget,test_roundtable_skill}.py。必查：(1) bash -n 全过、shellcheck 主要 shell 全过、python -m py_compile 全过；(2) 项目历史坑必扫——tactic-80f12f（bash local 必须在函数内、case 分支内联用 local 必须包函数）、tactic-1abd3a（资源池 release 必须 null guard）、tactic-cbd061（破坏性清理先备份）、tactic-c57407（文件重组同步引用）、tactic-3abbf7（直接编辑源码触发巡查门）；(3) shadowed bindings / unused vars / heredoc 未转义；(4) tests 是否真覆盖 R1-R19（看 .planning/REQUIREMENTS.md）、是否用 mock 替代真实集成；(5) Python 代码：异常吞噬、broad except、subprocess shell=True、文件路径硬编码；(6) Shell 代码：未引号变量、未 set -euo pipefail、IFS 处理。输出 /Users/feijun/.claude/legion/bf21e79d/mixed/inbox/audit-static-v2-report-<your-id>.md，含每个发现的 文件:行号 + 严重度(CRITICAL/HIGH/MEDIUM/LOW) + 三选一裁决(PASS/YES_WITH_WATCH/FAIL)。完成后用 /Users/feijun/Documents/legion-0/scripts/legion.sh mixed msg L1-legion-0-星辰军团 通知报告路径。完整 spec 参见 .planning/AUDIT-PLAN.md Branch A 但靶场扩展到 v2 列出的全部文件。",
+    "scope": [
+      "install.sh",
+      "scripts/legion.sh",
+      "scripts/legion",
+      "scripts/legion-init.sh",
+      "scripts/legion-mixed.sh",
+      "scripts/legion_core.py",
+      "scripts/legion-commander.py",
+      "scripts/codex_skill_budget.py",
+      "scripts/memory-recall.py",
+      "scripts/stack-verify.sh",
+      "scripts/skill-health.sh",
+      "scripts/hooks/",
+      "tests/",
+      ".planning/AUDIT-PLAN.md",
+      ".planning/REQUIREMENTS.md"
+    ]
+  },
+  {
+    "id": "audit-redteam-v2",
+    "provider": "codex",
+    "role": "audit",
+    "task": "红队安全审计 v2。Scope：scripts/legion.sh / scripts/legion_core.py / scripts/legion-commander.py / scripts/legion-init.sh / scripts/legion-mixed.sh / scripts/hooks/* / scripts/stack-verify.sh / install.sh / .claude/commander/ / commander/ / memory/ / .agents/skills/。必查：(1) **命令注入**——commander name / task description / scope / inbox 消息正文 / agent 名字含 ;|&$()`\\n\\\"' 是否进入 shell heredoc / send-keys / eval / subprocess shell=True；构造具体 PoC payload；(2) **tmux send-keys 转义**——readiness 报告里的 \\n 与转义序列、agent 互发消息时的特殊字符是否被解析为按键；(3) **写入路径覆盖**——install.sh / legion 0 / legion h / legion view 写 ~/.claude/、/opt/homebrew/bin/legion 是否覆盖用户既有非 Legion 文件，hooks 合并是否幂等且保留外部 hooks，agents/skills 同名冲突；(4) **hooks 攻击面**——post-tool-use 是否能被恶意 tool 输出攻击（path traversal、stdout 注入、伪造 quality gate PASS）；pre-commit/pre-tool-use 同理；(5) **prompt injection**——mixed inbox 文本进入 L1/L2 prompt context、events.jsonl 进入 status 输出、readiness 报告内容是否能注入指令；(6) **secret 泄漏**——commander/initial-recon-*.json、.claude/commander/briefings、memory/builder-journal.md、events.jsonl 是否含 token/path 等敏感数据；tactic-1f3c41（禁止 secret 回显）；(7) **DoS / 资源耗尽**——broadcast 风暴、inbox 爆炸、tmux 会话泄漏、events.jsonl 无限增长。每条发现给 PoC payload + 影响范围 + 修复建议 + 严重度。输出 /Users/feijun/.claude/legion/bf21e79d/mixed/inbox/audit-redteam-v2-report-<your-id>.md。完成后 mixed msg L1-legion-0-星辰军团 通知报告路径。完整 spec 见 .planning/AUDIT-PLAN.md Branch B。",
+    "scope": [
+      "scripts/legion.sh",
+      "scripts/legion_core.py",
+      "scripts/legion-commander.py",
+      "scripts/legion-init.sh",
+      "scripts/legion-mixed.sh",
+      "scripts/hooks/",
+      "scripts/stack-verify.sh",
+      "install.sh",
+      ".claude/commander/",
+      "commander/",
+      "memory/",
+      ".agents/skills/"
+    ]
+  },
+  {
+    "id": "audit-contract-v2",
+    "provider": "codex",
+    "role": "audit",
+    "task": "集成契约 + 生命周期审计 v2。Scope：scripts/legion.sh / scripts/legion_core.py / scripts/legion-commander.py / scripts/hooks/post-tool-use.sh / scripts/legion-init.sh / scripts/legion-mixed.sh / tests/test_legion_core.py / schemas/legion-worker-result.schema.json / .planning/REQUIREMENTS.md / .planning/STATE.md / .planning/DECISIONS.md / AGENTS.md / README.md。必查：(1) **CLI 契约**——mixed status/inbox/msg/broadcast/readiness/campaign/view 各子命令的参数 schema、--from/--l2-only/--parent/--expect/--wait/--timeout/--corps/--direct/--dry-run/--complexity 解析与 legion_core.py 实现是否对齐；(2) **事件 schema**——events.jsonl 中 host_convened / branch_commander_planned/launched/failed / commander_planned/launched/commanding/completed/failed / message_sent / task_planned/launched/running/blocked/completed/failed 字段是否齐全且向后兼容；schemas/legion-worker-result.schema.json 与实际 worker 返回结构是否对齐；(3) **lifecycle=campaign 的 L2 disband 触发**——completed && !retain_context → DISBAND:init-complete + tmux kill + commander completed；retain_context 或 failed/blocked 必须保留；(4) **readiness handshake parent-scoped 过滤**——roster 必须只算直属 L2，不能把历史/其他 L1 树的 L2 误算（验证 mixed registry 含多个失败 L1 树时仍正确过滤）；(5) **tmux 会话生命周期**——session not alive 时 host 重生 L2 路径；(6) **R1-R19 回归覆盖度矩阵**——用 .planning/REQUIREMENTS.md 的 R1-R19 列表逐条比对 tests/test_legion_core.py + tests/test_codex_skill_budget.py + tests/test_roundtable_skill.py 是否有 regression；指出缺测点；(7) **依赖图守卫**——tactic-831152（DAG 条件捷径需失败传播守卫），check 当前 task_blocked 传播逻辑；(8) **tactic-af6bcc（外部 API 探针）/ tactic-c57407（文件重组同步引用）**。输出 /Users/feijun/.claude/legion/bf21e79d/mixed/inbox/audit-contract-v2-report-<your-id>.md，含 R1-R19 覆盖矩阵 + 每个 finding 的 文件:行号 + 严重度 + 裁决。完成后 mixed msg L1-legion-0-星辰军团 通知。完整 spec 见 .planning/AUDIT-PLAN.md Branch C。",
+    "scope": [
+      "scripts/legion.sh",
+      "scripts/legion_core.py",
+      "scripts/legion-commander.py",
+      "scripts/legion-mixed.sh",
+      "scripts/hooks/post-tool-use.sh",
+      "scripts/legion-init.sh",
+      "tests/test_legion_core.py",
+      "tests/test_codex_skill_budget.py",
+      "tests/test_roundtable_skill.py",
+      "schemas/legion-worker-result.schema.json",
+      "README.md",
+      "AGENTS.md",
+      ".planning/STATE.md",
+      ".planning/REQUIREMENTS.md",
+      ".planning/DECISIONS.md",
+      ".planning/AUDIT-PLAN.md"
+    ]
+  },
+  {
+    "id": "audit-skills-v2",
+    "provider": "codex",
+    "role": "audit",
+    "task": "不可逆操作 + 技能库一致性审计 v2。必查：(1) **写入路径**——install.sh / scripts/legion-init.sh / scripts/legion.sh 的 legion 0 / legion h / legion view 写入 ~/.claude/scripts/、~/.claude/agents/、~/.claude/skills/、/opt/homebrew/bin/legion 是否做备份、是否会覆盖用户既有非 Legion 文件、hooks merge 是否幂等且保留外部 hooks、agents/skills 同名冲突处理策略；(2) **install.sh 安装策略**——legion 软链/wrapper 安装是否检测既有；(3) **三处技能目录一致性**——枚举 .claude/skills/、.agents/skills/、skills/、~/.claude/skills/ 四处所有 skill 目录，列出名称对照表，发现 stale/duplicate/missing/version-skew，特别关注 claw-roundtable-skill 在 .agents/ 仅存 SKILL.md 但缺 roundtable_health.py 与 expert runtime 的破损态；(4) **新增 skills 安全合规**——逐个验证 .claude/skills/ + skills/ 中的 ai-tob-research / chrome-devtools / claw-roundtable-skill / e2e-test / prompt-optimizer / safe-exec / self-improving-agent / skill-creator / ui-ux-designer / generated 的 SKILL.md 是否符合规范、是否引入命令执行风险；特别关注 self-improving-agent（自动改代码）、safe-exec（反讽地需自身先安全）、skill-creator（写文件路径覆盖）、chrome-devtools（MCP 权限边界）；(5) **agents 配置**——agents/{explore,implement,plan,review,verify,sniper,product-counselor,ui-designer}.md 是否完整、是否一致、有无遗漏角色；(6) **生成内容审核**——.claude/skills/generated/ 自动生成内容（如存在）的来源与审核机制；(7) **tactic-cbd061**（破坏性清理先备份不可先删后写）。输出 /Users/feijun/.claude/legion/bf21e79d/mixed/inbox/audit-skills-v2-report-<your-id>.md，含每个 skill 的 risk 评分 + 写入路径清单 + 备份策略缺失项 + 三处目录差异表 + 裁决。完成后 mixed msg L1-legion-0-星辰军团 通知。完整 spec 见 .planning/AUDIT-PLAN.md Branch D 但扩展到三处目录一致性。",
+    "scope": [
+      "install.sh",
+      "scripts/legion.sh",
+      "scripts/legion-init.sh",
+      "scripts/legion",
+      ".claude/skills/",
+      ".claude/agents/",
+      ".agents/skills/",
+      "skills/",
+      "agents/"
+    ]
+  },
+  {
+    "id": "audit-process-v2",
+    "provider": "codex",
+    "role": "audit",
+    "task": "流程纪律与质量门审计 v2。验证设计意图 vs 实际行为的差距。必查：(1) **L1/L2 startup 自检是否真强制**——能否跳过/截断（grep 启动 prompt 是否被强制 block 在自检前）；新 L1/L2 启动时如不执行 status/inbox/events 检查会怎样；(2) **readiness handshake 是否可绕过**——L1 不广播 INIT-READY-REQUEST 或 L2 不回报 READY:init-complete 时的行为；伪造 READY 消息（其他 L2 名字、伪造 commander）是否被接受；(3) **质量门（pre-commit / post-tool-use / stack-verify）是否可被绕过**——直接编辑源码触发巡查审批门后必须 teammate 解锁（tactic-3abbf7），check 该路径是否真的强制；--no-verify 是否被默认禁止；(4) **--corps / --direct 路由是否被正确强制**——R19：L1 originated delivery 默认走 corps，--direct 仅 command-plane 维护；check 是否有可绕过 default 的路径；(5) **DISBAND 触发条件**——R15：completed && !retain_context → DISBAND；check failed/blocked 是否真的被保留；(6) **registry 状态机**——commander_planned → launched → commanding → completed/failed 转换是否完整；mixed status 是否能展示 stale 状态；(7) **inbox 投递保证**——broadcast/msg 单条失败时是否记录、retry、降级；inbox 文件读写并发安全；(8) **巡查 hook 状态文件清理**——tactic-d7de19（巡查/审批门 hook 状态文件必须有 teammate 可达清理路径）；(9) **降级原则**——所有 try/except、fallback、skip 是否影响核心目标？degradation-policy skill 的执行强度。输出 /Users/feijun/.claude/legion/bf21e79d/mixed/inbox/audit-process-v2-report-<your-id>.md，含每条流程门的 设计意图 vs 实际行为 vs gap + 严重度 + 裁决。完成后 mixed msg L1-legion-0-星辰军团 通知。",
+    "scope": [
+      "scripts/legion.sh",
+      "scripts/legion_core.py",
+      "scripts/legion-commander.py",
+      "scripts/legion-init.sh",
+      "scripts/hooks/",
+      "scripts/stack-verify.sh",
+      "scripts/skill-health.sh",
+      "AGENTS.md",
+      "CLAUDE.md",
+      ".planning/",
+      "agents/",
+      ".agents/skills/",
+      ".claude/agents/",
+      ".claude/skills/"
+    ]
+  },
+  {
+    "id": "verify-runtime-v2",
+    "provider": "claude",
+    "role": "verify",
+    "task": "运行时实证验证 v2（必须实跑命令、凭 exit code 与 stderr 凭据，不许凭代码阅读结论；只读验证，不修改 working tree、inbox、registry、events.jsonl）。在 /Users/feijun/Documents/legion-0 顺序跑这些命令并记录每条 stdout 末 30 行 + stderr + exit code：(1) `bash -n` 对每个 modified shell 文件（install.sh + scripts/*.sh + scripts/hooks/*.sh）；(2) `python -m py_compile scripts/legion_core.py scripts/legion-commander.py scripts/codex_skill_budget.py scripts/memory-recall.py`；(3) `python -m pytest tests/test_legion_core.py tests/test_codex_skill_budget.py tests/test_roundtable_skill.py -x --tb=short`（记录通过/失败数量、失败用例名）；(4) `bash scripts/stack-verify.sh detect`，exit code 必须为 0（R2）；(5) `/Users/feijun/Documents/legion-0/scripts/legion.sh mixed status` 跑通且无 ERROR；(6) `/Users/feijun/Documents/legion-0/scripts/legion.sh mixed inbox L1-legion-0-星辰军团` 跑通；(7) 用最小 plan dry-run：写 /tmp/audit-min-plan-v2.json `[{\"id\":\"probe-v2\",\"provider\":\"codex\",\"role\":\"audit\",\"task\":\"probe\"}]` 然后 `/Users/feijun/Documents/legion-0/scripts/legion.sh mixed campaign /tmp/audit-min-plan-v2.json --dry-run`；(8) `bash scripts/legion.sh host --dry-run`（R8/R10）；(9) `bash scripts/skill-health.sh` 如存在；(10) `python3 .claude/skills/claw-roundtable-skill/roundtable_health.py` 如存在则跑、不存在则记录缺失（R18）；(11) `bash scripts/legion-init.sh --dry-run` 如支持；(12) 检查 events.jsonl 最近 100 行 schema 是否合法 JSON。任一 PASS/FAIL 必须凭 exit code 与 stderr 凭据。输出 /Users/feijun/.claude/legion/bf21e79d/mixed/inbox/verify-runtime-v2-report-<your-id>.md，含 12 项命令的精确证据 + 最终三选一裁决。完成后 mixed msg L1-legion-0-星辰军团 通知。完整 spec 见 .planning/AUDIT-PLAN.md Branch E。",
+    "depends_on": ["audit-static-v2", "audit-redteam-v2", "audit-contract-v2", "audit-skills-v2", "audit-process-v2"],
+    "scope": [
+      "install.sh",
+      "scripts/",
+      "tests/",
+      "schemas/",
+      ".planning/",
+      ".claude/skills/",
+      ".agents/skills/"
+    ]
+  },
+  {
+    "id": "audit-synthesis-v2",
+    "provider": "claude",
+    "role": "audit",
+    "task": "综合审计裁决 v2。读取上一阶段所有 audit 报告（/Users/feijun/.claude/legion/bf21e79d/mixed/inbox/audit-static-v2-report-*.md / audit-redteam-v2-report-*.md / audit-contract-v2-report-*.md / audit-skills-v2-report-*.md / audit-process-v2-report-*.md / verify-runtime-v2-report-*.md），按 D1-D5 五维框架（tactic-2cffd6）综合：D1 静态质量 / D2 安全 / D3 集成契约 / D4 不可逆与配置 / D5 流程门。汇总：(1) **CRITICAL/HIGH/MEDIUM/LOW 分级清单**，每条带 文件:行号 + 来源审计分支 + 三选一裁决；(2) **R1-R19 覆盖度矩阵**（来自 audit-contract-v2）；(3) **engineering-vs-product 分轨**（tactic-5021d1：工程债 vs 功能缺口）；(4) **operational-debt vs security 分轨**（tactic-d9f505）；(5) **历史坑命中清单**——tactic-80f12f / 1abd3a / cbd061 / c57407 / 3abbf7 / af6bcc / 831152 / 5b0e26 / a9cb0b 等；(6) **多模型冲突仲裁**（tactic-70c6c0）——若各 audit 分支裁决不一致，显式说明分歧并由本汇总仲裁；(7) **最终三选一总裁决**——任一分支 FAIL 则总裁决 FAIL；(8) **修复优先级清单**——CRITICAL 必须 commit 前修，HIGH 必须本轮迭代修，MEDIUM 建议修，LOW 记录；(9) **审计盲区**——本次未覆盖的高风险面记录在册供下轮。输出到 /Users/feijun/Documents/legion-0/.planning/audit/AUDIT-FINAL-REPORT-v2.md（创建 .planning/audit/ 目录）+ 一份 mixed inbox 副本 /Users/feijun/.claude/legion/bf21e79d/mixed/inbox/audit-synthesis-v2-report-<your-id>.md。完成后 mixed msg L1-legion-0-星辰军团 汇报最终裁决（PASS/YES_WITH_WATCH/FAIL）+ CRITICAL 数量 + HIGH 数量 + 报告路径。",
+    "depends_on": ["audit-static-v2", "audit-redteam-v2", "audit-contract-v2", "audit-skills-v2", "audit-process-v2", "verify-runtime-v2"],
+    "scope": [
+      ".planning/audit/",
+      ".planning/AUDIT-PLAN.md",
+      ".planning/REQUIREMENTS.md"
+    ]
+  }
+]

@@ -1,0 +1,104 @@
+[
+  {
+    "id": "review-core-policy-state-v12",
+    "role": "review",
+    "provider": "codex",
+    "complexity": "m",
+    "branch": "review",
+    "task": "Read-only review after repair-core-review-findings-v12. Verify all v5/v6/v7/v11 findings are either fixed or explicitly carried as residual risk: strict worker results, read-only status/readiness/view, readiness trust/freshness, scope ownership, provider-compatible branch reuse, dry-run non-mutation, dependency repair, Codex delivery sandbox policy, VS Code duo launch artifacts, first-run registry initialization, and tests. Do not edit files.",
+    "scope": [
+      "scripts/legion_core.py",
+      "tests/test_legion_core.py"
+    ],
+    "depends_on": [
+      "repair-core-review-findings-v12"
+    ],
+    "retain_context": true
+  },
+  {
+    "id": "review-patrol-retro-learning-v12",
+    "role": "review",
+    "provider": "codex",
+    "complexity": "m",
+    "branch": "review",
+    "task": "Read-only review of preserved legacy independent mechanisms after docs v11b and core v12. Confirm patrol/督察, hook gate, retrospector/回顾, daemon evidence/learning, durable events/inboxes/results, and no-omission docs are actually retained or stronger in mixed. Inspect scripts and run artifacts; do not edit.",
+    "scope": [
+      "scripts/legion-patrol.sh",
+      "scripts/hooks/pre-tool-use.sh",
+      "scripts/retrospector.sh",
+      "scripts/legion-commander.py",
+      ".planning/communication-upgrade/04-LEGACY-PARITY-MATRIX.md",
+      ".planning/communication-upgrade/05-RETROSPECTIVE-CONTRACT.md"
+    ],
+    "depends_on": [
+      "repair-core-review-findings-v12",
+      "repair-docs-runtime-contract-v11b"
+    ],
+    "retain_context": true
+  },
+  {
+    "id": "verify-isolated-runtime-parity-v12",
+    "role": "verify",
+    "provider": "codex",
+    "complexity": "m",
+    "branch": "verify",
+    "task": "Independent verification after core v12 and docs v11b. Run focused commands for tests/test_legion_core.py, bash -n shell scripts, mixed dry-run non-mutation, status/readiness read-only, Codex delivery sandbox, VS Code duo artifact behavior if locally testable, patrol status/gate smoke, retrospector quick, daemon compile/smoke, and docs diff check. Do not edit files; report exact commands and outputs.",
+    "scope": [
+      "scripts/legion_core.py",
+      "tests/test_legion_core.py",
+      "scripts/legion.sh",
+      "scripts/legion-patrol.sh",
+      "scripts/hooks/pre-tool-use.sh",
+      "scripts/retrospector.sh",
+      "scripts/legion-commander.py",
+      "README.md",
+      ".planning"
+    ],
+    "depends_on": [
+      "repair-core-review-findings-v12",
+      "repair-docs-runtime-contract-v11b"
+    ],
+    "retain_context": true
+  },
+  {
+    "id": "audit-adversarial-legacy-parity-v12",
+    "role": "audit",
+    "provider": "codex",
+    "complexity": "m",
+    "branch": "audit",
+    "task": "Adversarial audit after core v12 and docs v11b. Attack the mixed system for omitted legacy strengths or broken chains in delegation, approval, inbox, readiness, patrol, retrospective, learning, status/reconcile, repair, dry-run, scope ownership, result validation, Codex write sandbox, and independent gates. Do not edit; fail closed on evidence.",
+    "scope": [
+      "scripts/legion_core.py",
+      "scripts/legion.sh",
+      "scripts/legion-patrol.sh",
+      "scripts/hooks/pre-tool-use.sh",
+      "scripts/retrospector.sh",
+      "scripts/legion-commander.py",
+      "README.md",
+      ".planning"
+    ],
+    "depends_on": [
+      "repair-core-review-findings-v12",
+      "repair-docs-runtime-contract-v11b"
+    ],
+    "retain_context": true
+  },
+  {
+    "id": "synthesis-no-omission-release-gate-v12",
+    "role": "review",
+    "provider": "codex",
+    "complexity": "m",
+    "branch": "synthesis",
+    "task": "Read-only synthesis gate. Wait for review-core-policy-state-v12, review-patrol-retro-learning-v12, verify-isolated-runtime-parity-v12, and audit-adversarial-legacy-parity-v12. Read relevant result files under /Users/feijun/.claude/legion/bf21e79d/mixed/runs. Produce PASS/WATCH/FAIL: PASS only if no unresolved major/critical gaps remain and no useful legacy mechanism that can be inherited is missing. Do not edit files.",
+    "scope": [
+      ".planning"
+    ],
+    "depends_on": [
+      "review-core-policy-state-v12",
+      "review-patrol-retro-learning-v12",
+      "verify-isolated-runtime-parity-v12",
+      "audit-adversarial-legacy-parity-v12"
+    ],
+    "retain_context": true
+  }
+]

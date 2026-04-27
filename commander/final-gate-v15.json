@@ -1,0 +1,95 @@
+[
+  {
+    "id": "review-core-shell-retro-v15",
+    "provider": "codex",
+    "role": "review",
+    "task": "Read-only final review after v14b repairs. Do not edit files. Inspect current diffs plus result artifacts for repair-core-sender-auth-v14b, repair-shell-daemon-runtime-v14b, and repair-retrospector-project-boundary-v14b. Confirm whether sender authentication now fails closed for registered commanders with session/run_dir bindings, shell dry-run/read-only paths avoid mutation before dispatch, repo-local commander daemon writes durable daemon evidence, and retrospector direct quick no longer trusts a stale inherited PROJECT_DIR from another project. Include exact file/line evidence, commands run, and a PASS/WATCH/FAIL verdict. Final output must be strict JSON only.",
+    "scope": [
+      "scripts/legion_core.py",
+      "scripts/legion.sh",
+      "scripts/legion-commander.py",
+      "scripts/retrospector.sh",
+      "tests/test_legion_core.py",
+      "tests/test_legion_shell_contract.py",
+      "tests/test_retrospector_contract.py",
+      ".planning/communication-upgrade/05-RETROSPECTIVE-CONTRACT.md"
+    ],
+    "depends_on": [
+      "repair-core-sender-auth-v14b",
+      "repair-shell-daemon-runtime-v14b",
+      "repair-retrospector-project-boundary-v14b"
+    ]
+  },
+  {
+    "id": "verify-runtime-parity-v15",
+    "provider": "claude",
+    "role": "verify",
+    "task": "Runtime verification only. Do not edit files. Run the concrete release checks that need a normal writable temp environment: focused unittest suite for tests.test_legion_core, tests.test_legion_shell_contract, and tests.test_retrospector_contract; shell syntax for scripts/legion.sh, scripts/legion-patrol.sh, scripts/hooks/pre-tool-use.sh, scripts/retrospector.sh; Python AST/compile checks for changed Python files; invalid-TMPDIR dry-run non-mutation checks for scripts/legion.sh mixed campaign --dry-run, duo --dry-run, and dou --dry-run; direct retrospector quick with PROJECT_DIR set to another repo while cwd is legion-0; daemon_evidence.jsonl schema/hash presence. Return exact commands, exit codes, and PASS/WATCH/FAIL. Final output must be strict JSON only.",
+    "scope": [
+      "scripts/legion_core.py",
+      "scripts/legion.sh",
+      "scripts/legion-commander.py",
+      "scripts/retrospector.sh",
+      "scripts/legion-patrol.sh",
+      "scripts/hooks/pre-tool-use.sh",
+      "tests/test_legion_core.py",
+      "tests/test_legion_shell_contract.py",
+      "tests/test_retrospector_contract.py",
+      "commander/runtime-hardening-v14b-codex-retry.json"
+    ],
+    "depends_on": [
+      "repair-core-sender-auth-v14b",
+      "repair-shell-daemon-runtime-v14b",
+      "repair-retrospector-project-boundary-v14b"
+    ]
+  },
+  {
+    "id": "verify-release-contract-v15",
+    "provider": "codex",
+    "role": "verify",
+    "task": "Read-only release-contract verification for the mixed Claude+Codex Legion upgrade after v14b. Do not edit files. Use code inspection, existing v14b result artifacts, daemon_evidence.jsonl, /tmp/retrospector-full-v14b.json if present, .planning/STATE.md, and the legacy parity matrix. Decide whether current release blockers remain for: L1 no-delivery, live L2 branch routing, durable inbox/events/readiness, locked mutations, non-mutating status/dry-run/readiness paths, patrol/gate retention, retrospective learning/writeback, daemon evidence, shell UX, and legacy Claude strengths upgraded by Codex review/verify. Treat historical failed runs as learning evidence unless the same current mechanism still fails. Return PASS/WATCH/FAIL with file/line evidence and residual WATCH rows. Final output must be strict JSON only.",
+    "scope": [
+      "scripts/legion_core.py",
+      "scripts/legion.sh",
+      "scripts/legion-patrol.sh",
+      "scripts/hooks/pre-tool-use.sh",
+      "scripts/retrospector.sh",
+      "scripts/legion-commander.py",
+      "tests/test_legion_core.py",
+      "tests/test_legion_shell_contract.py",
+      "tests/test_retrospector_contract.py",
+      ".planning/STATE.md",
+      ".planning/communication-upgrade/04-LEGACY-PARITY-MATRIX.md",
+      ".planning/communication-upgrade/05-RETROSPECTIVE-CONTRACT.md",
+      ".planning/retrospectives/2026-04-25-communication-upgrade.md"
+    ],
+    "depends_on": [
+      "repair-core-sender-auth-v14b",
+      "repair-shell-daemon-runtime-v14b",
+      "repair-retrospector-project-boundary-v14b"
+    ]
+  },
+  {
+    "id": "synthesis-no-omission-release-gate-v15",
+    "provider": "codex",
+    "role": "review",
+    "task": "Final no-omission synthesis gate. Do not edit files. Wait for review-core-shell-retro-v15, verify-runtime-parity-v15, and verify-release-contract-v15. Enumerate B1-B10 and rows 1-35 in .planning/communication-upgrade/04-LEGACY-PARITY-MATRIX.md. PASS only if every useful legacy mechanism is retained, upgraded, or explicitly recorded as non-blocking with current evidence; every data-sharing and communication link is durable; completed agents are closed or have persisted artifacts; and no current WATCH/BLK/FAIL row remains. If any current blocker remains, return WATCH or FAIL and list exact v16 repair tasks with owners/scopes. Final output must be strict JSON only.",
+    "scope": [
+      ".planning/STATE.md",
+      ".planning/communication-upgrade/04-LEGACY-PARITY-MATRIX.md",
+      ".planning/communication-upgrade/05-RETROSPECTIVE-CONTRACT.md",
+      ".planning/retrospectives/2026-04-25-communication-upgrade.md",
+      "scripts/legion_core.py",
+      "scripts/legion.sh",
+      "scripts/legion-patrol.sh",
+      "scripts/hooks/pre-tool-use.sh",
+      "scripts/retrospector.sh",
+      "scripts/legion-commander.py"
+    ],
+    "depends_on": [
+      "review-core-shell-retro-v15",
+      "verify-runtime-parity-v15",
+      "verify-release-contract-v15"
+    ]
+  }
+]

@@ -1,0 +1,16 @@
+[
+  {
+    "id": "verify-runtime-parity-v15c",
+    "provider": "codex",
+    "role": "rescue",
+    "task": "Fast replacement runtime gate. Do not edit project files. Do not read large worker logs. Run only the commands listed here and return exactly one strict JSON object matching the worker schema. Commands to run: (1) python3 -m unittest tests.test_legion_core tests.test_legion_shell_contract tests.test_retrospector_contract; (2) bash -n scripts/legion.sh scripts/legion-patrol.sh scripts/hooks/pre-tool-use.sh scripts/retrospector.sh; (3) python3 -m py_compile scripts/legion_core.py scripts/legion-commander.py tests/test_legion_core.py tests/test_legion_shell_contract.py tests/test_retrospector_contract.py; (4) isolated invalid-TMPDIR dry-run checks for mixed campaign with a read-only review JSON plan, duo --dry-run, and dou --dry-run, using a temporary HOME/project and proving no .claude directory/directory.json is created and git status hash is unchanged; (5) PROJECT_DIR=/Users/feijun/Documents/ip-creator bash scripts/retrospector.sh quick, parse JSON to prove project_dir is /Users/feijun/Documents/legion-0 and project_dir_source records stale env ignored; (6) parse /Users/feijun/.claude/legion/bf21e79d/daemon_evidence.jsonl and recompute record_hash for at least one daemon_started record. If all pass, status completed. Use lowercase verification result values pass/fail/not-run and standard finding severities only. No markdown, no prose outside JSON.",
+    "scope": [
+      "commander/runtime-parity-v15c-fast-rescue.json"
+    ],
+    "depends_on": [
+      "repair-core-sender-auth-v14b",
+      "repair-shell-daemon-runtime-v14b",
+      "repair-retrospector-project-boundary-v14b"
+    ]
+  }
+]

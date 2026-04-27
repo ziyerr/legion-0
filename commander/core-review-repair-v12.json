@@ -1,0 +1,19 @@
+[
+  {
+    "id": "repair-core-review-findings-v12",
+    "role": "implement",
+    "provider": "codex",
+    "sandbox": "workspace-write",
+    "complexity": "l",
+    "branch": "implement",
+    "task": "Self-contained task: do not consult /Users/feijun/.codex/memories or emit memory citations; final output JSON only. Scope only scripts/legion_core.py and tests/test_legion_core.py. Fix all major/minor findings from review-core-policy-state-v11: (1) CodexAdapter.sandbox_for must align with delivery/write-capable roles, granting workspace-write for implement, rescue, product, product-counselor, ui, ui-designer, while keeping explore/review/verify/audit/security read-only unless explicit sandbox override is set; add tests for every delivery role. (2) VS Code duo launch must not depend on dry-run-created launch.sh/run_dir artifacts after dry-run became non-mutating; for non-dry-run VS Code duo create real commander artifacts or otherwise build the tmux script from real launch paths; add coverage for terminal='vscode'. (3) first-run registry initialization must be atomic/non-clobbering under the registry lock so concurrent mutating commands cannot overwrite committed tasks with a fresh empty registry; add a regression test. (4) readiness freshness fallback must reject malformed-id stale records or compare record ts against issued_at instead of accepting any ts; add a malformed-id stale readiness test. Preserve all v10a/v10b behavior and keep tests/test_legion_core.py passing.",
+    "scope": [
+      "scripts/legion_core.py",
+      "tests/test_legion_core.py"
+    ],
+    "depends_on": [
+      "review-core-policy-state-v11"
+    ],
+    "retain_context": true
+  }
+]

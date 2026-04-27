@@ -1,0 +1,135 @@
+[
+  {
+    "id": "repair-patrol-status-v3",
+    "role": "implement",
+    "provider": "claude",
+    "complexity": "l",
+    "branch": "implement",
+    "task": "Recover the failed patrol work by focusing only on scripts/legion-patrol.sh. Preserve legacy patrol notice/remediate/reinspect/status behavior and add mixed-aware status inputs: mixed registry commander ids, mixed events, tmux liveness, unresolved patrol notices, and release-gate evidence. Do not edit hooks, legion_core.py, legion-commander.py, retrospector, tests, docs, or planning files.",
+    "scope": [
+      "scripts/legion-patrol.sh"
+    ],
+    "depends_on": [
+      "relock-legacy-parity-contract-v2"
+    ],
+    "retain_context": true
+  },
+  {
+    "id": "repair-patrol-hook-gate-v3",
+    "role": "implement",
+    "provider": "claude",
+    "complexity": "l",
+    "branch": "implement",
+    "task": "Recover the failed patrol work by focusing only on scripts/hooks/pre-tool-use.sh. Preserve legacy warning to violation to gate flow and make mixed L1/L2 commander ids visible to patrol/gate checks. Add fail-closed behavior for unresolved patrol notices and unapproved gate blocks. Do not edit scripts/legion-patrol.sh, legion_core.py, legion-commander.py, retrospector, tests, docs, or planning files.",
+    "scope": [
+      "scripts/hooks/pre-tool-use.sh"
+    ],
+    "depends_on": [
+      "relock-legacy-parity-contract-v2"
+    ],
+    "retain_context": true
+  },
+  {
+    "id": "repair-docs-runtime-contract-v3",
+    "role": "product",
+    "provider": "claude",
+    "complexity": "xl",
+    "branch": "product",
+    "task": "Supersede the blocked v2 docs task after the patrol v3 recovery. Update operator docs and planning runtime contract. Scope README.md, AGENTS.md, CLAUDE.md, and .planning/communication-upgrade/. Document exact commands, parity guarantees, no-omission matrix, patrol/retro gates, structured worker completion, and recovery from failed dependencies. Do not edit scripts or tests.",
+    "scope": [
+      "README.md",
+      "AGENTS.md",
+      "CLAUDE.md",
+      ".planning/communication-upgrade/"
+    ],
+    "depends_on": [
+      "repair-mixed-core-contract-v2",
+      "repair-patrol-status-v3",
+      "repair-patrol-hook-gate-v3",
+      "repair-retrospector-mixed-sources-v2",
+      "repair-commander-daemon-learning-v2",
+      "repair-shell-ops-ux-v2"
+    ],
+    "retain_context": true
+  },
+  {
+    "id": "review-patrol-retro-learning-v3",
+    "role": "review",
+    "provider": "codex",
+    "complexity": "xl",
+    "branch": "review",
+    "task": "Supersede the blocked v2 patrol/retro review. Independently review patrol status, patrol hook gate, retrospector, commander daemon learning, shell UX, and docs changes. Focus on legacy parity, split-brain bridging, no-omission matrix, release gates, and whether docs match runtime evidence. Do not edit files.",
+    "scope": [
+      "scripts/legion-patrol.sh",
+      "scripts/hooks/pre-tool-use.sh",
+      "scripts/retrospector.sh",
+      "scripts/legion-commander.py",
+      "scripts/legion.sh",
+      "README.md",
+      "AGENTS.md",
+      "CLAUDE.md",
+      ".planning/communication-upgrade/"
+    ],
+    "depends_on": [
+      "repair-patrol-status-v3",
+      "repair-patrol-hook-gate-v3",
+      "repair-retrospector-mixed-sources-v2",
+      "repair-commander-daemon-learning-v2",
+      "repair-shell-ops-ux-v2",
+      "repair-docs-runtime-contract-v3"
+    ],
+    "retain_context": true
+  },
+  {
+    "id": "verify-isolated-runtime-parity-v3",
+    "role": "verify",
+    "provider": "codex",
+    "complexity": "xl",
+    "branch": "verify",
+    "task": "Supersede the blocked v2 verify task. Run isolated runtime verification for mixed campaign, msg, broadcast, readiness, status/reconcile, patrol, and retrospector behavior. Use isolated HOME/tmux where feasible and report exact commands. Do not edit files.",
+    "scope": [
+      "scripts/",
+      "tests/",
+      ".planning/communication-upgrade/"
+    ],
+    "depends_on": [
+      "review-core-policy-state-v2",
+      "review-patrol-retro-learning-v3"
+    ],
+    "retain_context": true
+  },
+  {
+    "id": "audit-adversarial-legacy-parity-v3",
+    "role": "audit",
+    "provider": "codex",
+    "complexity": "xl",
+    "branch": "audit",
+    "task": "Supersede the blocked v2 audit task. Red-team the upgraded mixed Legion parity. Attack forged readiness, stale inbox rows, malicious commander ids, offline sessions, oversized messages, prompt injection, direct L1 delivery, false completed Claude outputs, missing patrol/retro evidence, fake no-omission rows, and dependency repair paths. Any FAIL blocks release. Do not edit files.",
+    "scope": [
+      "scripts/",
+      "tests/",
+      ".planning/communication-upgrade/",
+      "/Users/feijun/.claude/legion/bf21e79d/mixed/"
+    ],
+    "depends_on": [
+      "verify-isolated-runtime-parity-v3"
+    ],
+    "retain_context": true
+  },
+  {
+    "id": "synthesis-no-omission-release-gate-v3",
+    "role": "audit",
+    "provider": "codex",
+    "complexity": "xl",
+    "branch": "audit",
+    "task": "Supersede the blocked v2 synthesis task. Produce the final release synthesis matrix. Every preserved legacy mechanism must be retained/upgraded/replaced/blocker with evidence. Final verdict must be FAIL or WATCH if any review, verify, audit, patrol, retrospective, structured-completion, or no-omission item lacks runtime evidence. Do not edit files.",
+    "scope": [
+      ".planning/communication-upgrade/",
+      "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/"
+    ],
+    "depends_on": [
+      "audit-adversarial-legacy-parity-v3"
+    ],
+    "retain_context": true
+  }
+]

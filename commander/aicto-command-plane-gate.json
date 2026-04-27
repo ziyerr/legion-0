@@ -1,0 +1,34 @@
+[
+  {
+    "id": "aicto-command-plane-review",
+    "provider": "codex",
+    "role": "review",
+    "complexity": "m",
+    "task": "Read-only review of the AICTO command-plane upgrade. Inspect the current diff only. Focus on runtime topology, readiness trust boundary, shell compatibility, dry-run non-mutation, and Codex tmux parity. Do not edit files. Final output JSON only.",
+    "scope": [
+      "scripts/legion_core.py",
+      "scripts/legion.sh",
+      "tests/test_legion_core.py",
+      "tests/test_legion_shell_contract.py",
+      "README.md",
+      ".planning/aicto-command-plane/00-PLAN.md",
+      ".planning/REQUIREMENTS.md",
+      ".planning/DECISIONS.md",
+      ".planning/STATE.md"
+    ]
+  },
+  {
+    "id": "aicto-command-plane-verify",
+    "provider": "codex",
+    "role": "verify",
+    "complexity": "m",
+    "task": "Independent read-only runtime verification of the AICTO command-plane upgrade. Run the smallest relevant commands if the environment permits: py_compile scripts/legion_core.py, bash -n scripts/legion.sh, focused unittest for tests/test_legion_core.py and tests/test_legion_shell_contract.py, and dry-run smokes for aicto/host/dual-only. Do not edit files. Final output JSON only.",
+    "scope": [
+      "scripts/legion_core.py",
+      "scripts/legion.sh",
+      "tests/test_legion_core.py",
+      "tests/test_legion_shell_contract.py",
+      "README.md"
+    ]
+  }
+]

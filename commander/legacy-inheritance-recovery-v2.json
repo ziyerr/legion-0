@@ -1,0 +1,212 @@
+[
+  {
+    "id": "relock-legacy-parity-contract-v2",
+    "role": "product",
+    "provider": "claude",
+    "complexity": "xl",
+    "branch": "product",
+    "task": "Recover the failed legacy parity lock. Read the upstream results at ~/.claude/legion/bf21e79d/mixed/runs/legacy-inventory-claude-mechanisms/result.md and ~/.claude/legion/bf21e79d/mixed/runs/mixed-gap-map-runtime/result.md, plus .planning/communication-upgrade/03-LEGACY-INHERITANCE-TASKLIST.md. Write the full no-omission legacy parity contract into .planning/REQUIREMENTS.md, .planning/DECISIONS.md, .planning/STATE.md, and create .planning/communication-upgrade/04-LEGACY-PARITY-MATRIX.md. Every legacy row must be retained, upgraded, stronger replacement, or blocker. The matrix must explicitly lock the critical/major runtime blockers: registry/inbox/events flock transactions, inbox-before-tmux, readiness order/nonce/freshness/direct-L2/non-forgeable sender, status/reconcile split, structured Claude worker completion, legacy shell/patrol/gate/retro split-brain bridge, file-scope ownership/lock, and no-omission release gate. Do not claim docs-only runtime support as implemented.",
+    "scope": [
+      ".planning/REQUIREMENTS.md",
+      ".planning/DECISIONS.md",
+      ".planning/STATE.md",
+      ".planning/communication-upgrade/"
+    ],
+    "retain_context": true
+  },
+  {
+    "id": "repair-mixed-core-contract-v2",
+    "role": "implement",
+    "provider": "claude",
+    "complexity": "xl",
+    "branch": "implement",
+    "task": "Implement the mixed core contract in one owned slice. Scope only scripts/legion_core.py and tests/test_legion_core.py. Preserve the new Claude worker permission bypass and structured completion gate. Add or complete L1 no-delivery, provider-role defaults, file-scope ownership checks, registry transaction locks, inbox/event locks, inbox-before-tmux ordering, message ids, monotonic terminal states, readiness order id/nonce/freshness/direct-L2 validation/non-forgeable sender, explicit reconcile separate from read-only status, and tests. Do not edit shell scripts, commander daemon, patrol, retrospector, or docs.",
+    "scope": [
+      "scripts/legion_core.py",
+      "tests/test_legion_core.py"
+    ],
+    "depends_on": [
+      "relock-legacy-parity-contract-v2"
+    ],
+    "retain_context": true
+  },
+  {
+    "id": "repair-patrol-hooks-v2",
+    "role": "implement",
+    "provider": "claude",
+    "complexity": "xl",
+    "branch": "implement",
+    "task": "Preserve and upgrade patrol hook behavior without touching mixed core. Scope only scripts/legion-patrol.sh and scripts/hooks/pre-tool-use.sh. Add mixed-aware patrol status inputs, unresolved notice detection, gate remediation evidence, compatibility with L1/L2 commander ids, and release-gate evidence. Do not edit scripts/legion_core.py, scripts/legion-commander.py, tests, or docs.",
+    "scope": [
+      "scripts/legion-patrol.sh",
+      "scripts/hooks/pre-tool-use.sh"
+    ],
+    "depends_on": [
+      "relock-legacy-parity-contract-v2"
+    ],
+    "retain_context": true
+  },
+  {
+    "id": "repair-retrospector-mixed-sources-v2",
+    "role": "implement",
+    "provider": "claude",
+    "complexity": "xl",
+    "branch": "implement",
+    "task": "Extend retrospector for mixed-native sources. Scope only scripts/retrospector.sh and .planning/communication-upgrade/. Inputs must include mixed registry, events, run results, failed/blocked tasks, inspector memory, observations, and .planning state. Write release retrospective contract to .planning/communication-upgrade/. Do not edit scripts/legion_core.py, scripts/legion-commander.py, tests, or docs outside .planning/communication-upgrade/.",
+    "scope": [
+      "scripts/retrospector.sh",
+      ".planning/communication-upgrade/"
+    ],
+    "depends_on": [
+      "relock-legacy-parity-contract-v2"
+    ],
+    "retain_context": true
+  },
+  {
+    "id": "repair-commander-daemon-learning-v2",
+    "role": "implement",
+    "provider": "claude",
+    "complexity": "xl",
+    "branch": "implement",
+    "task": "Preserve and upgrade the legacy commander daemon learning loop. Scope only scripts/legion-commander.py. Keep inspector patrol, adaptive false-positive memory, warning escalation, after-action review, observations, metrics, protocol proposals, commissar reminders, heartbeat, and GC. Adapt them to mixed ids and mixed evidence without touching legion_core.py, legion.sh, patrol, retrospector, tests, or docs.",
+    "scope": [
+      "scripts/legion-commander.py"
+    ],
+    "depends_on": [
+      "relock-legacy-parity-contract-v2"
+    ],
+    "retain_context": true
+  },
+  {
+    "id": "repair-shell-ops-ux-v2",
+    "role": "implement",
+    "provider": "claude",
+    "complexity": "xl",
+    "branch": "implement",
+    "task": "Preserve and upgrade shell/operator UX. Scope only scripts/legion.sh. Keep mixed status/view/war-room, install and hook sync surfaces, gate commands, patrol/retrospector operator commands, lifecycle visibility, and ensure read-only status paths do not mutate state. Do not edit legion_core.py, commander daemon, tests, or docs.",
+    "scope": [
+      "scripts/legion.sh"
+    ],
+    "depends_on": [
+      "relock-legacy-parity-contract-v2"
+    ],
+    "retain_context": true
+  },
+  {
+    "id": "repair-docs-runtime-contract-v2",
+    "role": "product",
+    "provider": "claude",
+    "complexity": "xl",
+    "branch": "product",
+    "task": "Update operator docs and planning runtime contract after implementation. Scope README.md, AGENTS.md, CLAUDE.md, and .planning/communication-upgrade/. Document exact commands, parity guarantees, no-omission matrix, patrol/retro gates, structured worker completion, and recovery from failed dependencies. Do not edit scripts or tests.",
+    "scope": [
+      "README.md",
+      "AGENTS.md",
+      "CLAUDE.md",
+      ".planning/communication-upgrade/"
+    ],
+    "depends_on": [
+      "repair-mixed-core-contract-v2",
+      "repair-patrol-hooks-v2",
+      "repair-retrospector-mixed-sources-v2",
+      "repair-commander-daemon-learning-v2",
+      "repair-shell-ops-ux-v2"
+    ],
+    "retain_context": true
+  },
+  {
+    "id": "review-core-policy-state-v2",
+    "role": "review",
+    "provider": "codex",
+    "complexity": "xl",
+    "branch": "review",
+    "task": "Independently review scripts/legion_core.py and tests/test_legion_core.py. Focus on registry/inbox/event transactions, structured completion, readiness trust, read-only status, L1 no-delivery, file-scope ownership, dependency repair, and regressions from the护航 patch. Do not edit files.",
+    "scope": [
+      "scripts/legion_core.py",
+      "tests/test_legion_core.py"
+    ],
+    "depends_on": [
+      "repair-mixed-core-contract-v2"
+    ],
+    "retain_context": true
+  },
+  {
+    "id": "review-patrol-retro-learning-v2",
+    "role": "review",
+    "provider": "codex",
+    "complexity": "xl",
+    "branch": "review",
+    "task": "Independently review patrol, retrospector, commander daemon learning, shell UX, and docs changes. Focus on legacy parity, split-brain bridging, no-omission matrix, release gates, and whether docs match runtime evidence. Do not edit files.",
+    "scope": [
+      "scripts/legion-patrol.sh",
+      "scripts/hooks/pre-tool-use.sh",
+      "scripts/retrospector.sh",
+      "scripts/legion-commander.py",
+      "scripts/legion.sh",
+      "README.md",
+      "AGENTS.md",
+      "CLAUDE.md",
+      ".planning/communication-upgrade/"
+    ],
+    "depends_on": [
+      "repair-patrol-hooks-v2",
+      "repair-retrospector-mixed-sources-v2",
+      "repair-commander-daemon-learning-v2",
+      "repair-shell-ops-ux-v2",
+      "repair-docs-runtime-contract-v2"
+    ],
+    "retain_context": true
+  },
+  {
+    "id": "verify-isolated-runtime-parity-v2",
+    "role": "verify",
+    "provider": "codex",
+    "complexity": "xl",
+    "branch": "verify",
+    "task": "Run isolated runtime verification for mixed campaign, msg, broadcast, readiness, status/reconcile, patrol, and retrospector behavior. Use isolated HOME/tmux where feasible and report exact commands. Do not edit files.",
+    "scope": [
+      "scripts/",
+      "tests/",
+      ".planning/communication-upgrade/"
+    ],
+    "depends_on": [
+      "review-core-policy-state-v2",
+      "review-patrol-retro-learning-v2"
+    ],
+    "retain_context": true
+  },
+  {
+    "id": "audit-adversarial-legacy-parity-v2",
+    "role": "audit",
+    "provider": "codex",
+    "complexity": "xl",
+    "branch": "audit",
+    "task": "Red-team the upgraded mixed Legion parity. Attack forged readiness, stale inbox rows, malicious commander ids, offline sessions, oversized messages, prompt injection, direct L1 delivery, false completed Claude outputs, missing patrol/retro evidence, fake no-omission rows, and dependency repair paths. Any FAIL blocks release. Do not edit files.",
+    "scope": [
+      "scripts/",
+      "tests/",
+      ".planning/communication-upgrade/",
+      "/Users/feijun/.claude/legion/bf21e79d/mixed/"
+    ],
+    "depends_on": [
+      "verify-isolated-runtime-parity-v2"
+    ],
+    "retain_context": true
+  },
+  {
+    "id": "synthesis-no-omission-release-gate-v2",
+    "role": "audit",
+    "provider": "codex",
+    "complexity": "xl",
+    "branch": "audit",
+    "task": "Produce the final release synthesis matrix. Every preserved legacy mechanism must be retained/upgraded/replaced/blocker with evidence. Final verdict must be FAIL or WATCH if any review, verify, audit, patrol, retrospective, structured-completion, or no-omission item lacks runtime evidence. Do not edit files.",
+    "scope": [
+      ".planning/communication-upgrade/",
+      "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/"
+    ],
+    "depends_on": [
+      "audit-adversarial-legacy-parity-v2"
+    ],
+    "retain_context": true
+  }
+]

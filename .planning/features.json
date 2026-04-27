@@ -1,0 +1,200 @@
+{
+  "task": "Legion system repair",
+  "created": "2026-04-25",
+  "features": [
+    {
+      "id": "F001",
+      "name": "Normalize git index",
+      "status": "done",
+      "assignee": "commander",
+      "files": [],
+      "verified": true,
+      "notes": "Used git restore --staged -- .; worktree content preserved."
+    },
+    {
+      "id": "F002",
+      "name": "Fix stack verify detect exit code",
+      "status": "done",
+      "assignee": "Descartes",
+      "files": ["scripts/stack-verify.sh"],
+      "verified": true,
+      "notes": "cmd_detect now returns 0 after optional detector checks; detect/full verified."
+    },
+    {
+      "id": "F003",
+      "name": "Fix non-Legion post-tool quality gate feedback",
+      "status": "done",
+      "assignee": "Jason",
+      "files": ["scripts/hooks/post-tool-use.sh"],
+      "verified": true,
+      "notes": "Synchronous non-Legion check verified with success, FAIL, and non-FAIL nonzero mock hooks."
+    },
+    {
+      "id": "F004",
+      "name": "Fix hook install merge and noninteractive joint",
+      "status": "done",
+      "assignee": "Plato",
+      "files": ["scripts/legion.sh"],
+      "verified": true,
+      "notes": "Hook merge tested against missing, existing, broken JSON, and malformed hook entry settings; joint help and environment fallback reviewed."
+    },
+    {
+      "id": "F005",
+      "name": "Self-bootstrap project initialization",
+      "status": "done",
+      "assignee": "commander",
+      "files": ["scripts/legion.sh", "scripts/legion-init.sh", "README.md", "install.sh"],
+      "verified": true,
+      "notes": "Verified in temporary uninitialized projects with isolated HOME: `legion 0`, `legion 0 --minimal`, and `legion h --dry-run`."
+    },
+    {
+      "id": "F006",
+      "name": "Auto-configure global legion entrypoint",
+      "status": "done",
+      "assignee": "commander",
+      "files": ["scripts/legion.sh", "README.md", "install.sh"],
+      "verified": true,
+      "notes": "Verified in isolated HOME/PATH and on this machine: /opt/homebrew/bin/legion wrapper points to ~/.claude/scripts/legion; `legion h --dry-run` succeeds."
+    },
+    {
+      "id": "F007",
+      "name": "Lightweight daily host startup",
+      "status": "done",
+      "assignee": "commander",
+      "files": ["scripts/legion.sh"],
+      "verified": true,
+      "notes": "`legion h --dry-run` fast path reports ready and measured about 0.16s after initial sync."
+    },
+    {
+      "id": "F008",
+      "name": "Visible host launch",
+      "status": "done",
+      "assignee": "commander",
+      "files": ["scripts/legion_core.py", "README.md"],
+      "verified": true,
+      "notes": "`host` now attaches to host tmux by default in interactive terminals; `--no-attach` keeps background behavior. New Claude L2 pane verified at Claude Code prompt. Repeated host calls reuse online L2."
+    },
+    {
+      "id": "F009",
+      "name": "Startup weapons and tactics self-check",
+      "status": "done",
+      "assignee": "commander",
+      "files": ["scripts/legion_core.py"],
+      "verified": true,
+      "notes": "L1 and L2 startup prompts now require protocol reads, skill inventory, role-relevant tactics reads, mixed status, inbox, and event inspection before accepting work. Verified with a no-attach host launch and tmux pane captures for Claude and Codex commanders."
+    },
+    {
+      "id": "F010",
+      "name": "L1/L2 startup readiness handshake",
+      "status": "done",
+      "assignee": "commander",
+      "files": ["scripts/legion_core.py", "tests/test_legion_core.py", "README.md"],
+      "verified": true,
+      "notes": "Legion Core now sends a direct-L2 roster to L1, supports parent-scoped broadcasts, and provides `mixed readiness --wait`. Verified by unit tests and a real no-attach host launch reaching Ready: 2/2."
+    },
+    {
+      "id": "F011",
+      "name": "Interactive L1/L2 tmux split view",
+      "status": "done",
+      "assignee": "commander",
+      "files": ["scripts/legion_core.py", "scripts/legion.sh", "tests/test_legion_core.py", "README.md"],
+      "verified": true,
+      "notes": "`legion view` now auto-selects the newest live L1 host with live direct L2 commanders and opens a real interactive tmux split workspace using nested `tmux attach`, with dry-run and fresh modes covered by tests."
+    },
+    {
+      "id": "F012",
+      "name": "Context-aware dynamic L2 retirement",
+      "status": "done",
+      "assignee": "commander",
+      "files": ["scripts/legion_core.py", "tests/test_legion_core.py", "README.md"],
+      "verified": true,
+      "notes": "Campaign L2 commanders now disband only when all owned tasks are completed and context retention is not requested. Real smoke verified dynamic L2 expansion, DISBAND inbox delivery, tmux shutdown, and retain_context preserving a live L2."
+    },
+    {
+      "id": "F013",
+      "name": "Scale-first Legion doctrine",
+      "status": "done",
+      "assignee": "commander",
+      "files": ["AGENTS.md", "README.md", "scripts/legion_core.py", "tests/test_legion_core.py"],
+      "verified": true,
+      "notes": "Project protocol and L1/L2 prompts now state that resource cost is not a downgrade reason and non-trivial work defaults to maximum effective corps collaboration. Unit tests cover both L1 and L2 prompts."
+    },
+    {
+      "id": "F014",
+      "name": "Default L1/L2 task view",
+      "status": "done",
+      "assignee": "commander",
+      "files": ["scripts/legion_core.py", "tests/test_legion_core.py", "README.md"],
+      "verified": true,
+      "notes": "`legion h` now opens the refreshed interactive split view by default. The view includes base host L2 commanders and all live L2 commanders with non-terminal tasks, while excluding retained-but-idle campaign L2 from the default workspace."
+    },
+    {
+      "id": "F015",
+      "name": "RoundTable skill effectiveness audit",
+      "status": "done",
+      "assignee": "commander",
+      "files": [
+        ".claude/skills/claw-roundtable-skill/SKILL.md",
+        ".claude/skills/claw-roundtable-skill/roundtable_engine_v2.py",
+        ".claude/skills/claw-roundtable-skill/roundtable_health.py",
+        ".agents/skills/claw-roundtable-skill/SKILL.md",
+        "scripts/legion_core.py",
+        "scripts/legion-init.sh",
+        "tests/test_roundtable_skill.py",
+        "tests/test_legion_core.py",
+        "README.md"
+      ],
+      "verified": true,
+      "notes": "RoundTable files, 170-agent library, analyzer, Claude skill package, and Codex bridge are healthy; L1 records base health, while L2 runs --require-runtime only for assigned RoundTable/high-cost decision tasks. Full execution fails fast when OpenClaw sessions_spawn runtime is unavailable. No standalone Qiushi skill exists in the project/global skill roots."
+    },
+    {
+      "id": "F016",
+      "name": "Hierarchy-aware L1 to L2 campaign routing",
+      "status": "done",
+      "assignee": "commander",
+      "files": [
+        "scripts/legion_core.py",
+        "tests/test_legion_core.py",
+        "README.md"
+      ],
+      "verified": true,
+      "notes": "Campaigns now infer the caller commander from the environment. S-level work stays with L1 by default, M+ work routes through visible L2 branch commanders via --corps, and L2-originated work remains direct unless --corps is forced."
+    },
+    {
+      "id": "F017",
+      "name": "L1 peer announcement and AICTO report outbox",
+      "status": "completed",
+      "assignee": "commander",
+      "files": [
+        "scripts/legion_core.py",
+        "scripts/legion.sh",
+        "tests/test_legion_core.py",
+        "tests/test_legion_shell_contract.py",
+        "README.md",
+        ".planning/REQUIREMENTS.md",
+        ".planning/DECISIONS.md",
+        ".planning/STATE.md"
+      ],
+      "verified": true,
+      "notes": "L1 launch/resume notifies same-project L1 peers and queues durable external AICTO reports; task terminal states and manual problem reports append to aicto-reports.jsonl without creating a local L0. Verified with py_compile, bash -n, focused unittest, isolated report-aicto/aicto-reports smoke, and diff check."
+    },
+    {
+      "id": "F018",
+      "name": "Separate Claude and Codex L1 startup surfaces",
+      "status": "completed",
+      "assignee": "commander",
+      "files": [
+        "scripts/legion_core.py",
+        "scripts/legion.sh",
+        "tests/test_legion_core.py",
+        "tests/test_legion_shell_contract.py",
+        "README.md",
+        ".planning/REQUIREMENTS.md",
+        ".planning/DECISIONS.md",
+        ".planning/STATE.md"
+      ],
+      "verified": true,
+      "notes": "Default startup attaches Claude L1 in the current terminal and leaves Codex L1 in a separate background tmux session; combined views are explicit only. Verified with py_compile, bash -n, JSON validation, focused unittest, and launcher dry-run smokes."
+    }
+  ]
+}

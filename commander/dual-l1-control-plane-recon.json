@@ -1,0 +1,29 @@
+[
+  {
+    "id": "dual-l1-arch-recon",
+    "provider": "codex",
+    "role": "explore",
+    "complexity": "m",
+    "task": "Read-only architecture recon for the dual-L1 control-plane repair. Inspect scripts/legion_core.py, scripts/legion.sh, tests/test_legion_core.py, .planning/dual-l1-control-plane/00-PLAN.md, and current live mixed runtime evidence if needed. Do not edit files. Return strict JSON only with status, summary, files_touched, verification, findings, risks. Focus on the smallest implementation surface for: provider-owned Claude/Codex L1 topology, live-only broadcast recipients, and project-isolated views.",
+    "scope": [
+      "scripts/legion_core.py",
+      "scripts/legion.sh",
+      "tests/test_legion_core.py",
+      ".planning/dual-l1-control-plane/00-PLAN.md"
+    ]
+  },
+  {
+    "id": "dual-l1-redteam",
+    "provider": "codex",
+    "role": "audit",
+    "complexity": "m",
+    "task": "Read-only adversarial audit for the dual-L1 repair. Do not edit files. Try to break the proposed design: stale registry commanders, cross-project tmux/view contamination, sender_verified=false messages, forged readiness, and accidental L1 delivery bypass. Return strict JSON only with status, summary, files_touched, verification, findings, risks.",
+    "scope": [
+      "scripts/legion_core.py",
+      "scripts/legion.sh",
+      "tests/test_legion_core.py",
+      ".planning/dual-l1-control-plane/00-PLAN.md",
+      ".planning/communication-upgrade/00-RUNTIME-CONTRACT.md"
+    ]
+  }
+]

@@ -1,8 +1,39 @@
+# 运行时数据
+projects/
+shell-snapshots/
+todos/
+tasks/
+teams/
+file-history/
+history.jsonl
+audit_log.json
+backups/
+
+# Legion 运行时（保留 template）
+legion/*/
+legion/directory.json
+legion/learnings.jsonl
+!legion/template/
+!legion/template/**
+
+# 缓存和临时
 __pycache__/
 *.pyc
-*.pyo
 .DS_Store
-hermes-plugin/state/
-*.db
-*.db-shm
-*.db-wal
+
+# 日志
+*.log
+logs/
+
+# 备份
+agents.bak.*
+*.bak
+*.backup.*
+
+# 其他可能的运行时
+ide/
+statsig/
+plugins/
+*.lock
+.credentials.json
+settings.local.json

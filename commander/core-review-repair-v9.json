@@ -1,0 +1,136 @@
+[
+  {
+    "id": "repair-core-review-findings-v9",
+    "role": "implement",
+    "provider": "codex",
+    "complexity": "xl",
+    "branch": "implement",
+    "task": "Self-contained task: do not consult /Users/feijun/.codex/memories or emit memory citations; all required review input is in this prompt and local files. Supersede failed v8 and fix every finding from review-core-policy-state-v5, v6, and v7. Scope only scripts/legion_core.py and tests/test_legion_core.py. Required fixes: (1) worker results must be strict whole-file JSON, not prose-wrapped JSON; validate schema-equivalent required keys status, summary, files_touched, verification, findings, risks and key types before accepting any terminal status; reject missing keys and wrong types with clear failed status. (2) status/read-only paths must not init_state or create state dirs/files on fresh missing state. (3) wait_readiness must fail when rejected_expected is non-empty and must preserve/report the original explicit expected list; readiness orders must keep ordered L2s visible as missing/rejected rather than Ready 0/0. (4) readiness must not count stale direct L2 commanders whose tmux session is missing/inaccessible; add regression coverage. (5) DELIVERY_ROLES must include every write-capable role including rescue, or derive delivery from workspace-write policy, so direct L1 no-delivery and scope checks apply. (6) delivery roles/branches must require non-empty scope. (7) normalize scopes relative to project root, reject path traversal/out-of-project scopes, and detect exact/ancestor/descendant overlaps such as src vs src/app.py and ./src/app.py vs src/app.py. (8) make campaign scope ownership transactional across active-scope read, conflict check, branch commander reuse, and task insertion; avoid two concurrent campaigns claiming same scope. (9) branch commander reuse must require provider compatibility or refuse/refresh wrong-provider branch commanders. (10) repair_dependents must reject missing or failed/blocked replacement_task_id without mutating registry/events. (11) repair must recursively re-evaluate/unblock transitive blocked dependents whose dependencies become satisfiable after replacement. (12) preserve existing v5 behavior: L1 corps routing, provider defaults, structured completion gate, inbox-before-tmux, registry/inbox/event locks, explicit reconcile, message ids, monotonic terminal states. Add regression tests for every item. Run targeted unit tests and the full unittest suite if the environment allows; if full suite is blocked by tempdir permissions, report exact failure and run all no-temp targeted tests you can. Final output must be only one JSON object.",
+    "scope": [
+      "scripts/legion_core.py",
+      "tests/test_legion_core.py"
+    ],
+    "depends_on": [
+      "review-core-policy-state-v5",
+      "review-core-policy-state-v6",
+      "review-core-policy-state-v7"
+    ],
+    "retain_context": true
+  },
+  {
+    "id": "review-core-policy-state-v9",
+    "role": "review",
+    "provider": "codex",
+    "complexity": "xl",
+    "branch": "review",
+    "task": "Self-contained task: do not consult /Users/feijun/.codex/memories or emit memory citations; final output JSON only. Independently re-review scripts/legion_core.py and tests/test_legion_core.py after repair-core-review-findings-v9. Verify all findings from review-core-policy-state-v5/v6/v7 are fixed: strict JSON/schema validation, fresh read-only status, rejected_expected readiness failure, stale tmux readiness rejection, rescue delivery classification, non-empty normalized overlapping scopes, transactional scope ownership, provider-compatible branch reuse, replacement validation, transitive repair unblock, and preservation of v5 contracts. Do not edit files.",
+    "scope": [
+      "scripts/legion_core.py",
+      "tests/test_legion_core.py"
+    ],
+    "depends_on": [
+      "repair-core-review-findings-v9"
+    ],
+    "retain_context": true
+  },
+  {
+    "id": "repair-docs-runtime-contract-v9",
+    "role": "product",
+    "provider": "codex",
+    "complexity": "xl",
+    "branch": "product",
+    "task": "Self-contained task: do not consult /Users/feijun/.codex/memories or emit memory citations; final output JSON only. Recover docs after Claude quota failure and v9 core repair. Update operator docs and planning runtime contract. Scope README.md, AGENTS.md, CLAUDE.md, and .planning/communication-upgrade/. Document exact commands, parity guarantees, no-omission matrix, patrol/retro gates, commander daemon learning evidence, strict structured worker completion, dependency repair/unblock including transitive repair, read-only status vs reconcile, shell operator commands, v9 core review repairs, and the observed Claude quota fallback to Codex. Do not edit scripts or tests.",
+    "scope": [
+      "README.md",
+      "AGENTS.md",
+      "CLAUDE.md",
+      ".planning/communication-upgrade/"
+    ],
+    "depends_on": [
+      "review-core-policy-state-v9",
+      "repair-patrol-status-v3",
+      "repair-patrol-hook-gate-v3",
+      "repair-retrospective-contract-v4",
+      "repair-commander-daemon-learning-v6",
+      "repair-shell-ops-ux-v7"
+    ],
+    "retain_context": true
+  },
+  {
+    "id": "review-patrol-retro-learning-v9",
+    "role": "review",
+    "provider": "codex",
+    "complexity": "xl",
+    "branch": "review",
+    "task": "Self-contained task: do not consult /Users/feijun/.codex/memories or emit memory citations; final output JSON only. Independently review patrol status, patrol hook gate, retrospector script, retrospective contract, commander daemon learning, shell UX, v9 core repair, and docs changes. Focus on legacy parity, split-brain bridging, no-omission matrix, release gates, daemon_evidence consumer gap, learning loop continuity, and whether docs match runtime evidence. Do not edit files.",
+    "scope": [
+      "scripts/legion-patrol.sh",
+      "scripts/hooks/pre-tool-use.sh",
+      "scripts/retrospector.sh",
+      "scripts/legion-commander.py",
+      "scripts/legion_core.py",
+      "tests/test_legion_core.py",
+      "scripts/legion.sh",
+      "README.md",
+      "AGENTS.md",
+      "CLAUDE.md",
+      ".planning/communication-upgrade/"
+    ],
+    "depends_on": [
+      "repair-docs-runtime-contract-v9"
+    ],
+    "retain_context": true
+  },
+  {
+    "id": "verify-isolated-runtime-parity-v9",
+    "role": "verify",
+    "provider": "codex",
+    "complexity": "xl",
+    "branch": "verify",
+    "task": "Self-contained task: do not consult /Users/feijun/.codex/memories or emit memory citations; final output JSON only. Run isolated runtime verification for mixed campaign, msg, broadcast, readiness, status/reconcile, strict worker completion, scope ownership conflicts, repair replacement validation, transitive repair unblock, patrol, retrospector, commander daemon learning evidence, shell operator commands, and docs gates. Use isolated HOME/tmux where feasible and report exact commands. Do not edit files.",
+    "scope": [
+      "scripts/",
+      "tests/",
+      ".planning/communication-upgrade/"
+    ],
+    "depends_on": [
+      "review-core-policy-state-v9",
+      "review-patrol-retro-learning-v9"
+    ],
+    "retain_context": true
+  },
+  {
+    "id": "audit-adversarial-legacy-parity-v9",
+    "role": "audit",
+    "provider": "codex",
+    "complexity": "xl",
+    "branch": "audit",
+    "task": "Self-contained task: do not consult /Users/feijun/.codex/memories or emit memory citations; final output JSON only. Red-team the upgraded mixed Legion parity. Attack prose-wrapped/fake worker JSON, missing schema keys, concurrent same-scope campaigns, scope path normalization bypasses, empty delivery scopes, rescue direct-L1 writes, stale readiness from dead L2 tmux sessions, rejected_expected Ready 0/0, forged readiness, stale inbox rows, malicious commander ids, offline sessions, oversized messages, prompt injection, direct L1 delivery, dependency repair to missing replacement, transitive blocked dependents, missing patrol/retro/daemon/shell evidence, fake no-omission rows, and split-brain docs. Any FAIL blocks release. Do not edit files.",
+    "scope": [
+      "scripts/",
+      "tests/",
+      ".planning/communication-upgrade/",
+      "/Users/feijun/.claude/legion/bf21e79d/mixed/"
+    ],
+    "depends_on": [
+      "verify-isolated-runtime-parity-v9"
+    ],
+    "retain_context": true
+  },
+  {
+    "id": "synthesis-no-omission-release-gate-v9",
+    "role": "audit",
+    "provider": "codex",
+    "complexity": "xl",
+    "branch": "audit",
+    "task": "Self-contained task: do not consult /Users/feijun/.codex/memories or emit memory citations; final output JSON only. Produce the final release synthesis matrix. Every preserved legacy mechanism must be retained/upgraded/replaced/blocker with evidence. Include v5/v6/v7 review findings and v9 repair evidence. Final verdict must be FAIL or WATCH if any review, verify, audit, patrol, retrospective, commander-daemon learning, shell operator UX, strict structured completion, or no-omission item lacks runtime evidence. Do not edit files.",
+    "scope": [
+      ".planning/communication-upgrade/",
+      "/Users/feijun/.claude/legion/bf21e79d/mixed/runs/"
+    ],
+    "depends_on": [
+      "audit-adversarial-legacy-parity-v9"
+    ],
+    "retain_context": true
+  }
+]

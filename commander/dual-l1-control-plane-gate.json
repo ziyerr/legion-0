@@ -1,0 +1,32 @@
+[
+  {
+    "id": "dual-l1-control-plane-review",
+    "role": "review",
+    "provider": "codex",
+    "complexity": "m",
+    "task": "Read-only review of the dual-L1 control-plane repair after implementation. Do not edit files. Check scripts/legion_core.py, scripts/legion.sh, tests/test_legion_core.py, tests/test_legion_shell_contract.py, README.md, and .planning/dual-l1-control-plane/00-PLAN.md. Focus on: provider-owned Claude/Codex L1 separation, readiness orders per L1, live/project-scoped broadcast recipients, dry-run read-only behavior, dual view fail-fast on dead sessions, and compatibility of legacy host command. Final output must be JSON only using the worker-result schema; report PASS/FAIL as findings.",
+    "scope": [
+      "scripts/legion_core.py",
+      "scripts/legion.sh",
+      "tests/test_legion_core.py",
+      "tests/test_legion_shell_contract.py",
+      "README.md",
+      ".planning/dual-l1-control-plane/00-PLAN.md"
+    ],
+    "context_policy": "discard"
+  },
+  {
+    "id": "dual-l1-control-plane-verify",
+    "role": "verify",
+    "provider": "codex",
+    "complexity": "m",
+    "task": "Independent read-only runtime verification of the dual-L1 control-plane repair. Do not edit files. Run: PYTHONPYCACHEPREFIX=/tmp/legion-pycache python3 -m py_compile scripts/legion_core.py; bash -n scripts/legion.sh; TMPDIR=/tmp PYTHONPYCACHEPREFIX=/tmp/legion-pycache PYTHONDONTWRITEBYTECODE=1 python3 -m unittest tests/test_legion_core.py tests/test_legion_shell_contract.py -v; /bin/bash scripts/legion.sh host --dry-run --no-attach; /bin/bash scripts/legion.sh mixed dual-host --dry-run --no-attach. Final output must be JSON only using the worker-result schema.",
+    "scope": [
+      "scripts/legion_core.py",
+      "scripts/legion.sh",
+      "tests/test_legion_core.py",
+      "tests/test_legion_shell_contract.py"
+    ],
+    "context_policy": "discard"
+  }
+]

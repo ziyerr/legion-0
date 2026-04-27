@@ -1,0 +1,105 @@
+[
+  {
+    "id": "review-core-policy-state-v13",
+    "role": "review",
+    "provider": "codex",
+    "complexity": "m",
+    "branch": "review",
+    "task": "Read-only final core review after repair-core-security-audit-v13. Verify v13 fixed readiness sender authenticity, unknown commander rejection, L2 supervision fail-closed, tmux live/missing/inaccessible classification, release-grade event/inbox metadata, broadcast locked snapshot, Codex sandbox invariants, and running-time scope conflict blocks. Inspect scripts/legion_core.py, tests/test_legion_core.py, and v13 result artifacts. Do not edit files.",
+    "scope": [
+      "scripts/legion_core.py",
+      "tests/test_legion_core.py"
+    ],
+    "depends_on": [
+      "repair-core-security-audit-v13"
+    ],
+    "retain_context": true
+  },
+  {
+    "id": "review-patrol-retro-learning-v13",
+    "role": "review",
+    "provider": "codex",
+    "complexity": "m",
+    "branch": "review",
+    "task": "Read-only final patrol/retro/learning review after v13 repairs. Verify patrol status is no-temp/read-only safe, reinspect uses target mixed subtree/tmux evidence, gate block/approve is mixed-auditable, retrospector quick/full implement I1-I8 accounting/writeback behavior, daemon_evidence is consumed or explicitly WATCH, and docs match runtime. Do not edit.",
+    "scope": [
+      "scripts/legion-patrol.sh",
+      "scripts/legion.sh",
+      "scripts/retrospector.sh",
+      "scripts/legion-commander.py",
+      ".planning/communication-upgrade/05-RETROSPECTIVE-CONTRACT.md"
+    ],
+    "depends_on": [
+      "repair-patrol-gate-readonly-v13",
+      "repair-retrospector-daemon-evidence-v13"
+    ],
+    "retain_context": true
+  },
+  {
+    "id": "verify-isolated-runtime-parity-v13",
+    "role": "verify",
+    "provider": "codex",
+    "complexity": "m",
+    "branch": "verify",
+    "task": "Independent verification after all v13 repairs. Run focused local checks for tests.test_legion_core, shell syntax, legion.sh mixed dry-run non-mutation, patrol status with invalid TMPDIR, retrospector quick with invalid TMPDIR, Codex sandbox invariants, strict result schema, duo/dou dry-run, daemon import/smoke, and docs diff check. Do not edit; report exact commands and outputs.",
+    "scope": [
+      "scripts/legion_core.py",
+      "tests/test_legion_core.py",
+      "scripts/legion.sh",
+      "scripts/legion-patrol.sh",
+      "scripts/hooks/pre-tool-use.sh",
+      "scripts/retrospector.sh",
+      "scripts/legion-commander.py",
+      "README.md",
+      ".planning"
+    ],
+    "depends_on": [
+      "repair-core-security-audit-v13",
+      "repair-patrol-gate-readonly-v13",
+      "repair-retrospector-daemon-evidence-v13"
+    ],
+    "retain_context": true
+  },
+  {
+    "id": "audit-adversarial-legacy-parity-v13",
+    "role": "audit",
+    "provider": "codex",
+    "complexity": "m",
+    "branch": "audit",
+    "task": "Final adversarial audit after all v13 repairs. Attack readiness forgery, L1 no-delivery/unknown commander bypass, L2 supervision failure, tmux inaccessible misclassification, event/gate/retro evidence, Codex sandbox escalation/downgrade, running-time scope conflicts, patrol status/reinspect, and no-omission matrix. Do not edit; fail closed on concrete evidence.",
+    "scope": [
+      "scripts/legion_core.py",
+      "scripts/legion.sh",
+      "scripts/legion-patrol.sh",
+      "scripts/hooks/pre-tool-use.sh",
+      "scripts/retrospector.sh",
+      "scripts/legion-commander.py",
+      "README.md",
+      ".planning"
+    ],
+    "depends_on": [
+      "repair-core-security-audit-v13",
+      "repair-patrol-gate-readonly-v13",
+      "repair-retrospector-daemon-evidence-v13"
+    ],
+    "retain_context": true
+  },
+  {
+    "id": "synthesis-no-omission-release-gate-v13",
+    "role": "review",
+    "provider": "codex",
+    "complexity": "m",
+    "branch": "synthesis",
+    "task": "Read-only final synthesis gate. Wait for review-core-policy-state-v13, review-patrol-retro-learning-v13, verify-isolated-runtime-parity-v13, and audit-adversarial-legacy-parity-v13. Read relevant result files under /Users/feijun/.claude/legion/bf21e79d/mixed/runs and the legacy parity matrix. Produce PASS/WATCH/FAIL: PASS only if no unresolved major/critical gaps remain and no useful legacy mechanism that can be inherited is missing; WATCH is allowed for explicitly documented non-release-blocking residuals. Do not edit.",
+    "scope": [
+      ".planning"
+    ],
+    "depends_on": [
+      "review-core-policy-state-v13",
+      "review-patrol-retro-learning-v13",
+      "verify-isolated-runtime-parity-v13",
+      "audit-adversarial-legacy-parity-v13"
+    ],
+    "retain_context": true
+  }
+]

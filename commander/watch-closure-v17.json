@@ -1,0 +1,127 @@
+[
+  {
+    "id": "repair-inspector-parity-active-loop-v17",
+    "provider": "claude",
+    "role": "implement",
+    "complexity": "m",
+    "task": "Close row 11 inspector WATCH with runtime-grade evidence. Preserve the legacy LLM patrol behavior, but make the mixed inspector active-loop/replacement evidence explicit and testable: prove the daemon/inspector loop is enabled for mixed commanders, screen-capture patrol targets mixed tmux sessions, writes daemon evidence with stable schema/hash, and feeds inspector memory/retrospector inputs. Keep edits scoped. Final output strict JSON only.",
+    "scope": [
+      "scripts/legion-commander.py",
+      "tests/test_legion_commander_contract.py"
+    ],
+    "depends_on": [
+      "synthesis-no-omission-release-gate-v16b"
+    ]
+  },
+  {
+    "id": "repair-operator-ux-surfacing-v17",
+    "provider": "claude",
+    "role": "implement",
+    "complexity": "m",
+    "task": "Close row 23 operator UX WATCH. Add or harden one read-only operator surface that shows the mixed team, blockers/failed tasks, patrol notices/status, retrospective release status, and gate status together. It must work under isolated HOME/project with invalid TMPDIR and must not initialize project .claude or global directory registration when used read-only. Keep edits scoped. Final output strict JSON only.",
+    "scope": [
+      "scripts/legion.sh",
+      "tests/test_legion_shell_contract.py"
+    ],
+    "depends_on": [
+      "synthesis-no-omission-release-gate-v16b"
+    ]
+  },
+  {
+    "id": "review-inspector-ux-v17",
+    "provider": "codex",
+    "role": "review",
+    "complexity": "m",
+    "task": "Independent read-only review after the v17 inspector and operator UX repairs. Check row 11 and row 23 requirements against the legacy parity matrix, verify no L1 delivery bypass was introduced, verify read-only UX stays non-mutating, and verify tests are meaningful rather than docs-only claims. Return strict JSON only.",
+    "scope": [
+      "scripts/legion-commander.py",
+      "scripts/legion.sh",
+      "tests/test_legion_commander_contract.py",
+      "tests/test_legion_shell_contract.py",
+      ".planning/communication-upgrade/04-LEGACY-PARITY-MATRIX.md"
+    ],
+    "depends_on": [
+      "repair-inspector-parity-active-loop-v17",
+      "repair-operator-ux-surfacing-v17"
+    ]
+  },
+  {
+    "id": "verify-inspector-ux-v17",
+    "provider": "codex",
+    "role": "verify",
+    "complexity": "m",
+    "task": "Independent read-only runtime verification for v17. Run the smallest focused tests and shell syntax checks needed to prove row 11 inspector evidence and row 23 unified operator UX. Use isolated HOME/project where needed. Do not edit files. Return strict JSON only.",
+    "scope": [
+      "scripts/legion-commander.py",
+      "scripts/legion.sh",
+      "tests/test_legion_commander_contract.py",
+      "tests/test_legion_shell_contract.py",
+      "scripts/retrospector.sh",
+      "scripts/legion-patrol.sh"
+    ],
+    "depends_on": [
+      "repair-inspector-parity-active-loop-v17",
+      "repair-operator-ux-surfacing-v17"
+    ]
+  },
+  {
+    "id": "audit-v17-release-blockers",
+    "provider": "codex",
+    "role": "audit",
+    "complexity": "m",
+    "task": "Adversarial read-only audit for v17. Try to keep row 11 or row 23 open: missing active loop evidence, fake inspector evidence, mutating read-only UX, fragmented surfaces, stale retrospective/patrol/gate signals, or failed/blocked result artifacts. Do not edit files. Return strict JSON only.",
+    "scope": [
+      "scripts/legion-commander.py",
+      "scripts/legion.sh",
+      "scripts/retrospector.sh",
+      "scripts/legion-patrol.sh",
+      "tests/test_legion_commander_contract.py",
+      "tests/test_legion_shell_contract.py",
+      ".planning/communication-upgrade/"
+    ],
+    "depends_on": [
+      "repair-inspector-parity-active-loop-v17",
+      "repair-operator-ux-surfacing-v17"
+    ]
+  },
+  {
+    "id": "repair-matrix-state-watch-closure-v17",
+    "provider": "codex",
+    "role": "implement",
+    "complexity": "m",
+    "task": "After v17 implementation, review, verify, and audit complete, update planning truth only. Close row 11 and row 23 only if named v17 artifacts provide runtime evidence. Then update row 35/B10 release posture accordingly. If any evidence is missing, keep WATCH and name the concrete blocker/repair. Include task ids, result artifact paths, and verification commands. Final output strict JSON only.",
+    "scope": [
+      ".planning/STATE.md",
+      ".planning/communication-upgrade/04-LEGACY-PARITY-MATRIX.md",
+      ".planning/communication-upgrade/05-RETROSPECTIVE-CONTRACT.md",
+      ".planning/retrospectives/2026-04-25-communication-upgrade.md"
+    ],
+    "depends_on": [
+      "review-inspector-ux-v17",
+      "verify-inspector-ux-v17",
+      "audit-v17-release-blockers"
+    ]
+  },
+  {
+    "id": "synthesis-no-omission-release-gate-v17",
+    "provider": "codex",
+    "role": "review",
+    "complexity": "m",
+    "task": "Final read-only no-omission synthesis after v17. Enumerate B1-B10 and rows 1-35. PASS only if every residual WATCH/BLK/FAIL is cleared with runtime evidence or a deliberately named blocker/repair; otherwise return WATCH/FAIL with exact remaining tasks. Run only read-only checks. Final output strict JSON only.",
+    "scope": [
+      ".planning/STATE.md",
+      ".planning/communication-upgrade/04-LEGACY-PARITY-MATRIX.md",
+      ".planning/communication-upgrade/05-RETROSPECTIVE-CONTRACT.md",
+      ".planning/retrospectives/2026-04-25-communication-upgrade.md",
+      "scripts/legion-commander.py",
+      "scripts/legion.sh",
+      "scripts/retrospector.sh",
+      "scripts/legion-patrol.sh",
+      "tests/test_legion_commander_contract.py",
+      "tests/test_legion_shell_contract.py"
+    ],
+    "depends_on": [
+      "repair-matrix-state-watch-closure-v17"
+    ]
+  }
+]

@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# Short command shim for Legion.
+#
+#   legion 0                -> initialize current project Legion files
+#   legion h                -> initialize project, then open host + base/task L2 split view
+#   legion codex l1 <name>  -> legion.sh codex l1 <name>
+#   legion ...              -> legion.sh ...
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LEGION_SH="${LEGION_SH:-$SCRIPT_DIR/legion.sh}"
+
+exec "$LEGION_SH" "$@"

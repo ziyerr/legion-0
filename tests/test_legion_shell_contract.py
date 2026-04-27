@@ -1,0 +1,373 @@
+import hashlib
+import importlib.util
+import json
+import os
+import subprocess
+import tempfile
+import time
+import unittest
+from pathlib import Path
+
+
+class LegionShellContractTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.repo_root = Path(__file__).resolve().parents[1]
+        cls.legion_sh = cls.repo_root / "scripts" / "legion.sh"
+        cls.commander_py = cls.repo_root / "scripts" / "legion-commander.py"
+
+    def run_shell_contract(self, args, setup=None):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            project = root / "project"
+            home = root / "home"
+            project.mkdir()
+            home.mkdir()
+            env = os.environ.copy()
+            for key in (
+                "LEGION_DIR",
+                "MIXED_DIR",
+                "REGISTRY_DIR",
+                "PROJECT_DIR",
+                "PLANNING_DIR",
+                "LEGION_TRUST_PROJECT_DIR",
+                "RETROSPECTOR_TRUST_BOUNDARY_ENV",
+                "RETROSPECTOR_TRUST_PROJECT_DIR",
+            ):
+                env.pop(key, None)
+            env.update(
+                {
+                    "HOME": str(home),
+                    "TMPDIR": str(root / "missing-tmp"),
+                    "PYTHONDONTWRITEBYTECODE": "1",
+                }
+            )
+            if setup is not None:
+                setup(root, project, home, env)
+            completed = subprocess.run(
+                ["bash", str(self.legion_sh), *args],
+                cwd=project,
+                env=env,
+                capture_output=True,
+                text=True,
+                timeout=20,
+            )
+            return completed, project, home
+
+    def assert_read_only_shell_result(self, args, setup=None, expect_clean_home=True):
+        completed, project, home = self.run_shell_contract(args, setup=setup)
+        self.assertEqual(
+            completed.returncode,
+            0,
+            msg=f"stdout:\n{completed.stdout}\nstderr:\n{completed.stderr}",
+        )
+        if expect_clean_home:
+            self.assertFalse((home / ".claude").exists())
+        self.assertFalse((home / ".claude" / "legion" / "directory.json").exists())
+        self.assertFalse((project / ".claude").exists())
+        return completed
+
+    def test_dry_run_entrypoints_skip_directory_registration_with_invalid_tmpdir(self):
+        plan = json.dumps([{"id": "review", "role": "review", "task": "review diff"}])
+        cases = [
+            ["mixed", "campaign", plan, "--dry-run"],
+            ["mixed", "host", "--dry-run", "--host-only"],
+            ["mixed", "dual-host", "--dry-run", "--no-attach"],
+            ["mixed", "aicto", "--dry-run", "--no-attach"],
+            ["mixed", "view", "--dry-run"],
+            ["host", "--dry-run", "--no-attach"],
+            ["host", "--dry-run", "--host-only"],
+            ["host", "--dual-only", "--dry-run", "--no-attach"],
+            ["claude", "h", "--dry-run", "--no-attach"],
+            ["codex", "l1", "--dry-run"],
+            ["aicto", "--dry-run", "--no-attach"],
+            ["duo", "--dry-run"],
+            ["dou", "--dry-run"],
+        ]
+
+        for args in cases:
+            with self.subTest(args=args):
+                self.assert_read_only_shell_result(args)
+
+    def test_host_default_dry_run_starts_dual_l1_not_local_aicto(self):
+        completed = self.assert_read_only_shell_result(["host", "--dry-run", "--no-attach"])
+
+        self.assertIn("L1-", completed.stdout)
+        self.assertIn("[claude]", completed.stdout)
+        self.assertIn("[codex]", completed.stdout)
+        self.assertNotIn("L0-", completed.stdout)
+        self.assertNotIn("L2:", completed.stdout)
+        self.assertNotIn("[AICTO/", completed.stdout)
+
+    def test_claude_h_dry_run_uses_separate_l1_sessions_without_dual_view(self):
+        completed = self.assert_read_only_shell_result(["claude", "h", "--dry-run", "--no-attach"])
+
+        self.assertIn("[claude]", completed.stdout)
+        self.assertIn("[codex]", completed.stdout)
+        self.assertNotIn("L2:", completed.stdout)
+        self.assertNotIn("legion-view", completed.stdout)
+        self.assertNotIn("view:", completed.stdout)
+
+    def test_aicto_entrypoint_is_external_hermes_status_not_local_commander(self):
+        completed = self.assert_read_only_shell_result(["aicto", "--dry-run", "--no-attach"])
+
+        self.assertIn("external Hermes CTO", completed.stdout)
+        self.assertIn("not a local Legion L0 commander", completed.stdout)
+        self.assertIn("nohup aicto gateway run", completed.stdout)
+        self.assertNotIn("planned:", completed.stdout)
+        self.assertNotIn("L0-", completed.stdout)
+
+    def test_read_only_entrypoints_work_with_invalid_tmpdir_without_registration(self):
+        cases = [
+            ["status"],
+            ["locks"],
+            ["board"],
+            ["sitrep"],
+            ["watch"],
+            ["inbox"],
+            ["patrol"],
+            ["retro"],
+            ["retrospector"],
+            ["mailbox"],
+            ["mailbox", "read", "L1"],
+            ["mailbox", "unread", "L1"],
+            ["mailbox", "list", "L1"],
+            ["gate", "L1", "status"],
+            ["mixed", "status"],
+            ["mixed", "inbox", "L1"],
+            ["mixed", "readiness", "L1"],
+            ["mixed", "aicto-reports"],
+            ["ops"],
+        ]
+
+        for args in cases:
+            with self.subTest(args=args):
+                self.assert_read_only_shell_result(args)
+
+    def test_ops_surface_unifies_team_blockers_patrol_retro_gate(self):
+        completed = self.assert_read_only_shell_result(["ops"])
+        out = completed.stdout
+        for marker in (
+            "Mixed 部队",
+            "阻塞 / 失败任务",
+            "巡查通知书",
+            "Release Gate",
+            "Retrospective Release Status",
+            "Mixed 事件",
+        ):
+            self.assertIn(marker, out, msg=f"missing section marker {marker!r} in ops output:\n{out}")
+
+    def test_ops_surface_prints_actual_operator_evidence_without_registration(self):
+        def seed_ops_evidence(_root, project, home, _env):
+            retros_dir = project / ".planning" / "retrospectives"
+
+            retros_dir.mkdir(parents=True)
+
+            def write_runtime(registry_dir):
+                mixed_dir = registry_dir / "mixed"
+                patrol_dir = registry_dir / "patrol"
+                gate_dir = registry_dir / "team-L2-implement"
+
+                mixed_dir.mkdir(parents=True)
+                patrol_dir.mkdir(parents=True)
+                gate_dir.mkdir(parents=True)
+
+                (mixed_dir / "mixed-registry.json").write_text(
+                    json.dumps(
+                        {
+                            "project": {"path": str(project)},
+                            "commanders": [
+                                {
+                                    "id": "L1-host",
+                                    "provider": "claude",
+                                    "status": "commanding",
+                                    "level": 1,
+                                    "branch": "root",
+                                    "lifecycle": "persistent",
+                                },
+                                {
+                                    "id": "L2-verify",
+                                    "provider": "codex",
+                                    "status": "failed",
+                                    "level": 2,
+                                    "branch": "verify",
+                                    "parent": "L1-host",
+                                    "lifecycle": "campaign",
+                                    "failure": "tmux new-session failed",
+                                },
+                            ],
+                            "tasks": [
+                                {
+                                    "id": "repair-v17",
+                                    "role": "implement",
+                                    "status": "failed",
+                                    "commander": "L2-implement",
+                                    "task": "operator UX old worker",
+                                    "scope": ["scripts/legion.sh"],
+                                    "failure": "wrapped JSON in Markdown",
+                                },
+                                {
+                                    "id": "audit-v17",
+                                    "role": "audit",
+                                    "status": "blocked",
+                                    "commander": "L2-audit",
+                                    "task": "audit operator UX",
+                                    "scope": "tests/test_legion_shell_contract.py",
+                                    "blocked_reason": "dependency repair-v17 is failed",
+                                },
+                            ],
+                        },
+                        ensure_ascii=False,
+                    ),
+                    encoding="utf-8",
+                )
+                (mixed_dir / "events.jsonl").write_text(
+                    "\n".join(
+                        json.dumps(event, ensure_ascii=False)
+                        for event in (
+                            {
+                                "timestamp": "2026-04-25T01:00:00Z",
+                                "event": "task_failed",
+                                "subject_id": "repair-v17",
+                                "payload": {"failure": "wrapped JSON in Markdown"},
+                            },
+                            {
+                                "timestamp": "2026-04-25T01:05:00Z",
+                                "event": "gate_blocked",
+                                "subject_id": "L2-implement",
+                                "payload": {"reason": "release gate hold"},
+                            },
+                        )
+                    )
+                    + "\n",
+                    encoding="utf-8",
+                )
+                (patrol_dir / "notice-L2-implement.json").write_text(
+                    json.dumps(
+                        {
+                            "team_id": "L2-implement",
+                            "status": "pending_remediation",
+                            "edit_count": 23,
+                            "issued_at": "2026-04-25T01:10:00Z",
+                            "reason": "源码编辑无团队",
+                        },
+                        ensure_ascii=False,
+                    ),
+                    encoding="utf-8",
+                )
+                (gate_dir / "gate.json").write_text(
+                    json.dumps(
+                        {
+                            "status": "blocked",
+                            "reason": "release gate hold",
+                            "blocked_at": "2026-04-25T01:15:00Z",
+                        },
+                        ensure_ascii=False,
+                    ),
+                    encoding="utf-8",
+                )
+
+            project_hashes = {
+                hashlib.md5(str(path).encode("utf-8")).hexdigest()[:8]
+                for path in (project, project.resolve())
+            }
+            for project_hash in project_hashes:
+                write_runtime(home / ".claude" / "legion" / project_hash)
+
+            (retros_dir / "2026-04-25-operator-ux.md").write_text(
+                "\n".join(
+                    [
+                        "# Operator UX Retrospective",
+                        "- Release gate verdict: fail",
+                        "- blocks_release: true",
+                        "- classification: release_blocking",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+            (project / ".planning" / "STATE.md").write_text(
+                "Release gate verdict: fail\nRetrospective status: current blocker\n",
+                encoding="utf-8",
+            )
+
+        completed = self.assert_read_only_shell_result(
+            ["ops"],
+            setup=seed_ops_evidence,
+            expect_clean_home=False,
+        )
+        out = completed.stdout
+        for needle in (
+            "L1-host",
+            "L2-verify",
+            "tmux new-session failed",
+            "repair-v17",
+            "wrapped JSON in Markdown",
+            "audit-v17",
+            "dependency repair-v17 is failed",
+            "status=pending_remediation",
+            "源码编辑无团队",
+            "status=blocked",
+            "release gate hold",
+            "2026-04-25-operator-ux.md",
+            "Release gate verdict: fail",
+            "blocks_release: true",
+            "task_failed",
+            "gate_blocked",
+        ):
+            self.assertIn(needle, out, msg=f"missing ops evidence {needle!r} in:\n{out}")
+
+    def test_shell_prefers_repo_commander_script_over_global_copy(self):
+        text = self.legion_sh.read_text(encoding="utf-8")
+
+        repo_probe = 'if [[ -f "$LEGION_SCRIPT_DIR/legion-commander.py" ]]'
+        global_probe = 'elif [[ -f "$HOME/.claude/scripts/legion-commander.py" ]]'
+        self.assertIn(repo_probe, text)
+        self.assertIn(global_probe, text)
+        self.assertLess(text.index(repo_probe), text.index(global_probe))
+        self.assertNotIn('COMMANDER_SCRIPT="$HOME/.claude/scripts/legion-commander.py"', text)
+        self.assertNotIn("python3 $HOME/.claude/scripts/legion-commander.py", text)
+
+    def test_commander_init_writes_startup_daemon_evidence(self):
+        with tempfile.TemporaryDirectory() as td:
+            legion_dir = Path(td) / "legion-home" / "abcd1234"
+            old_legion_dir = os.environ.get("LEGION_DIR")
+            os.environ["LEGION_DIR"] = str(legion_dir)
+            try:
+                spec = importlib.util.spec_from_file_location(
+                    f"legion_commander_contract_{time.time_ns()}",
+                    self.commander_py,
+                )
+                module = importlib.util.module_from_spec(spec)
+                self.assertIsNotNone(spec.loader)
+                spec.loader.exec_module(module)
+                module._start_time = time.monotonic()
+
+                module.init()
+            finally:
+                if old_legion_dir is None:
+                    os.environ.pop("LEGION_DIR", None)
+                else:
+                    os.environ["LEGION_DIR"] = old_legion_dir
+
+            evidence_file = legion_dir / "daemon_evidence.jsonl"
+            self.assertTrue(evidence_file.exists())
+            records = [json.loads(line) for line in evidence_file.read_text(encoding="utf-8").splitlines()]
+            self.assertEqual(len(records), 1)
+            record = records[0]
+            for key in ("schema_version", "evidence_id", "project_hash", "cwd", "kind", "record_hash"):
+                self.assertIn(key, record)
+            self.assertEqual(record["schema_version"], 1)
+            self.assertEqual(record["project_hash"], "abcd1234")
+            self.assertEqual(record["kind"], "daemon_started")
+
+            record_hash = record["record_hash"]
+            material = dict(record)
+            del material["record_hash"]
+            expected_hash = hashlib.sha256(
+                json.dumps(material, ensure_ascii=False, sort_keys=True).encode("utf-8")
+            ).hexdigest()
+            self.assertEqual(record_hash, expected_hash)
+
+
+if __name__ == "__main__":
+    unittest.main()

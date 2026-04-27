@@ -1,58 +1,150 @@
-# AICTO — STATE
+# Legion System Repair State
 
-## 当前阶段
-**Phase 0 · 初始化**
+- Status: completed
+- Date: 2026-04-25
+- Completed: git index was unstaged safely; no destructive rollback used.
+- Completed: `stack-verify.sh detect` now exits 0 after normal detection.
+- Completed: non-Legion `post-tool-use.sh` now reports Quality Gate failures synchronously.
+- Completed: `legion.sh` now merges required hooks idempotently and `joint` defaults to noninteractive execution with plan-only flags.
+- Completed: review findings addressed for non-`FAIL|` verifier exits, malformed hook entries, and `JOINT_EXEC` registry environment.
+- Completed: `legion 0` now resolves local/global `legion-init.sh` and can initialize without global script expansion.
+- Completed: `legion h` now aliases host, ensures project initialization, then starts/plans host + Claude/Codex L2.
+- Completed: final regression passed.
+- Completed: `legion 0` and `legion h` now auto-sync `~/.claude/scripts`, schemas, agents, skills, and install a bare `legion` wrapper.
+- Completed: current machine configured `/opt/homebrew/bin/legion`; `legion h --dry-run` works.
+- Completed: `legion h` now uses a lightweight fast path when global entrypoint and project initialization are already ready.
+- Completed: final regression passed.
+- Completed: `legion h` host now supports default attach, with `--no-attach` for background launches.
+- Completed: Claude branch commanders now preserve TTY instead of piping through `tee`, avoiding Claude CLI prompt-input failure.
+- Completed: host now prefers already-online L2 branch commanders instead of creating duplicates behind stale planned records.
+- Superseded by Stable L1-Only Frontend: L1 hosts still execute the full startup self-check; L2 branch commanders now receive a lightweight task-scoped activation protocol instead of the full L1 protocol/status/skill/tactic scan.
+- Superseded by Stable L1-Only Frontend: host startup no longer creates base L2 or sends a direct-L2 roster by default. Readiness orders remain for explicit legacy/base-L2 or explicit L1 readiness requests; routine M+ L2 activation uses `TASK-ASSIGNED`.
+- Completed: `legion view` now creates a Claude Team tmux-style interactive split workspace for the newest live L1 host and its live direct L2 commanders; `--host`, `--fresh`, and `--dry-run` are supported.
+- Completed: `--corps` dynamic L2 commanders now carry `lifecycle=campaign`; completed tasks without context retention trigger `DISBAND:init-complete`, tmux shutdown, and commander `completed`, while `retain_context` and failed/blocked work preserve L2 context.
+- Completed: Legion scale-first doctrine is now encoded in `AGENTS.md`, README, and L1/L2 startup prompts: resource cost is not a downgrade reason, non-trivial work defaults to maximum effective corps collaboration, and quality gates stay independent.
+- Completed: `legion h` now enters a refreshed split view by default, showing base host L2 plus live L2 commanders with non-terminal tasks and excluding retained-but-idle dynamic L2 from the default workspace.
+- Superseded by lightweight L2 activation: RoundTable skill audit added a health check, corrected all-expert-failed completion semantics, and exposed a Codex `.agents/skills` bridge. L1 records base health; L2 runs RoundTable runtime checks only when assigned RoundTable/high-cost decision work. No standalone Qiushi skill exists in current skill roots.
+- Superseded by Stable L1-Only Frontend: `mixed campaign` still infers the current commander from the L1/L2 environment, but S-level work now stays with L1 by default while M+ work routes through visible L2/corps. Earlier "all delivery via L2" wording is no longer current.
+- Completed: final regression passed after readiness handshake changes.
+- Residual risk: the current mixed registry contains several stale test commanders from validation runs; they do not block readiness because parent-scoped filtering ignores other L1/L2 trees.
+- Completed: communication-upgrade v2 shared truth source restored after the v1 spec task failure.
+- Completed: dependency outputs read from `comm-recon-current-state`, `comm-recon-legacy-claude`, `comm-audit-concurrency-races`, `comm-audit-tmux-delivery`, and `comm-audit-readiness-boundary-rerun`.
+- Superseded by Stable L1-Only Frontend: `.planning/communication-upgrade/00-RUNTIME-CONTRACT.md` defined the earlier L1 no-delivery boundary; current runtime uses S-at-L1 / M+-through-corps while retaining registry/inbox/events/tmux, flock, readiness trust, and inbox-before-tmux delivery ordering.
+- Completed: `.planning/communication-upgrade/01-IMPLEMENTATION-PLAN.md` now phases locks, tmux delivery ordering, readiness hardening, hierarchy delivery, status/reconcile split, and release gates.
+- Completed: `.planning/communication-upgrade/02-VERIFICATION-GATES.md` now defines the minimum command/test gates for implementation release.
+- Completed: requirements R20-R26 appended for the communication-upgrade contract.
+- Residual risk: this round updates only the shared specification; runtime code still needs implementation and gate verification before the communication upgrade can be considered complete.
+- Completed: legacy Claude-only inheritance tasklist added at `.planning/communication-upgrade/03-LEGACY-INHERITANCE-TASKLIST.md`.
+- Completed: patrol, retrospective, and no-omission matrix release gates were added to the communication-upgrade contract and verification gates.
+- Completed: executable max-scale mixed campaign tasklist added at `commander/legacy-inheritance-upgrade-max-scale.json`.
+- Residual risk: the legacy inheritance tasklist has not yet been deployed as a live mixed campaign in this entry; implementation, review, verify, audit, and final synthesis remain pending.
+- Completed: legacy parity contract relocked from upstream legion-inventory and mixed-gap-map results; requirements R27-R37, decisions, and `.planning/communication-upgrade/04-LEGACY-PARITY-MATRIX.md` now hold the no-omission release contract.
+- Reversal: prior framing that the communication-upgrade contract was "completed" once `00-RUNTIME-CONTRACT.md`, `01-IMPLEMENTATION-PLAN.md`, and `02-VERIFICATION-GATES.md` existed has been retracted. Those documents define the contract; runtime enforcement in `scripts/legion_core.py` and the legacy bridges are still pending. Docs-only contract pages must not be reported as runtime support in this entry or downstream summaries.
+- Superseded blocker (restored by `repair-core-scope-repair-v10b`, closed through row 34 by `repair-event-correlation-evidence-v16`): registry/inbox/events `flock` transactions are no longer docs-only for the scoped core paths. `scripts/legion_core.py` now uses `_registry_lock()` for registry read-modify-write and `_file_append_lock()` for inbox/event JSONL append. Release-grade event ids/schema/correlation are tracked below as closed for B9/row 34 by v16 evidence.
+- Superseded blocker (restored by `repair-core-completion-readiness-v10a`): inbox-before-tmux is enforced for `mixed msg` / `mixed broadcast`; inbox is persisted before tmux delivery and missing/offline tmux records `delivered_tmux=false` without erasing durable delivery.
+- Superseded blocker (restored by `repair-core-completion-readiness-v10a`): readiness no longer accepts arbitrary historical free-text as current-order evidence. Current readiness requires `order_id`, nonce, freshness, direct-L2 parent validation, active session/run binding, and non-forgeable sender context.
+- Superseded blocker (restored by `repair-core-completion-readiness-v10a` plus patrol status repair): `mixed status` is read-only, reconcile/repair are explicit mutation commands, and patrol status classifies tmux liveness as live/missing/inaccessible for gate evidence.
+- Superseded blocker (restored by `repair-core-completion-readiness-v10a`): worker completion is strict and provider-agnostic. Claude/Codex exit 0 without a parseable schema-valid result no longer marks a task completed.
+- Superseded partial watch (closed for B6/row 33 by `repair-legacy-surface-contract-v16`): legacy `patrol`, `gate`, `retrospector`, `locks`, `board`, `sitrep`, `watch`, and `mailbox` read-only surfaces now have executable shell-contract evidence under isolated HOME/project with invalid TMPDIR. Remaining release UX aggregation risk is tracked separately as row 23.
+- Superseded blocker (restored by `repair-core-scope-repair-v10b`): file-scope ownership is enforced for delivery tasks through normalized project-relative scope and active overlap detection under the registry lock.
+- Superseded blocker (restored by `repair-core-scope-repair-v10b`): dependency repair now validates replacements, preserves the original terminal task, emits `task_repair`, rewrites affected dependency edges, and unblocks direct/transitive repaired dependents.
+- Superseded watch item (closed for B9/row 34 by `repair-event-correlation-evidence-v16`): event log append durability is restored by `_file_append_lock()`, and release-grade event ids, schema versions, types, timestamps, correlation ids, message/event correlation, and dependency-repair events now have runtime test evidence. Verification: `PYTHONDONTWRITEBYTECODE=1 python3 -m unittest tests/test_legion_core.py -v` passed (113 tests OK). Residual note: fsync was not separately proven by this artifact; if final synthesis treats fsync as mandatory beyond the row 34 contract, it must open a concrete fsync repair instead of reopening B9.
+- Release-gate watch item: the no-omission matrix remains fail-closed. After the v16 repair artifacts, B1/B6/B9 and rows 5/9/33/34 can be closed, but row 11 (active mixed inspector loop or stronger replacement evidence), row 23 (unified operator UX surfacing blockers/patrol/retro/gates), and row 35/B10 (final no-omission synthesis) remain WATCH. Concrete blocker/repair: `synthesis-no-omission-release-gate-v16` must either cite runtime evidence for rows 11 and 23 or name follow-up repair tasks before PASS.
 
-## 已完成（2026-04-23）
-- 目录结构（`hermes-plugin/`、`.planning/`、`docs/`）
-- `plugin.yaml`：身份 + 8 工具声明
-- `__init__.py`：`register()` + `pre_llm_call` 反幻觉 hook
-- `schemas.py`：8 个工具 JSON schema
-- `tools.py`：8 个 stub 函数，统一返回 `{"status": "not_implemented"}`
-- `CLAUDE.md`、`README.md`、`docs/ROLES.md`
+## Runtime Contract Repair Update (2026-04-25)
 
-## 进行中
-无
+- Completed: `repair-core-completion-readiness-v10a` restored strict provider-agnostic worker completion. `runs/<task>/result.md` must be whole-file JSON matching the Legion worker schema; plain text, prose-wrapped JSON, missing keys, invalid nested verification/finding items, and Claude/Codex exit 0 without a valid status no longer satisfy completion. Verification recorded by the worker: `python3 -m py_compile scripts/legion_core.py tests/test_legion_core.py` pass, `python3 -m unittest tests.test_legion_core` pass (88 tests at that point).
+- Completed: `repair-core-completion-readiness-v10a` restored current-order readiness and read-only observation paths. Readiness orders carry `order_id`, nonce, `issued_at`, direct L2 roster, active session/run validation, and rejected expected ids; stale/free-text/wrong-parent/inactive/missing-session replies do not satisfy the current order. `status`, `readiness`, `inbox`, and `view` paths no longer initialize or repair state.
+- Completed: `repair-core-scope-repair-v10b` restored file-scope ownership. Delivery roles/branches now require non-empty project-relative scope; absolute, traversal, empty, and project-root scope claims are rejected; active delivery scope overlap is detected for file/file and file/directory conflicts; scope checking, branch commander reuse/creation, and task insertion occur under the registry lock.
+- Completed: `repair-core-scope-repair-v10b` restored provider-compatible corps routing and dry-run non-mutation. Branch commander reuse now respects provider compatibility; dry-run campaign/commander paths preview without writing registry, events, or run directories; write-capable Codex delivery tasks in generated launches use `-s workspace-write`.
+- Completed: `repair-core-scope-repair-v10b` restored explicit dependency repair. `repair_dependents` validates replacements, refuses failed/blocked or missing replacements without mutation, preserves the original failed/blocked terminal state, writes a `task_repair` event, rewrites affected dependency edges, and unblocks direct plus transitive dependents whose graph is repaired. Verification recorded by the worker: `python3 -m unittest tests.test_legion_core` pass (96 tests) and `git diff --check -- scripts/legion_core.py tests/test_legion_core.py` pass.
+- Completed: `repair-patrol-hook-gate-v3` and `repair-patrol-status-v3` restored the legacy patrol gate for mixed L1/L2. The 1-5 skip / 6-10 warn / 11+ block escalation remains; unresolved patrol notices and unapproved, unknown, or corrupt gates fail closed; `legion-patrol.sh status` now reports unresolved notices, mixed registry commanders, tmux liveness as live/missing/inaccessible, gate files, and recent patrol/gate/blocked/failed mixed events. Verification recorded by workers includes `bash -n scripts/hooks/pre-tool-use.sh`, synthetic gate/notice cases, `bash -n scripts/legion-patrol.sh`, `bash scripts/legion-patrol.sh help`, and live `bash scripts/legion-patrol.sh status`.
+- Completed: `repair-retrospector-script-v4` restored retrospective mixed-source ingestion while preserving useful legacy daemon evidence. `retrospector.sh quick` reads legacy observations, inspector memory, `.planning/STATE.md`, mixed registry tasks/commanders/scope/dependencies, `events.jsonl`, and failed/blocked/latest `runs/<task>/result.md`; the recorded live run exited 0 with sources `{observations:2692, inspector_judgments:7, mixed_registry_tasks:88, mixed_registry_commanders:26, events_count:821, run_results:75}`, 12 patterns, and 143 candidates.
+- Completed: `repair-docs-runtime-contract-v11b` updates README and scoped `.planning` docs to reflect the restored runtime contract: no L1 delivery, corps routing, durable inbox/events/result artifacts, readiness order/nonce/freshness, status vs reconcile read-only boundary, patrol gate, retrospector/after-action learning, daemon evidence, strict worker result schema, scope ownership, repair workflow, dry-run non-mutation, independent review/verify/audit gates, provider strengths, and workspace-write for write-capable Codex delivery tasks.
+- Residual risk: full repository test discovery is still not green in the current worktree because `.claude/skills/claw-roundtable-skill/roundtable_health.py` and `roundtable_engine_v2` are missing outside the declared repair scope. `repair-core-scope-repair-v10b` recorded `python3 -m unittest discover -s tests` as failed for that unrelated reason.
+- Residual risk superseded by `repair-event-correlation-evidence-v16`: `events.jsonl` append locking plus release-grade event fields/correlation now have explicit runtime evidence. Verification: `PYTHONDONTWRITEBYTECODE=1 python3 -m unittest tests/test_legion_core.py -v` passed (113 tests OK). Row 34 may be closed for id/schema/correlation; final PASS still depends on `synthesis-no-omission-release-gate-v16`.
+- Residual risk: docs and scoped repair results do not constitute final release PASS. Independent review, verify, audit, patrol, retrospective, and no-omission synthesis gates still decide the final verdict.
 
-## 待完成（按优先级）
-1. 实现第一个具体工具（推荐 `evaluate_prd_feasibility` — 和 PM 的第一个协作点）
-2. 决定是否和 ProdMind 共享 `dev.db`（读取 PRD 做评估）
-3. 决定上线接入策略（是否注册到 `~/.hermes/config.yaml`）
+## Retrospective Run retro-20260425T100736Z-a3953ab9
 
-## 下一步触发点
-产品方案 v0.1 已产出 → `docs/PRODUCT-SPEC.md`（10 章，含 8 能力详述、PM/军团协作契约、ADR 设计、MVP 4 阶段路径、5 个开放问题）。
+- Timestamp: 2026-04-25T10:07:36Z
+- Command: `bash /Users/feijun/Documents/legion-0/scripts/retrospector.sh full`
+- CWD: `/Users/feijun/Documents/legion-0`
+- Classification: extracted
+- Verdict: fail
+- Run hash: `6c1a7653dc4d2da87b2744ab6440fd8c3bfc4bf9d783b0e8f3b1c13027ffaaed`
+- Retrospective record: `/Users/feijun/Documents/legion-0/.planning/retrospectives/2026-04-25-communication-upgrade.md`
+- Mixed event: `retro-f08aafbd15e1`
+- Inputs opened: I1=opened, I2=opened, I3=opened, I4=opened, I5=opened, I6=opened, I7=opened, I8=opened
+- Candidate count: 291
+- Blocker count: 0
+- Watch count: 0
 
-等老板决策以下之一后进入 M1：
-1. 5 个开放问题的立场（见 PRODUCT-SPEC §10 — ADR 放哪、CTO 人格名字、军团直连策略、评审强度、跨项目债盘点）
-2. M1 时间窗口（`evaluate_prd_feasibility` + `record_tech_decision` + ADR 表）
-3. AICTO profile 接入 prodmind dev.db 的授权（读 PRD/Project，写 ADR/TechRisk/TechDebt/CodeReview）
+## Watch Closure v16 Evidence Update (2026-04-25)
 
-## 上线状态
-**未接入任何 Hermes profile**。当前只是本地目录 + 插件骨架，不影响 default gateway（PM bot）运行。
+- Release posture: `WATCH` until `synthesis-no-omission-release-gate-v16` completes. This entry closes implementation evidence gaps for B6 and B9-derived rows, but it does not claim release PASS. Final PASS still requires the planned read-only synthesis to enumerate B1-B10 and rows 1-35 after this update, with row 11 and row 23 either evidenced or repaired.
+- Completed dependency: `verify-runtime-parity-v15b` (`/Users/feijun/.claude/legion/bf21e79d/mixed/runs/verify-runtime-parity-v15b/result.md`) verified 118 focused tests, shell syntax, scoped AST/compile checks, invalid-TMPDIR dry-run no-mutation for `mixed campaign`/`duo`/`dou`, retrospector project-boundary behavior, and daemon evidence schema/hash. Registry status is `completed`; completion event `evt-34bca2b2f2b674c3cc269af1`, correlation `corr-746502a04c1f2fee`.
+- Completed dependency: `repair-event-correlation-evidence-v16` (`/Users/feijun/.claude/legion/bf21e79d/mixed/runs/repair-event-correlation-evidence-v16/result.md`) closes B9 / row 34 and the derivative B1/rows 5/9 watch. Verification: `PYTHONDONTWRITEBYTECODE=1 python3 -m unittest tests/test_legion_core.py -v` passed, 113 tests OK. Runtime events: planned `evt-e98ecac7b3ee0f32cae40a37` / `corr-2c228976b91b581a`; completed `evt-dcaacfa99bca3451238eb9cf` / `corr-5c825809cd530ef8`.
+- Completed dependency: `repair-legacy-surface-contract-v16` (`/Users/feijun/.claude/legion/bf21e79d/mixed/runs/repair-legacy-surface-contract-v16/result.md`) closes B6 / row 33 for legacy read-only shell surfaces. Verification covered `locks`, `board`, `sitrep`, `watch`, `patrol`, `retro`/`retrospector`, mailbox read/unread/list, gate status, and mixed status/inbox/readiness under isolated HOME/project with invalid TMPDIR; the final `python3 -m unittest tests.test_legion_shell_contract` passed, 4 tests OK. Runtime events: planned `evt-7bec401aaa52710ca59dda9a` / `corr-4a1bb343eca794f2`; completed `evt-4f74b12664492944343c9120` / `corr-6e31336f790e5716`.
+- Completed dependency: `repair-retrospective-disposition-v16` (`/Users/feijun/.claude/legion/bf21e79d/mixed/runs/repair-retrospective-disposition-v16/result.md`) reclassifies retrospective historical learning candidates so extracted historical candidates remain visible without forcing release WATCH, while explicit blockers, current WATCH sources, and current FAIL candidates still block. Verification: `python3 -m unittest tests.test_retrospector_contract` passed, 4 tests OK; `bash -n scripts/retrospector.sh` passed. Runtime events: planned `evt-9e6fea4b50ab97636a363384` / `corr-c758ae5d662da047`; completed `evt-f7df357bba79e755228060b2` / `corr-d439cad3609cf39c`.
+- Current B1-B10 disposition: B1 restored with B9 evidence; B2 restored; B3 restored; B4 restored; B5 restored; B6 restored by `repair-legacy-surface-contract-v16`; B7 restored; B8 restored; B9 restored by `repair-event-correlation-evidence-v16`; B10 is the only remaining B-level release watch and is pending release synthesis, not implementation repair. Named pending task: `synthesis-no-omission-release-gate-v16`, planned event `evt-57950e4506e4679842f580ce` / `corr-c331726c3250e868`, run path `/Users/feijun/.claude/legion/bf21e79d/mixed/runs/synthesis-no-omission-release-gate-v16`.
+- Remaining matrix WATCH rows after v16: row 11 remains WATCH because no named artifact proves an active mixed inspector loop or formally accepted stronger replacement; row 23 remains WATCH because no named artifact proves a single operator UX surface for blockers/patrol/retro/gates; row 35/B10 remains WATCH until `synthesis-no-omission-release-gate-v16` enumerates rows 1-35 and gates 1-11. Concrete blocker/repair: `synthesis-no-omission-release-gate-v16` must cite runtime evidence for row 11 and row 23 or open focused repair tasks.
+- Retrospective record disposition: `retro-20260425T100736Z-a3953ab9` remains the historical full extraction record with 291 candidates and no explicit blockers/watch counts. It was produced before `repair-retrospective-disposition-v16`; after v16, historical-only candidates do not block release by themselves, but any current blocker/current WATCH/current FAIL candidate found by synthesis still forces non-PASS. Verification: `python3 -m unittest tests.test_retrospector_contract` passed (4 tests OK) and `bash -n scripts/retrospector.sh` passed.
 
-### 启用路径（Profile 隔离）
+## Dual L1 Control Plane Repair (2026-04-27)
 
-```bash
-hermes profile create aicto
-hermes profile alias aicto
+- Status: completed
+- Trigger: live runtime inspection showed registry/tmux drift, `sender_verified=false` broadcasts caused by execution-context mismatch, and project-view contamination.
+- Locked direction: use provider-owned dual L1 topology (`Claude L1` + `Codex L1`) with Legion Core as L0 coordinator.
+- Plan: `.planning/dual-l1-control-plane/00-PLAN.md`
+- Superseded by Stable L1-Only Frontend (2026-04-27): this entry originally convened provider-owned base L2s at startup; public startup now keeps only Claude L1 + Codex L1 and creates L2 dynamically for M+ work.
+- Implemented: broadcast/view routing now filters by current project and live tmux session; dual-L1 launch fails before readiness orders if any launched commander is not live.
+- Implemented: dry-run shell paths for `host`, `mixed host`, `mixed dual-host`, and `view --dry-run` skip global/project initialization and directory registration.
+- Verification: `PYTHONPYCACHEPREFIX=/tmp/legion-pycache python3 -m py_compile scripts/legion_core.py` passed; `bash -n scripts/legion.sh` passed; `TMPDIR=/tmp PYTHONPYCACHEPREFIX=/tmp/legion-pycache PYTHONDONTWRITEBYTECODE=1 python3 -m unittest tests/test_legion_core.py tests/test_legion_shell_contract.py -v` passed (127 tests OK).
+- Runtime checks at that time: `/bin/bash scripts/legion.sh host --dry-run --no-attach` printed planned Claude/Codex L1 plus base L2; this behavior is superseded by the later L1-only default.
+- Independent gates: `dual-l1-arch-recon` completed; `dual-l1-redteam` completed with actionable shell/view findings that were repaired; `dual-l1-control-plane-review` found two shell compatibility failures that were repaired; `dual-l1-control-plane-review-v2` passed and verified both host-only dry-run paths exit 0 without creating HOME/TMPDIR state.
+- Verification branch note: `dual-l1-control-plane-verify` is blocked by its Codex worker sandbox lacking a writable temp/cache path; the same commands passed in the main runtime above.
 
-# 编辑 ~/.hermes-aicto/config.yaml（或 profile show 给的路径）：
-# - api_server.port: 8643（避开 default 的 8642）
-# - plugins: /Users/feijun/Documents/AICTO/hermes-plugin
-# - 飞书 app_id/secret: 独立 AICTO bot
+## External AICTO / Dual-L1 Correction (2026-04-27)
 
-nohup aicto gateway run > /tmp/aicto-gateway.log 2>&1 &
-hermes profile list  # 确认 aicto running
-```
+- Status: completed
+- Trigger: user clarified that AICTO is the independent Hermes CTO project centered on `/Users/feijun/Documents/AICTO/hermes-plugin`, not an in-process Legion Core L0 commander.
+- Locked direction: `Hermes AICTO project -> Legion Core Claude L1 + Codex L1 -> provider-owned L2/team tree`.
+- Plan: `.planning/aicto-command-plane/00-PLAN.md`
+- Corrected: `legion host` / `legion h` now default to Claude/Codex dual L1, not local AICTO L0. `--host-only` remains the explicit single-host fallback; `--dual-only` remains accepted for compatibility.
+- Corrected: `legion aicto` / `legion cto` now prints external Hermes AICTO profile status and startup guidance. It is read-only and does not initialize project state, create a local L0 commander, or claim to launch the AICTO product.
+- Preserved: Codex L1/L2/workers still use tmux-visible Legion Core launch/view paths, and commander messages remain durable inbox-first with non-invasive tmux notices.
+- Verification: `PYTHONPYCACHEPREFIX=/tmp/legion-pycache python3 -m py_compile scripts/legion_core.py`; `bash -n scripts/legion.sh`; `TMPDIR=/tmp PYTHONPYCACHEPREFIX=/tmp/legion-pycache PYTHONDONTWRITEBYTECODE=1 python3 -m unittest tests/test_legion_core.py tests/test_legion_shell_contract.py -v` (132 tests OK); `/bin/bash scripts/legion.sh host --dry-run --no-attach` (dual L1, no L0); `/bin/bash scripts/legion.sh aicto --dry-run --no-attach` (external Hermes AICTO status; profile `aicto` reported running); `/bin/bash scripts/legion.sh mixed aicto --dry-run --no-attach`; `/bin/bash scripts/legion.sh host --dual-only --dry-run --no-attach`; `/bin/bash scripts/legion.sh mixed dual-host --dry-run --no-attach`; `git diff --check -- ...`.
 
-### 为什么要 profile 隔离（不是装到 default）
+## Stable L1-Only Frontend / Dynamic L2 Teams (2026-04-27)
 
-- default profile（prodmind/PM）= 生产系统，硬约束"零影响"
-- AICTO 独立 profile = 独立 state.db/sessions/plugins/飞书 app，启停崩溃完全不波及 PM
-- 参考：AIHR 已经是 profile 模式运行（当前 stopped），云智 AI 团队每个员工都应该 = 独立 profile
+- Status: completed
+- Trigger: user clarified that the visible frontend should follow the older Claude-team tmux rule: one stable command surface by default, and only M+ collaboration creates second-level tmux windows.
+- Locked direction: `AICTO external Hermes -> Claude L1 + Codex L1 -> dynamic provider-owned L2/team windows for M+ only`.
+- Planned/implemented in this change: `legion host` / `mixed dual-host` default to Claude L1 + Codex L1 only, no base L2 at startup.
+- Planned/implemented in this change: after both L1 commanders are live, Legion Core sends a durable Claude<->Codex `peer-sync` after a 1-second delay; tmux gets only non-invasive commander notices.
+- Planned/implemented in this change: S-level tasks stay with L1 by default; M/L/XL tasks use `mixed campaign --corps` to create visible L2/team tmux windows. Codex uses the same tmux-backed creation path as Claude.
+- Planned/implemented in this change: L2 startup is lightweight and task-scoped. Branch commanders no longer receive the full L1 startup protocol by default; their activation message tells them to identify self/parent/target, load only relevant context/tools/skills, perform necessary pre-research, and report readiness only when requested.
+- Verification: `PYTHONPYCACHEPREFIX=/tmp/legion-pycache python3 -m py_compile scripts/legion_core.py` passed; `bash -n scripts/legion.sh` passed; `TMPDIR=/tmp PYTHONPYCACHEPREFIX=/tmp/legion-pycache PYTHONDONTWRITEBYTECODE=1 python3 -m unittest tests/test_legion_core.py tests/test_legion_shell_contract.py -v` passed (134 tests OK).
+- Dry-run smoke: `/bin/bash scripts/legion.sh host --dry-run --no-attach` and `/bin/bash scripts/legion.sh mixed dual-host --dry-run --no-attach` print only Claude L1 + Codex L1, no L2 rows; `/bin/bash scripts/legion.sh aicto --dry-run --no-attach` reports external Hermes AICTO status only.
+- Runtime repair: ran `/bin/bash scripts/legion.sh host --no-attach` to refresh the live dual L1 registry/inbox contract. Marked the old mistaken local `L0-legion-0-AICTO` and its base L2 children `L2-implement-1777286184` / `L2-audit-1777286184` completed and killed their tmux sessions; the Claude/Codex L1 sessions remain live and received the new `peer-sync`.
+- Diff hygiene: `git diff --check -- scripts/legion_core.py scripts/legion.sh tests/test_legion_core.py tests/test_legion_shell_contract.py README.md .planning/REQUIREMENTS.md .planning/DECISIONS.md .planning/STATE.md .planning/aicto-command-plane/00-PLAN.md .planning/features.json .planning/communication-upgrade/00-RUNTIME-CONTRACT.md .planning/communication-upgrade/01-IMPLEMENTATION-PLAN.md .planning/communication-upgrade/02-VERIFICATION-GATES.md .planning/communication-upgrade/03-LEGACY-INHERITANCE-TASKLIST.md .planning/communication-upgrade/04-LEGACY-PARITY-MATRIX.md` passed.
 
-## 纪律提醒
-按用户 2026-04-23 硬约束"生产系统零影响"，任何把 AICTO 接入现网的动作都必须：
-1. 先在 worktree 里验证
-2. 先和 PM 协作场景跑通端到端
-3. 只有产品场景确认才注册到生产
+## L1 Peer Announcement / AICTO Report Outbox (2026-04-27)
+
+- Status: completed
+- Trigger: user required every L1 to proactively notify same-project peer L1 armies after coming online, report online state to AICTO, and report task completion/failure/problems to AICTO.
+- Locked direction: no local Legion L0 AICTO resurrection. Reports go to a durable `aicto-reports.jsonl` outbox plus `aicto_report_queued` events for external Hermes AICTO/plugin consumption.
+- Planned/implemented in this change: L1 launch/resume sends `peer-online` mixed inbox messages to live same-project L1 peers and queues an `l1-online` AICTO report.
+- Planned/implemented in this change: task `completed`, `failed`, and `blocked` terminal transitions queue `task-completed`, `task-failed`, or `task-problem` reports with commander, scope, dependency, result, and failure details.
+- Planned/implemented in this change: `mixed aicto-reports` reads the durable report queue; `mixed report-aicto <subject> "summary" --from <commander> --kind <kind>` lets L1 commanders report non-task problems.
+- Verification: `PYTHONPYCACHEPREFIX=/tmp/legion-pycache python3 -m py_compile scripts/legion_core.py` passed; `/bin/bash -n scripts/legion.sh` passed; `TMPDIR=/tmp PYTHONPYCACHEPREFIX=/tmp/legion-pycache PYTHONDONTWRITEBYTECODE=1 python3 -m unittest tests/test_legion_core.py tests/test_legion_shell_contract.py -v` passed (137 tests OK); isolated CLI smoke for `mixed report-aicto` + `mixed aicto-reports` passed; `git diff --check -- scripts/legion_core.py scripts/legion.sh tests/test_legion_core.py tests/test_legion_shell_contract.py README.md .planning/REQUIREMENTS.md .planning/DECISIONS.md .planning/STATE.md .planning/features.json` passed.
+
+## Separate Claude/Codex L1 Startup (2026-04-27)
+
+- Status: completed
+- Trigger: user clarified not to force Claude and Codex into a combined tmux view/window. The default should keep the two L1 surfaces fully separate.
+- Locked direction: `legion claude h` and default `legion h` initialize the project, start/resume Claude L1 and Codex L1, attach only Claude L1 in the current terminal, and leave Codex L1 as an independently attachable background tmux session.
+- Planned/implemented in this change: `mixed dual-host` no longer auto-opens `legion-view-...-dual-l1`; it prints both independent sessions and attaches Claude L1 unless `--no-attach` is set.
+- Planned/implemented in this change: `legion codex l1` without a name reuses an existing Codex L1 even if it is already attached elsewhere, so a new terminal opens the Codex L1 session instead of creating a duplicate.
+- Verification: `PYTHONPYCACHEPREFIX=/tmp/legion-pycache python3 -m py_compile scripts/legion_core.py` passed; `/bin/bash -n scripts/legion.sh` passed; `python3 -m json.tool .planning/features.json >/dev/null` passed; `TMPDIR=/tmp PYTHONPYCACHEPREFIX=/tmp/legion-pycache PYTHONDONTWRITEBYTECODE=1 python3 -m unittest tests/test_legion_core.py tests/test_legion_shell_contract.py -v` passed (139 tests OK); dry-run smoke for `/bin/bash scripts/legion.sh claude h --dry-run --no-attach`, `/bin/bash scripts/legion.sh host --dry-run --no-attach`, `/bin/bash scripts/legion.sh mixed dual-host --dry-run --no-attach`, and `/bin/bash scripts/legion.sh codex l1 --dry-run` passed.
