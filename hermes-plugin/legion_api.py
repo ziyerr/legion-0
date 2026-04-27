@@ -137,7 +137,67 @@ def _inbox_path_for(legion_hash: str, commander_id: str) -> Path:
     )
 
 
-def _resolve_commander(commander_id: str) -> Tuple[str, str, bool]:
+def _legacy_inbox_jsonl_for(legion_hash: str, commander_id: str) -> Path:
+    """旧版军团 inbox.jsonl 路径。
+
+    当前 Legion 同时存在旧版 inbox.jsonl 与新版 inboxes/<id>.json。
+    AICTO 作为军团最高指挥官要保证 L1 能直接看到命令，因此发送时双写：
+    新版 inbox 是结构化强保障，旧版 inbox.jsonl 是现有 watch/inbox 命令兼容层。
+    """
+    return LEGION_ROOT / legion_hash / f"team-{commander_id}" / "inbox.jsonl"
+
+
+def _mixed_inbox_jsonl_for(legion_hash: str, commander_id: str) -> Path:
+    """Legion Core mixed inbox JSONL 路径。"""
+    return LEGION_ROOT / legion_hash / "mixed" / "inbox" / f"{commander_id.lower()}.jsonl"
+
+
+def _validate_legion_hash(legion_hash: str) -> None:
+    if not legion_hash or "/" in legion_hash or "\\" in legion_hash or ".." in legion_hash:
+        raise LegionError(f"非法 legion_hash={legion_hash!r}")
+
+
+def _mixed_registry_path(legion_hash: str) -> Path:
+    return LEGION_ROOT / legion_hash / "mixed" / "mixed-registry.json"
+
+
+def _mixed_commander_session(legion_hash: str, commander_id: str) -> Optional[str]:
+    registry_path = _mixed_registry_path(legion_hash)
+    if not registry_path.exists():
+        return None
+    try:
+        registry = json.loads(registry_path.read_text(encoding="utf-8"))
+    except Exception:
+        return None
+    commanders = registry.get("commanders") or []
+    if isinstance(commanders, dict):
+        commanders = commanders.values()
+    for commander in commanders:
+        if not isinstance(commander, dict):
+            continue
+        if commander.get("id") == commander_id:
+            return commander.get("session") or f"legion-mixed-{legion_hash}-{commander_id}"
+    return None
+
+
+def _commander_exists_in_legion(legion_hash: str, commander_id: str) -> bool:
+    team_dir = LEGION_ROOT / legion_hash / f"team-{commander_id}"
+    if team_dir.exists():
+        return True
+    return _mixed_commander_session(legion_hash, commander_id) is not None
+
+
+def _session_for_commander(legion_hash: str, commander_id: str) -> str:
+    return _mixed_commander_session(legion_hash, commander_id) or (
+        f"{TMUX_SESSION_PREFIX}{legion_hash}-{commander_id}"
+    )
+
+
+def _resolve_commander(
+    commander_id: str,
+    *,
+    legion_hash: Optional[str] = None,
+) -> Tuple[str, str, bool]:
     """根据 commander_id 反查 (legion_hash, tmux_session, tmux_alive)。
 
     扫描 directory.json 所有 legion，匹配规则：legion 目录下含 team-<commander_id>/。
@@ -147,6 +207,17 @@ def _resolve_commander(commander_id: str) -> Tuple[str, str, bool]:
     Raises:
         LegionError: directory.json 不可读 / 0 匹配 / ≥2 匹配。
     """
+    if legion_hash:
+        _validate_legion_hash(legion_hash)
+        if not _commander_exists_in_legion(legion_hash, commander_id):
+            raise LegionError(
+                f"未找到指挥官 {commander_id} in legion_hash={legion_hash}"
+            )
+        session_name = _session_for_commander(legion_hash, commander_id)
+        live = _live_tmux_sessions()
+        tmux_alive = (session_name in live) if live is not None else True
+        return legion_hash, session_name, tmux_alive
+
     try:
         with open(LEGION_DIRECTORY, "r", encoding="utf-8") as f:
             directory = json.load(f)
@@ -158,8 +229,7 @@ def _resolve_commander(commander_id: str) -> Tuple[str, str, bool]:
         legion_hash = legion.get("hash")
         if not legion_hash:
             continue
-        team_dir = LEGION_ROOT / legion_hash / f"team-{commander_id}"
-        if team_dir.exists():
+        if _commander_exists_in_legion(legion_hash, commander_id):
             matches.append(legion_hash)
 
     if not matches:
@@ -173,7 +243,7 @@ def _resolve_commander(commander_id: str) -> Tuple[str, str, bool]:
         )
 
     legion_hash = matches[0]
-    session_name = f"{TMUX_SESSION_PREFIX}{legion_hash}-{commander_id}"
+    session_name = _session_for_commander(legion_hash, commander_id)
     live = _live_tmux_sessions()
     # tmux 命令失败时容忍：默认 alive=True，避免误判导致漏发通知
     tmux_alive = (session_name in live) if live is not None else True
@@ -387,6 +457,51 @@ def _write_inbox_locked(commander_id: str, message: Dict[str, Any]) -> Path:
         ) from e
 
 
+def _append_legacy_inbox_jsonl(inbox_file: Path, message: Dict[str, Any]) -> Path:
+    """best-effort 写旧版 inbox.jsonl。
+
+    旧版 JSONL 没有统一锁文件，使用同目录 .lock 保持单行 append 原子。
+    失败由上层捕获并降级为返回字段，不影响新版 inbox 强保障通道。
+    """
+    inbox_file.parent.mkdir(parents=True, exist_ok=True)
+    lock_path = inbox_file.with_suffix(inbox_file.suffix + ".lock")
+    legacy = dict(message)
+    legacy.setdefault("_via", "aicto_legacy_inbox_jsonl")
+    lock_path.touch(exist_ok=True)
+    with open(lock_path, "r+", encoding="utf-8") as lock_fd:
+        fcntl.flock(lock_fd, fcntl.LOCK_EX)
+        try:
+            with open(inbox_file, "a", encoding="utf-8") as file:
+                file.write(json.dumps(legacy, ensure_ascii=False) + "\n")
+        finally:
+            fcntl.flock(lock_fd, fcntl.LOCK_UN)
+    return inbox_file
+
+
+def _append_mixed_inbox_jsonl(inbox_file: Path, message: Dict[str, Any]) -> Path:
+    """best-effort 写 Legion Core mixed inbox JSONL。
+
+    mixed inbox 现有消息以 content/ts/schema_version 为主；这里同时保留 payload 和
+    cto_context，避免新旧消费者丢失 CTO 指令上下文。
+    """
+    mixed_message = {
+        "schema_version": 1,
+        "id": message.get("id"),
+        "ts": message.get("timestamp"),
+        "timestamp": message.get("timestamp"),
+        "from": message.get("from"),
+        "to": message.get("to"),
+        "type": "message",
+        "content": message.get("payload") or "",
+        "payload": message.get("payload") or "",
+        "summary": message.get("summary") or "",
+        "priority": message.get("priority"),
+        "cto_context": message.get("cto_context"),
+        "_via": "aicto_mixed_inbox_jsonl",
+    }
+    return _append_legacy_inbox_jsonl(inbox_file, mixed_message)
+
+
 # ============================================================================
 # tmux 操作（仅用于"通知行"，不发派单内容）
 # ============================================================================
@@ -451,6 +566,7 @@ def send_to_commander(
     appeal_id: Optional[str] = None,
     appeal_count: Optional[int] = None,
     priority: Optional[str] = None,
+    legion_hash: Optional[str] = None,
 ) -> Dict[str, Any]:
     """双通道派发：inbox 强保障 + tmux 通知 best-effort。
 
@@ -476,7 +592,10 @@ def send_to_commander(
     Raises:
         LegionError: commander 解析失败 / inbox 写入失败 / msg_type 非法。
     """
-    legion_hash, tmux_session, tmux_is_alive = _resolve_commander(commander_id)
+    legion_hash, tmux_session, tmux_is_alive = _resolve_commander(
+        commander_id,
+        legion_hash=legion_hash,
+    )
 
     message = mailbox_protocol_serialize(
         payload=payload,
@@ -497,6 +616,31 @@ def send_to_commander(
         raise LegionError(
             f"写入 inbox 失败 ({inbox_file}): {e}"
         ) from e
+
+    legacy_inbox_path: Optional[Path] = None
+    legacy_inbox_written = False
+    legacy_error: Optional[str] = None
+    try:
+        legacy_inbox_path = _append_legacy_inbox_jsonl(
+            _legacy_inbox_jsonl_for(legion_hash, commander_id),
+            message,
+        )
+        legacy_inbox_written = True
+    except Exception as e:  # noqa: BLE001
+        legacy_error = str(e)
+
+    mixed_inbox_path: Optional[Path] = None
+    mixed_inbox_written = False
+    mixed_error: Optional[str] = None
+    if _mixed_commander_session(legion_hash, commander_id) is not None:
+        try:
+            mixed_inbox_path = _append_mixed_inbox_jsonl(
+                _mixed_inbox_jsonl_for(legion_hash, commander_id),
+                message,
+            )
+            mixed_inbox_written = True
+        except Exception as e:  # noqa: BLE001
+            mixed_error = str(e)
 
     tmux_notified = False
     if tmux_is_alive:
@@ -525,7 +669,14 @@ def send_to_commander(
 
     return {
         "message_id": message["id"],
+        "legion_hash": legion_hash,
         "inbox_path": str(inbox_path),
+        "legacy_inbox_path": str(legacy_inbox_path) if legacy_inbox_path else None,
+        "legacy_inbox_written": legacy_inbox_written,
+        "legacy_inbox_error": legacy_error,
+        "mixed_inbox_path": str(mixed_inbox_path) if mixed_inbox_path else None,
+        "mixed_inbox_written": mixed_inbox_written,
+        "mixed_inbox_error": mixed_error,
         "tmux_session": tmux_session,
         "tmux_notified": tmux_notified,
     }
@@ -540,6 +691,8 @@ __all__ = [
     "discover_online_commanders",
     "mailbox_protocol_serialize",
     "send_to_commander",
+    "_legacy_inbox_jsonl_for",
+    "_mixed_inbox_jsonl_for",
     # 下划线开头但供测试 / 上层调用方按 spec 导入
     "_write_inbox_locked",
     "_tmux_alive",

@@ -1,0 +1,42 @@
+{
+  "task": "AICTO 多项目军团管理能力",
+  "created": "2026-04-27",
+  "features": [
+    {
+      "id": "MP-F001",
+      "name": "项目军团组合态看板",
+      "status": "done",
+      "assignee": "codex",
+      "files": ["hermes-plugin/portfolio_manager.py"],
+      "verified": true,
+      "notes": "legion_portfolio_status 工具输出项目健康、军团归属、积压与推荐动作；真实 smoke success"
+    },
+    {
+      "id": "MP-F002",
+      "name": "dispatch 项目归属保护",
+      "status": "done",
+      "assignee": "codex",
+      "files": ["hermes-plugin/dispatch_balanced.py"],
+      "verified": true,
+      "notes": "默认禁止跨项目借兵；显式 allow_cross_project_borrow=true 时才允许；test_portfolio_manager 覆盖"
+    },
+    {
+      "id": "MP-F003",
+      "name": "工具注册与 schema",
+      "status": "done",
+      "assignee": "codex",
+      "files": ["hermes-plugin/__init__.py", "hermes-plugin/tools.py", "hermes-plugin/schemas.py", "hermes-plugin/plugin.yaml"],
+      "verified": true,
+      "notes": "工具数量从 16 增至 17；注册 smoke 确认"
+    },
+    {
+      "id": "MP-F004",
+      "name": "多项目路由测试",
+      "status": "done",
+      "assignee": "codex",
+      "files": ["hermes-plugin/test_portfolio_manager.py"],
+      "verified": true,
+      "notes": "覆盖项目匹配、默认阻断跨项目、显式借兵；5/5 PASS"
+    }
+  ]
+}

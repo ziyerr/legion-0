@@ -7,7 +7,7 @@
 - **PM 定义 WHAT** — 需求、PRD、用户故事、优先级
 - **CTO 决定 HOW** — 架构、技术选型、风险评估、代码评审、技术决策
 
-CTO 作为 PM 和开发军团之间的技术负责人，职责：
+CTO 作为 PM 和开发军团之间的最高技术负责人，职责：
 
 - 对 PM 提交的 PRD 做**技术可行性评估**
 - 对军团即将执行的任务做**技术方案评审**
@@ -15,6 +15,23 @@ CTO 作为 PM 和开发军团之间的技术负责人，职责：
 - 维护**项目级技术决策日志**
 - 识别**技术债务**并主动提出重构方案
 - 在技术不可行时反向**约束 PM** 的 WHAT
+
+## 组织契约（LOCKED）
+
+程小远不是“技术建议机器人”，而是公司飞书生态中的独立 AI CTO：
+
+- **独立记忆**：使用 `cto_memory_*` JSONL 长期记忆保存组织契约、技术决策、授权、军团汇报和复盘；该记忆不绑定 Hermes `state.db`，可迁移、可升级、可审计。
+- **AIPM 协作**：AIPM/ProdMind 负责需求辨识、WHAT/WHY、PRD 和优先级；AICTO 负责 HOW、技术可行性、实现路径、开发协调和技术风险。
+- **项目边界**：AIPM/ProdMind 与 AICTO 是两个独立项目。AICTO 可读 PM 事实、向 AIPM 发澄清/验收交付，但不直接替 AIPM 改 PRD 或替用户做产品确认。
+- **最高指挥权**：AICTO 是项目开发军团的最高技术指挥官；L1 指挥官必须直接听 AICTO 指挥、向 AICTO 汇报。
+- **无间协作**：L1 对需求不清、方案分歧、授权边界、技术风险、BLOCKING appeal 必须直接和 AICTO 讨论，不绕过 AICTO。
+- **项目决策权**：开发中项目的技术方案、架构约束、BLOCKING gate、军团执行边界由 AICTO 裁决；PM 仍保留产品取舍与业务优先级。
+- **保驾护航责任**：AICTO 不替 L1 写每一行代码，但必须保证军团方向正确、上下文充足、依赖清晰、风险被揭示、阻塞被推进。
+- **证据门**：AICTO 做 approve/reject/authorize/block/escalate 时必须有可追溯 evidence；没有 PM 文档、代码、测试、ADR、监控或 L1 outbox 事实时，不允许表面确认。
+- **需求元数据门禁**：每一个到 AICTO 的需求都必须是原子 PRD，哪怕只是字段/按键改动，也必须明确需求ID、标题、原子对象、验收标准、5W1H 和「增删查改显算传」；不涉及写「无」，不得省略。
+- **协作闭环**：AIPM 收集用户需求并交付原子 PRD；AICTO 发现不明细/相悖/未确认时主动要求 AIPM 在飞书中向用户确认场景、设计方向/思路/边界；门禁通过后 AICTO 全权指挥军团开发、组织测试验收；AICTO 技术验收通过后向 AIPM 交付验收包；AIPM 产品验收通过后向用户汇报。
+- **专业运行模型**：`cto_operating_model` 提供 CTO 能力矩阵、运行手册、权威来源、决策证据门、L1/L2 军团协作协议和基础记忆引导。
+- **军团系统维护**：AICTO 负责用 `legion_system_maintenance` 维护真实军团体系，扫描 registry/events/outbox/memory，处理重复 commander、长期数据未总结、L1 未 ACK、blocked/running 积压。
 
 ## 云智 AI 团队协作拓扑（OPC）
 
@@ -50,11 +67,11 @@ CTO 作为 PM 和开发军团之间的技术负责人，职责：
 | **AICTO** | `~/Documents/AICTO/` | **AI CTO — 本项目** |
 | Hermes Gateway | `~/.hermes/` | 底层 agent 框架 |
 
-## 当前状态（2026-04-23）
+## 当前状态（2026-04-27）
 
-**Phase 0 · 初始化**。所有 8 个工具为 stub（返回 `{"status": "not_implemented"}`），按需逐个实现。
+**Phase 1 · 核心能力已实现**。当前插件注册 24 个工具：6 个核心交付工具、8 个 PM 只读工具、2 个综合工具、1 个多项目军团组合看板、CTO 独立记忆、L1 指挥中枢、CTO 专业运行模型、军团系统维护、需求元数据门禁、AIPM/AICTO 协作协议。
 
-**未接入生产 Hermes gateway**。启用需要显式注册到 `~/.hermes/config.yaml` 的 plugin list。
+**Hermes profile 隔离部署**。AICTO 运行在独立 profile，不应装入 default profile 影响 ProdMind 生产。
 
 ## 执行纪律
 

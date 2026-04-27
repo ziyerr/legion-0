@@ -36,7 +36,14 @@ import json
 import time
 from typing import Any, Dict, List, Optional, Tuple
 
-from . import adr_storage, design_tech_plan, error_classifier, legion_api, pm_db_api
+from . import (
+    adr_storage,
+    design_tech_plan,
+    error_classifier,
+    legion_api,
+    pm_db_api,
+    portfolio_manager,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -147,6 +154,27 @@ def run(args: Dict[str, Any], **kwargs) -> str:
             elapsed=time.monotonic() - started_at,
         )
 
+    all_online_legion_count = len(commanders)
+    allow_cross_project_borrow = bool(args.get("allow_cross_project_borrow", False))
+    commanders, project_affinity, route_warnings = (
+        portfolio_manager.rank_commanders_for_project(
+            project_id=project_id,
+            project_name=ctx.get("project_name") or "",
+            commanders=commanders,
+            allow_cross_project_borrow=allow_cross_project_borrow,
+        )
+    )
+    warnings.extend(route_warnings)
+    if not commanders:
+        return _fail(
+            "no project-bound legion available for this project. "
+            "AICTO 默认禁止跨项目借兵，避免把任务派给其他项目军团；"
+            "请先 kickoff/provision 该项目军团，或显式传 "
+            "allow_cross_project_borrow=true。",
+            level=error_classifier.LEVEL_TECH,
+            elapsed=time.monotonic() - started_at,
+        )
+
     # ---- Step 3：拓扑划分 ready / deferred ----
     ready_tasks, deferred_initial, split_warnings = _step3_split_ready_deferred(tasks)
     warnings.extend(split_warnings)
@@ -156,6 +184,7 @@ def run(args: Dict[str, Any], **kwargs) -> str:
         ready_tasks=ready_tasks,
         commanders=commanders,
         ctx=ctx,
+        project_affinity=project_affinity,
     )
     warnings.extend(dispatch_warnings)
 
@@ -169,6 +198,8 @@ def run(args: Dict[str, Any], **kwargs) -> str:
             "elapsed_seconds": round(elapsed, 2),
             "project_id": project_id,
             "online_legion_count": len(commanders),
+            "all_online_legion_count": all_online_legion_count,
+            "allow_cross_project_borrow": allow_cross_project_borrow,
             "ready_count": len(ready_tasks),
         }
     )
@@ -388,6 +419,7 @@ def _step4_5_dispatch_with_balance(
     ready_tasks: List[Dict[str, Any]],
     commanders: List[legion_api.Commander],
     ctx: Dict[str, Any],
+    project_affinity: Dict[str, Dict[str, Any]],
 ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], List[str]]:
     """对每个 ready task 选军团 + 双通道派单。
 
@@ -434,6 +466,11 @@ def _step4_5_dispatch_with_balance(
         # 构造 payload 三段 + cto_context
         payload = _build_payload(task=task, ctx=ctx)
         cto_context = _build_cto_context(task=task, ctx=ctx)
+        route_info = portfolio_manager.affinity_for_commander(
+            chosen.commander_id,
+            project_affinity,
+        )
+        cto_context["project_route"] = route_info
         priority = SIZE_TO_PRIORITY.get(task.get("size") or "M", "normal")
         summary = _build_summary(task=task, ctx=ctx)
 
@@ -488,6 +525,10 @@ def _step4_5_dispatch_with_balance(
                 "tmux_session": send_result.get("tmux_session"),
                 "tmux_notified": send_result.get("tmux_notified", False),
                 "priority": priority,
+                "legion_project": chosen.legion_project,
+                "project_match_score": route_info.get("project_match_score", 0),
+                "project_match_reason": route_info.get("project_match_reason"),
+                "cross_project_borrowed": route_info.get("cross_project_borrowed", True),
                 "payload_summary": _summarize_payload(payload),
             }
         )

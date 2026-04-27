@@ -6,7 +6,10 @@ PM 定义 WHAT，CTO 决定 HOW。
 Phase 1 全量（2026-04-25 实施中）：
 - 6 个核心能力（kickoff_project / design_tech_plan / breakdown_tasks /
   dispatch_to_legion_balanced / review_code / daily_brief）
-- 8 个 PM 只读工具（read_pm_*）+ 2 个综合工具
+- 8 个 PM 只读工具（read_pm_*）+ 2 个综合工具 + 1 个多项目军团组合管理工具
+- CTO 独立记忆 + L1 指挥中枢 + CTO 专业运行模型 + 军团系统维护
+- 需求元数据硬门禁（原子 PRD + 5W1H + 增删查改显算传）
+- AIPM/AICTO 独立项目协作协议（澄清请求 + 验收交付）
 - 端口 8644，独立飞书 app cli_a949...，独立 state.db
 
 实施进度详见 .planning/phase1/specs/PHASE-PLAN.md。
@@ -16,7 +19,7 @@ from . import schemas, tools
 
 
 def register(ctx):
-    """Register all 16 AICTO tools with Hermes."""
+    """Register all 24 AICTO tools with Hermes."""
 
     _TOOLS = [
         # 6 个核心能力（PM 派发）
@@ -40,6 +43,18 @@ def register(ctx):
         # 2 个综合工具
         ("get_pm_context_for_tech_plan",   schemas.GET_PM_CONTEXT_FOR_TECH_PLAN,   tools.get_pm_context_for_tech_plan),
         ("diff_pm_prd_versions",           schemas.DIFF_PM_PRD_VERSIONS,           tools.diff_pm_prd_versions),
+
+        # 多项目军团组合管理
+        ("legion_portfolio_status",         schemas.LEGION_PORTFOLIO_STATUS,        tools.legion_portfolio_status),
+
+        # CTO 独立记忆 + L1 指挥中枢 + 专业运行模型
+        ("cto_memory_record",               schemas.CTO_MEMORY_RECORD,              tools.cto_memory_record),
+        ("cto_memory_query",                schemas.CTO_MEMORY_QUERY,               tools.cto_memory_query),
+        ("legion_command_center",           schemas.LEGION_COMMAND_CENTER,          tools.legion_command_center),
+        ("cto_operating_model",             schemas.CTO_OPERATING_MODEL,            tools.cto_operating_model),
+        ("legion_system_maintenance",       schemas.LEGION_SYSTEM_MAINTENANCE,      tools.legion_system_maintenance),
+        ("requirement_metadata_gate",        schemas.REQUIREMENT_METADATA_GATE,      tools.requirement_metadata_gate),
+        ("aipm_cto_collaboration",          schemas.AIPM_CTO_COLLABORATION,         tools.aipm_cto_collaboration),
     ]
 
     for name, schema, handler in _TOOLS:
@@ -68,6 +83,20 @@ def register(ctx):
         "收到此返回必须告诉用户\"该工具未实现\"，不得编造结果。\n"
         "6. 边界：CTO ⊥ PM 维度正交。我读 PM 的产出（dev.db / 飞书 doc）但不改。"
         "我写自己的表（ADR / TechRisk / TechDebt / CodeReview / EngineerProfile）。\n"
+        "7. 权力：程小远是开发军团最高技术指挥官。L1 必须直接听 CTO 指挥、向 CTO 汇报，"
+        "需求/授权/方案不确定时向 CTO 请求决策；CTO 对开发中项目拥有技术决策权。\n"
+        "8. 记忆：重大组织契约、授权、技术决策、军团汇报必须进入 cto_memory_* 独立 JSONL 记忆，"
+        "保持可迁移、可升级、可审计。\n"
+        "9. CTO 专业运行模型：重大技术判断先用 cto_operating_model 检查能力矩阵、运行手册和 evidence gate；"
+        "approve/reject/authorize/block/escalate 不允许无证据。\n"
+        "10. 军团维护：用 legion_system_maintenance 持续扫描真实 registry/events/outbox/memory，"
+        "把长期数据不可处理、重复 commander、未 ACK、blocked/running 积压转成可追踪风险和跟进指令。\n"
+        "11. 需求入口硬门禁：所有到 AICTO 的需求必须是原子级 PRD 元数据，"
+        "明确需求ID/标题/原子对象/验收标准、5W1H、以及「增删查改显算传」。"
+        "不涉及必须写「无」，缺省/空白/待定都不得进入技术方案、任务拆解或军团派单。\n"
+        "12. AIPM/AICTO 独立协作：AIPM 负责用户需求、产品设计、PRD、用户确认和最终汇报；"
+        "AICTO 负责技术门禁、军团指挥、开发推进、测试验收和向 AIPM 交付验收包。"
+        "需求不明细/与用户相悖/未与用户确认时，AICTO 必须主动请求 AIPM 在飞书中向用户确认。\n"
     )
 
     def _pre_llm_aicto_nudge(user_message: str = "", **kwargs):
