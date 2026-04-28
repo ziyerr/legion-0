@@ -163,6 +163,9 @@ class LegionShellContractTests(unittest.TestCase):
             )
             self.assertEqual(completed.returncode, 0, msg=f"stdout:\n{completed.stdout}\nstderr:\n{completed.stderr}")
             self.assertIn("legion/claudel1/codexl1 裸命令", completed.stdout)
+            self.assertIn("claudel1        # 启动/恢复 Claude L1 军团", completed.stdout)
+            self.assertIn("codexl1         # 启动/恢复 Codex L1 军团", completed.stdout)
+            self.assertNotIn("legion.sh l1", completed.stdout)
             for command_name in ("legion", "claudel1", "codexl1"):
                 self.assertTrue((bin_dir / command_name).exists())
                 self.assertTrue(os.access(bin_dir / command_name, os.X_OK))

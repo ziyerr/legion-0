@@ -87,6 +87,19 @@ WORKER_FINDING_SEVERITIES = {"critical", "major", "minor", "suggestion"}
 AICTO_CONTROL_PLANE_ID = "external-hermes-aicto"
 AICTO_DIRECTIVE_SENDER = "AICTO-CTO"
 AICTO_PLUGIN_ENTRYPOINT = "/Users/feijun/Documents/AICTO/hermes-plugin/legion_api.py::send_to_commander"
+L2_REQUEST_MARKERS = (
+    "l2",
+    "L2",
+    "代理团队",
+    "代理指令",
+    "代理通路",
+    "子团队",
+    "下属团队",
+    "二级军团",
+    "二级团队",
+    "agent team",
+    "proxy team",
+)
 
 L1_CODENAMES = [
     "烈焰",
@@ -254,6 +267,7 @@ class CodexAdapter:
             "exec",
             "-C",
             str(self.context.project_dir),
+            "--ephemeral",
             "--json",
             "--output-schema",
             str(schema_file),
@@ -1326,7 +1340,32 @@ class LegionCore:
             return False
         if self._commander_level(commander) != 1:
             return False
+        if any(self._spec_requests_l2_proxy(spec) for spec in specs):
+            return True
         return COMPLEXITY_ORDER.get(self._campaign_complexity(specs), 1) >= COMPLEXITY_ORDER["m"]
+
+    def _spec_requests_l2_proxy(self, spec: TaskSpec) -> bool:
+        for key in ("corps", "use_corps", "requires_l2", "l2", "proxy_team", "agent_team"):
+            value = spec.raw.get(key)
+            if isinstance(value, bool) and value:
+                return True
+            if isinstance(value, str) and value.strip().lower() in {"1", "true", "yes", "on", "l2", "corps", "proxy"}:
+                return True
+        text_parts = [
+            spec.task_id,
+            spec.task,
+            spec.role,
+            spec.branch,
+            str(spec.raw.get("routing", "")),
+            str(spec.raw.get("team", "")),
+            str(spec.raw.get("commander", "")),
+        ]
+        text = "\n".join(part for part in text_parts if part)
+        lower_text = text.lower()
+        for marker in L2_REQUEST_MARKERS:
+            if marker in text or marker.lower() in lower_text:
+                return True
+        return False
 
     def launch_task(self, spec: TaskSpec, commander: str) -> bool:
         ok, reason = self._commander_active_live(commander)
@@ -2045,12 +2084,13 @@ Core doctrine - scale-first Legion:
 1. Optimize for maximum effective collaboration scale.
 2. Resource cost is not a downgrade reason. Do not skip corps, recon, review, verify, audit, or parallel workers to save tokens/time/processes.
 3. Default frontend topology is L1-only. Do not create base L2 commanders during startup unless Legion Core sends an explicit readiness-order.
-4. S-level directives stay with the receiving L1 unless a visible tracked task is needed.
-5. M+ work expands upward: use `mixed campaign --corps` with specialized visible L2 branches and independent workers.
-6. Parallel branches need distinct scope, risk hypothesis, verification method, or specialty.
-7. Keep quality gates independent: implementation, review, verify, and audit should be separated for non-trivial work.
-8. Stop for the user only on irreversible destruction, unresolved requirement ambiguity, cross-project/shared-state changes, or a high-cost fork.
-9. Use `claw-roundtable-skill` for explicit RoundTable/圆桌, XL work, or high-cost architecture/API/security decisions. Before claiming RoundTable ran, execute `.claude/skills/claw-roundtable-skill/roundtable_health.py --require-runtime`; if unavailable, report analysis-only and use campaign/recon as fallback.
+4. Every L2 created by `--corps` is an independent teammate branch commander with its own id, tmux-visible runtime, inbox, and run_dir; it is not an invisible one-shot worker.
+5. S-level directives stay with the receiving L1 unless a visible tracked task or explicit L2/proxy-team test is requested.
+6. M+ work, or any user request for L2/代理团队/代理指令, expands upward: use `mixed campaign --corps` with specialized visible L2 branches and independent workers.
+7. Parallel branches need distinct scope, risk hypothesis, verification method, or specialty.
+8. Keep quality gates independent: implementation, review, verify, and audit should be separated for non-trivial work.
+9. Stop for the user only on irreversible destruction, unresolved requirement ambiguity, cross-project/shared-state changes, or a high-cost fork.
+10. Use `claw-roundtable-skill` for explicit RoundTable/圆桌, XL work, or high-cost architecture/API/security decisions. Before claiming RoundTable ran, execute `.claude/skills/claw-roundtable-skill/roundtable_health.py --require-runtime`; if unavailable, report analysis-only and use campaign/recon as fallback.
 
 Startup protocol - run before taking work:
 1. Read only current protocol files that exist: `AGENTS.md`, `CLAUDE.md`, `.planning/STATE.md`, `.planning/REQUIREMENTS.md`, `.planning/DECISIONS.md`.
@@ -2068,12 +2108,13 @@ Essential commands:
 - AICTO problem report: `{legion_sh} mixed report-aicto <subject> "summary" --from {commander_id} --kind problem`.
 - AICTO next-step request: task terminal transitions automatically queue a report with `next_directive_request`; use `mixed report-aicto` only for non-task requests.
 - Readiness only when ordered: `{legion_sh} mixed readiness {commander_id} --wait --timeout 180`.
-- S visible task: `{legion_sh} mixed campaign plan.json --complexity s --direct`.
+- S visible task on L1: `{legion_sh} mixed campaign plan.json --complexity s --direct`.
+- S task that explicitly asks for L2/代理团队/代理指令: `{legion_sh} mixed campaign plan.json --corps`.
 - M+ collaboration: `{legion_sh} mixed campaign plan.json --corps`; dry-run first for complex plans.
 - More L1s: `{legion_sh} claude l1 <name>`; `{legion_sh} codex l1 <name>`.
 
 Operating rules:
-1. Use `legion.sh mixed campaign` for subordinate creation; keep S at L1 unless a tracked task window is needed.
+1. Use `legion.sh mixed campaign` for subordinate creation; keep S at L1 unless a tracked task window or explicit L2/代理团队/代理指令 is needed.
 2. For M+ work, use `--corps`, declare scope, separate implementation from review/verify/audit, and preserve user changes.
 3. Prefer Codex for explore/review/verify/audit/security and Claude for implementation/product/UI unless explicitly overridden.
 4. Verify before reporting completion. Automatic task transitions report to AICTO and request the next directive; use `mixed report-aicto` for non-task problems or manual next-step requests.
@@ -2143,6 +2184,7 @@ Mission:
 - Command the {branch} specialty under parent commander {parent}.
 - Accept tasks routed to your branch through the unified Legion Core registry.
 - Create subordinate workers only through Legion Core so Claude and Codex commanders remain synchronized.
+- Treat this L2 as an independent teammate branch commander: keep your own id, tmux-visible runtime, inbox, and run_dir distinct from one-shot workers.
 
 Project:
 - Path: {self.context.project_dir}

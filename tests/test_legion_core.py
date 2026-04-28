@@ -276,6 +276,7 @@ class LegionCoreTests(unittest.TestCase):
             cmd = CodexAdapter(ctx).build_command(spec, prompt_file, result_file, schema_file)
 
             self.assertEqual(cmd[:2], ["codex", "exec"])
+            self.assertIn("--ephemeral", cmd)
             self.assertIn("--json", cmd)
             self.assertIn("--output-schema", cmd)
             self.assertIn(str(schema_file), cmd)
@@ -844,9 +845,11 @@ class LegionCoreTests(unittest.TestCase):
             self.assertIn("Core doctrine - scale-first Legion", prompt)
             self.assertIn("Resource cost is not a downgrade reason", prompt)
             self.assertIn("Default frontend topology is L1-only", prompt)
+            self.assertIn("independent teammate branch commander", prompt)
             self.assertIn("S-level directives", prompt)
-            self.assertIn("M+ work expands upward", prompt)
+            self.assertIn("M+ work, or any user request for L2/代理团队/代理指令", prompt)
             self.assertIn("mixed campaign --corps", prompt)
+            self.assertIn("S task that explicitly asks for L2/代理团队/代理指令", prompt)
             self.assertIn("implementation, review, verify, and audit should be separated", prompt)
             self.assertIn("claw-roundtable-skill", prompt)
             self.assertIn("roundtable_health.py --require-runtime", prompt)
@@ -889,6 +892,7 @@ class LegionCoreTests(unittest.TestCase):
             self.assertIn("Core doctrine - scale-first Legion", prompt)
             self.assertIn("maximum effective specialty scale", prompt)
             self.assertIn("Resource cost is not a downgrade reason", prompt)
+            self.assertIn("independent teammate branch commander", prompt)
             self.assertIn("Do not create duplicate theater", prompt)
             self.assertIn("RoundTable", prompt)
             self.assertIn("roundtable_health.py --require-runtime", prompt)
@@ -1173,6 +1177,36 @@ class LegionCoreTests(unittest.TestCase):
             self.assertEqual(registry["tasks"][0]["commander"], "L1-星辰军团")
             self.assertEqual(registry["tasks"][0]["origin_commander"], "L1-星辰军团")
             self.assertEqual(registry["tasks"][0]["complexity"], "s")
+
+    def test_l1_s_task_requesting_proxy_team_routes_through_l2(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            core = LegionCore(root, legion_home=root / "home", runner=RecordingRunner())
+            self.register_commander(core, "L1-赤龙军团")
+
+            core.deploy_campaign(
+                [
+                    {
+                        "id": "chilong-ping",
+                        "role": "explore",
+                        "task": "代理指令通路测试任务：读取 frontend/package.json",
+                        "complexity": "s",
+                        "scope": ["frontend/package.json"],
+                    }
+                ],
+                commander="L1-赤龙军团",
+                dry_run=False,
+            )
+
+            registry = json.loads(core.registry_file.read_text(encoding="utf-8"))
+            l2 = next(commander for commander in registry["commanders"] if commander["role"] == "branch-commander")
+            self.assertEqual(l2["branch"], "explore")
+            self.assertEqual(l2["parent"], "L1-赤龙军团")
+            task = registry["tasks"][0]
+            self.assertEqual(task["commander"], l2["id"])
+            self.assertEqual(task["origin_commander"], "L1-赤龙军团")
+            self.assertEqual(task["commander_lifecycle"], "campaign")
+            self.assertEqual(task["complexity"], "s")
 
     def test_l2_campaign_defaults_to_direct_same_level_worker(self):
         with tempfile.TemporaryDirectory() as td:
