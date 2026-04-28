@@ -217,11 +217,18 @@ class LegionShellContractTests(unittest.TestCase):
             home.mkdir()
             (project / ".git").mkdir()
             claude_md = project / "CLAUDE.md"
-            original_claude = "# Project Notes\n\nKeep custom local rules.\n"
+            original_claude = (
+                "# Project Notes\n\n"
+                "Keep custom local rules.\n\n"
+                "## Long History\n\n"
+                + "\n".join(f"- legacy detail {i}: verbose historical note that should be compacted" for i in range(80))
+                + "\n"
+            )
             claude_md.write_text(original_claude, encoding="utf-8")
             target_skills_dir = project / ".claude" / "skills"
             target_skills_dir.mkdir(parents=True)
             (target_skills_dir / "brainstorming").symlink_to("../../.agents/skills/brainstorming")
+            (target_skills_dir / "legacy-file").write_text("not a skill directory", encoding="utf-8")
 
             skills_dir = reference / ".claude" / "skills"
             agents_dir = reference / ".claude" / "agents"
@@ -258,10 +265,14 @@ class LegionShellContractTests(unittest.TestCase):
                 timeout=20,
             )
             self.assertEqual(first.returncode, 0, msg=f"stdout:\n{first.stdout}\nstderr:\n{first.stderr}")
-            self.assertIn("CLAUDE.md 已备份并合并最新完整执行纪律模板", first.stdout)
+            self.assertIn("skills 目录已清理", first.stdout)
+            self.assertIn("CLAUDE.md 已备份并合并压缩最新纪律模板", first.stdout)
 
             updated = claude_md.read_text(encoding="utf-8")
-            self.assertIn(original_claude, updated)
+            self.assertLessEqual(len(updated), 2500)
+            self.assertIn("Keep custom local rules.", updated)
+            self.assertIn("历史 CLAUDE.md（已压缩）", updated)
+            self.assertNotIn("legacy detail 79", updated)
             self.assertTrue(updated.startswith("# >>> legion-init execution-discipline/v2 >>>"))
             self.assertIn("# >>> legion-init execution-discipline/v2 >>>", updated)
             self.assertIn("# 指挥官自主权（全局第一原则）", updated)
@@ -272,10 +283,16 @@ class LegionShellContractTests(unittest.TestCase):
             self.assertEqual(backups[0].read_text(encoding="utf-8"), original_claude)
             self.assertTrue((target_skills_dir / "brainstorming").is_dir())
             self.assertFalse((target_skills_dir / "brainstorming").is_symlink())
+            self.assertFalse((target_skills_dir / "legacy-file").exists())
+            for skill_entry in target_skills_dir.iterdir():
+                self.assertTrue(skill_entry.is_dir(), msg=f"{skill_entry} should be a directory")
+                self.assertFalse(skill_entry.is_symlink(), msg=f"{skill_entry} should not be a symlink")
             backup_runs = list((project / ".claude" / "backups" / "legion-init").iterdir())
             symlink_backup = backup_runs[0] / ".claude" / "skills" / "brainstorming"
+            file_backup = backup_runs[0] / ".claude" / "skills" / "legacy-file"
             self.assertTrue(os.path.lexists(symlink_backup))
             self.assertTrue(symlink_backup.is_symlink())
+            self.assertTrue(file_backup.is_file())
 
             second = subprocess.run(
                 [
@@ -294,7 +311,7 @@ class LegionShellContractTests(unittest.TestCase):
             self.assertEqual(second.returncode, 0, msg=f"stdout:\n{second.stdout}\nstderr:\n{second.stderr}")
             rerun = claude_md.read_text(encoding="utf-8")
             self.assertEqual(rerun.count("# >>> legion-init execution-discipline/v2 >>>"), 1)
-            self.assertIn("CLAUDE.md 已存在且包含执行纪律，跳过", second.stdout)
+            self.assertIn("CLAUDE.md 已是最新压缩纪律模板，跳过", second.stdout)
 
             fresh_project = root / "fresh-project"
             fresh_project.mkdir()
@@ -315,6 +332,7 @@ class LegionShellContractTests(unittest.TestCase):
             )
             self.assertEqual(fresh.returncode, 0, msg=f"stdout:\n{fresh.stdout}\nstderr:\n{fresh.stderr}")
             fresh_claude = (fresh_project / "CLAUDE.md").read_text(encoding="utf-8")
+            self.assertLessEqual(len(fresh_claude), 2500)
             self.assertIn("# >>> legion-init execution-discipline/v2 >>>", fresh_claude)
             self.assertIn("## 军团核心原则：规模优先", fresh_claude)
             self.assertIn("# Project: fresh-project", fresh_claude)
