@@ -1525,6 +1525,40 @@ class LegionCoreTests(unittest.TestCase):
             self.assertIn("problem L1-host: blocked on missing dependency", text)
             self.assertEqual(record["payload"]["aicto_authority"]["directive_sender"], "AICTO-CTO")
 
+    def test_aicto_report_records_cto_memory_when_enabled(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            project = root / "ip-creator"
+            project.mkdir()
+            core = LegionCore(project, legion_home=root / "home", runner=RecordingRunner())
+            recorded = []
+
+            def fake_recorder(**kwargs):
+                recorded.append(kwargs)
+                return {"id": "mem-online", "title": kwargs["title"]}
+
+            with patch.dict(os.environ, {"LEGION_AICTO_MEMORY": "force"}):
+                with patch.object(core, "_external_aicto_memory_recorder", return_value=fake_recorder):
+                    record = core.queue_aicto_report(
+                        kind="l1-online",
+                        subject_id="L1-赤龙军团",
+                        summary="L1-赤龙军团 is online (launched) for project ip-creator",
+                        source="L1-赤龙军团",
+                    )
+
+            self.assertEqual(record["aicto_memory"]["memory_id"], "mem-online")
+            self.assertEqual(record["payload"]["aicto_memory"]["recorded"], True)
+            self.assertEqual(recorded[0]["kind"], "legion_report")
+            self.assertEqual(recorded[0]["scope"], "legion")
+            self.assertEqual(recorded[0]["project_name"], "AI 导演 / ip-creator")
+            self.assertIn("指挥官上线报道", recorded[0]["title"])
+            self.assertIn("AI 导演", recorded[0]["content"])
+            report_file = core.aicto_reports_file.read_text(encoding="utf-8")
+            self.assertIn('"aicto_memory"', report_file)
+            events = [json.loads(line) for line in core.events_file.read_text(encoding="utf-8").splitlines()]
+            self.assertEqual(events[-1]["event"], "aicto_report_queued")
+            self.assertEqual(events[-2]["event"], "aicto_memory_recorded")
+
     def test_l1_prompt_declares_aicto_authority_and_next_directive_contract(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)

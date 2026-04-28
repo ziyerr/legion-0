@@ -87,6 +87,15 @@ WORKER_FINDING_SEVERITIES = {"critical", "major", "minor", "suggestion"}
 AICTO_CONTROL_PLANE_ID = "external-hermes-aicto"
 AICTO_DIRECTIVE_SENDER = "AICTO-CTO"
 AICTO_PLUGIN_ENTRYPOINT = "/Users/feijun/Documents/AICTO/hermes-plugin/legion_api.py::send_to_commander"
+AICTO_MEMORY_ENTRYPOINT = "/Users/feijun/Documents/AICTO/hermes-plugin/cto_memory.py::record_event"
+AICTO_MEMORY_REPORT_KINDS = {
+    "l1-online",
+    "l1-ready",
+    "task-completed",
+    "task-failed",
+    "task-problem",
+    "problem",
+}
 L2_REQUEST_MARKERS = (
     "l2",
     "L2",
@@ -2636,6 +2645,10 @@ fi"""
             "summary": summary,
             "payload": report_payload,
         }
+        memory_record = self._record_aicto_report_memory(record)
+        if memory_record is not None:
+            record["aicto_memory"] = memory_record
+            record["payload"]["aicto_memory"] = memory_record
         with self._file_append_lock(self.aicto_reports_file):
             with self.aicto_reports_file.open("a", encoding="utf-8") as fh:
                 fh.write(json.dumps(record, ensure_ascii=False) + "\n")
@@ -2646,6 +2659,132 @@ fi"""
             correlation_id=correlation,
         )
         return record
+
+    def _record_aicto_report_memory(self, report: dict[str, Any]) -> dict[str, Any] | None:
+        if not self._should_record_aicto_memory(report):
+            return None
+        try:
+            recorder = self._external_aicto_memory_recorder()
+            entry = recorder(
+                kind="legion_report",
+                title=self._aicto_memory_title(report),
+                content=self._aicto_memory_content(report),
+                scope="legion",
+                project_name=self._aicto_memory_project_label(),
+                legion_id=str(report.get("source") or report.get("subject_id") or ""),
+                source=str(report.get("source") or "Legion Core"),
+                tags=[
+                    "legion-report",
+                    str(report.get("kind", "")),
+                    self.context.project_name,
+                    self.context.project_hash,
+                ],
+                metadata={
+                    "report_id": report.get("id"),
+                    "report_kind": report.get("kind"),
+                    "subject_id": report.get("subject_id"),
+                    "correlation_id": report.get("correlation_id"),
+                    "project_hash": self.context.project_hash,
+                    "project_path": str(self.context.project_dir),
+                    "aicto_outbox": str(self.aicto_reports_file),
+                },
+                importance=4,
+            )
+            memory = {
+                "recorded": True,
+                "memory_id": entry.get("id"),
+                "entrypoint": AICTO_MEMORY_ENTRYPOINT,
+                "title": entry.get("title"),
+            }
+            self._event(
+                "aicto_memory_recorded",
+                str(report.get("subject_id", "")),
+                {"report_id": report.get("id"), "memory_id": entry.get("id"), "kind": report.get("kind")},
+                correlation_id=str(report.get("correlation_id", "")),
+            )
+            return memory
+        except Exception as exc:  # noqa: BLE001 - report outbox still preserves the evidence.
+            memory = {
+                "recorded": False,
+                "entrypoint": AICTO_MEMORY_ENTRYPOINT,
+                "error": str(exc),
+            }
+            self._event(
+                "aicto_memory_record_failed",
+                str(report.get("subject_id", "")),
+                {"report_id": report.get("id"), "kind": report.get("kind"), "error": str(exc)},
+                correlation_id=str(report.get("correlation_id", "")),
+            )
+            return memory
+
+    def _should_record_aicto_memory(self, report: dict[str, Any]) -> bool:
+        setting = os.environ.get("LEGION_AICTO_MEMORY", "").strip().lower()
+        if setting in {"0", "false", "no", "off"}:
+            return False
+        if report.get("kind") not in AICTO_MEMORY_REPORT_KINDS:
+            return False
+        if setting in {"1", "true", "yes", "on", "force"}:
+            return True
+        default_legion_home = Path.home() / ".claude" / "legion"
+        return self.legion_home.expanduser().resolve(strict=False) == default_legion_home.expanduser().resolve(strict=False)
+
+    def _aicto_memory_title(self, report: dict[str, Any]) -> str:
+        kind = str(report.get("kind", "report"))
+        subject = str(report.get("subject_id", "project"))
+        project = self._aicto_memory_project_label()
+        if kind == "l1-online":
+            return f"指挥官上线报道 · {project} · {subject}"
+        if kind == "l1-ready":
+            return f"指挥官初始化完成 · {project} · {subject}"
+        if kind.startswith("task-"):
+            return f"军团任务终态汇报 · {project} · {subject}"
+        return f"AICTO 军团报告 · {project} · {subject}"
+
+    def _aicto_memory_project_label(self) -> str:
+        if self.context.project_name == "ip-creator":
+            return "AI 导演 / ip-creator"
+        return self.context.project_name
+
+    def _aicto_memory_content(self, report: dict[str, Any]) -> str:
+        payload = report.get("payload") if isinstance(report.get("payload"), dict) else {}
+        return json.dumps(
+            {
+                "project": self._aicto_memory_project_label(),
+                "project_path": str(self.context.project_dir),
+                "project_hash": self.context.project_hash,
+                "kind": report.get("kind"),
+                "subject_id": report.get("subject_id"),
+                "source": report.get("source"),
+                "summary": report.get("summary"),
+                "timestamp": report.get("timestamp"),
+                "correlation_id": report.get("correlation_id"),
+                "aicto_authority": payload.get("aicto_authority"),
+                "command_chains": payload.get("command_chains"),
+                "next_directive_request": payload.get("next_directive_request"),
+                "outbox": str(self.aicto_reports_file),
+            },
+            ensure_ascii=False,
+            sort_keys=True,
+        )
+
+    def _external_aicto_memory_recorder(self) -> Any:
+        if "::" not in AICTO_MEMORY_ENTRYPOINT:
+            raise RuntimeError(f"invalid AICTO memory entrypoint: {AICTO_MEMORY_ENTRYPOINT}")
+        path_text, function_name = AICTO_MEMORY_ENTRYPOINT.split("::", 1)
+        module_path = Path(path_text).expanduser()
+        if not module_path.exists():
+            raise RuntimeError(f"external AICTO memory module not found: {module_path}")
+        module_name = f"external_aicto_memory_{hashlib.sha256(str(module_path).encode('utf-8')).hexdigest()[:12]}"
+        spec = importlib.util.spec_from_file_location(module_name, module_path)
+        if spec is None or spec.loader is None:
+            raise RuntimeError(f"cannot load external AICTO memory module: {module_path}")
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[spec.name] = module
+        spec.loader.exec_module(module)
+        recorder = getattr(module, function_name, None)
+        if not callable(recorder):
+            raise RuntimeError(f"AICTO memory function is not callable: {AICTO_MEMORY_ENTRYPOINT}")
+        return recorder
 
     def _report_task_to_aicto(self, task: dict[str, Any]) -> dict[str, Any]:
         task_id = str(task.get("id", ""))
