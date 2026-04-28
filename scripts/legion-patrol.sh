@@ -105,6 +105,38 @@ with open(path, "w", encoding="utf-8") as fh:
   echo "[巡查] 整改回执已提交 → $team_id: $evidence" >&2
 }
 
+# ── 团队证据检查 ──
+# 参数: team_id
+# 返回: 0=PASS:<evidence>, 1=FAIL:<reason>
+patrol_teammate_evidence() {
+  local team_id="$1"
+  local team_dir="$LEGION_DIR/team-${team_id}"
+  local phase_file="$team_dir/task_phase.json"
+
+  local mixed_evidence=""
+  if mixed_evidence=$(_mixed_target_teammate_evidence "$team_id"); then
+    echo "PASS:$mixed_evidence"
+    return 0
+  fi
+
+  if [[ -f "$phase_file" ]]; then
+    local has_phase_teammates="false"
+    has_phase_teammates=$(PATROL_PHASE_FILE="$phase_file" python3 -c '
+import json, os
+with open(os.environ["PATROL_PHASE_FILE"], encoding="utf-8") as fh:
+    phase = json.load(fh)
+print("true" if phase.get("has_teammates") else "false")
+' 2>/dev/null || echo "false")
+    if [[ "$has_phase_teammates" == "true" ]]; then
+      echo "PASS:legacy task_phase has_teammates=true"
+      return 0
+    fi
+  fi
+
+  echo "FAIL:未检测到活跃团队成员"
+  return 1
+}
+
 # ── 巡查复查 ──
 # 参数: team_id
 # 返回: 0=PASS(放行), 1=FAIL(继续拦截)
@@ -119,43 +151,29 @@ patrol_reinspect() {
     return 0
   fi
 
-  local status
-  status=$(PATROL_NOTICE_FILE="$notice_file" python3 -c '
+  local notice_status
+  notice_status=$(PATROL_NOTICE_FILE="$notice_file" python3 -c '
 import json, os
 with open(os.environ["PATROL_NOTICE_FILE"], encoding="utf-8") as fh:
     notice = json.load(fh)
 print(notice.get("status", "unknown"))
 ' 2>/dev/null)
 
-  # 未整改 → 继续拦截
-  if [[ "$status" != "remediated" ]]; then
+  # 已有 Mixed L2/worker 证据时，即使通知书仍是 pending_remediation 也可自动复查放行。
+  # 这避免 legacy task_phase 与 Mixed registry 脱节导致 L1 无法自我整改。
+  local teammate_result=""
+  local pass_reason=""
+  if teammate_result=$(patrol_teammate_evidence "$team_id" 2>/dev/null); then
+    pass_reason="${teammate_result#PASS:}"
+  elif [[ "$notice_status" != "remediated" ]]; then
     echo "FAIL:未收到整改回执"
+    return 1
+  else
+    echo "${teammate_result:-FAIL:未检测到活跃团队成员}"
     return 1
   fi
 
-  # 已整改 → 验证团队编制
-  local has_teammates="false"
-  local pass_reason="团队已确认"
-
-  # 检查0: mixed registry 中 target commander 的子树/任务 + tmux 活性
-  local mixed_evidence=""
-  if mixed_evidence=$(_mixed_target_teammate_evidence "$team_id"); then
-    has_teammates="true"
-    pass_reason="$mixed_evidence"
-  fi
-
-  # 检查1: task_phase.json 是否标记 has_teammates
-  if [[ "$has_teammates" == "false" && -f "$phase_file" ]]; then
-    has_teammates=$(PATROL_PHASE_FILE="$phase_file" python3 -c '
-import json, os
-with open(os.environ["PATROL_PHASE_FILE"], encoding="utf-8") as fh:
-    phase = json.load(fh)
-print("true" if phase.get("has_teammates") else "false")
-' 2>/dev/null)
-    [[ "$has_teammates" == "true" ]] && pass_reason="legacy task_phase has_teammates=true"
-  fi
-
-  if [[ "$has_teammates" == "true" ]]; then
+  if [[ -n "$pass_reason" ]]; then
     # 团队确认存在 → 放行 + 清除通知书 + 清除 gate
     echo "PASS:$pass_reason"
 
@@ -168,14 +186,16 @@ print("true" if phase.get("has_teammates") else "false")
       rm -f "$gate_file"
     fi
 
-    # 重置编辑计数
+    # 重置编辑计数，并把 Mixed 证据同步回 legacy task_phase，避免后续状态面板误判。
     if [[ -f "$phase_file" ]]; then
-      PATROL_PHASE_FILE="$phase_file" python3 -c '
+      PATROL_PHASE_FILE="$phase_file" PATROL_PASS_REASON="$pass_reason" python3 -c '
 import json, os
 path = os.environ["PATROL_PHASE_FILE"]
 with open(path, encoding="utf-8") as fh:
     phase = json.load(fh)
 phase["source_edit_count"] = 0
+phase["has_teammates"] = True
+phase["teammate_evidence"] = os.environ.get("PATROL_PASS_REASON", "confirmed")
 with open(path, "w", encoding="utf-8") as fh:
     json.dump(phase, fh, ensure_ascii=False)
 ' 2>/dev/null
@@ -321,10 +341,10 @@ for task in data.get("tasks", []) or []:
 ' 2>/dev/null) || return 1
   [[ -n "$rows" ]] || return 1
 
-  local kind id status session window liveness
+  local kind id row_status session window liveness
   local accepted=0 active=0 live=0 inaccessible=0 missing=0
   local samples=()
-  while IFS=$'\t' read -r kind id status session window; do
+  while IFS=$'\t' read -r kind id row_status session window; do
     [[ -n "$kind" ]] || continue
     case "$kind" in
       PROJECT)
@@ -334,16 +354,16 @@ for task in data.get("tasks", []) or []:
         ;;
       COMMANDER)
         [[ "$session" == "-" ]] && session=""
-        case "$status" in
+        case "$row_status" in
           failed|blocked|cancelled|disbanded|completed) continue ;;
         esac
         liveness=$(_classify_tmux_session "$session")
         case "$liveness" in
           live)
-            accepted=$((accepted+1)); active=$((active+1)); live=$((live+1)); samples+=("$id:$status:tmux=live")
+            accepted=$((accepted+1)); active=$((active+1)); live=$((live+1)); samples+=("${id}:${row_status}:tmux=live")
             ;;
           inaccessible)
-            accepted=$((accepted+1)); active=$((active+1)); inaccessible=$((inaccessible+1)); samples+=("$id:$status:tmux=inaccessible")
+            accepted=$((accepted+1)); active=$((active+1)); inaccessible=$((inaccessible+1)); samples+=("${id}:${row_status}:tmux=inaccessible")
             ;;
           *)
             missing=$((missing+1))
@@ -352,17 +372,17 @@ for task in data.get("tasks", []) or []:
         ;;
       TASK)
         [[ "$window" == "-" ]] && window=""
-        case "$status" in
+        case "$row_status" in
           failed|blocked|cancelled|disbanded|completed) continue ;;
         esac
         [[ -n "$window" ]] || continue
         liveness=$(_classify_tmux_session "$project_session")
         case "$liveness" in
           live)
-            accepted=$((accepted+1)); active=$((active+1)); live=$((live+1)); samples+=("$id:$status:tmux=live")
+            accepted=$((accepted+1)); active=$((active+1)); live=$((live+1)); samples+=("${id}:${row_status}:tmux=live")
             ;;
           inaccessible)
-            accepted=$((accepted+1)); active=$((active+1)); inaccessible=$((inaccessible+1)); samples+=("$id:$status:tmux=inaccessible")
+            accepted=$((accepted+1)); active=$((active+1)); inaccessible=$((inaccessible+1)); samples+=("${id}:${row_status}:tmux=inaccessible")
             ;;
           *)
             missing=$((missing+1))
@@ -456,8 +476,8 @@ for c in d.get("commanders", []) or []:
   fi
 
   local total=0 live=0 missing=0 inaccessible=0
-  local cid provider status session failure liveness
-  while IFS=$'\t' read -r cid provider status session failure; do
+  local cid provider commander_status session failure liveness
+  while IFS=$'\t' read -r cid provider commander_status session failure; do
     [[ -z "$cid" ]] && continue
     [[ "$session" == "-" ]] && session=""
     [[ "$failure" == "-" ]] && failure=""
@@ -470,10 +490,10 @@ for c in d.get("commanders", []) or []:
     esac
     if [[ -n "$failure" ]]; then
       printf "  %s [%s] status=%s tmux=%s — failure=%s\n" \
-        "$cid" "$provider" "$status" "$liveness" "$failure"
+        "$cid" "$provider" "$commander_status" "$liveness" "$failure"
     else
       printf "  %s [%s] status=%s tmux=%s\n" \
-        "$cid" "$provider" "$status" "$liveness"
+        "$cid" "$provider" "$commander_status" "$liveness"
     fi
   done < <(printf '%s\n' "$commanders")
   printf "  -- 共 %d；tmux live=%d missing=%d inaccessible=%d\n" \
@@ -613,7 +633,7 @@ patrol_mixed_status() {
 }
 
 # ── CLI 入口 ──
-if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+if [[ -n "${BASH_SOURCE[0]:-}" && "${BASH_SOURCE[0]}" == "${0}" ]]; then
   case "${1:-help}" in
     notice)    patrol_issue_notice "${2:-}" "${3:-}" "${4:-0}" ;;
     remediate) patrol_remediate "${2:-}" "${3:-}" ;;

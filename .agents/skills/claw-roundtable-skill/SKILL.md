@@ -35,4 +35,10 @@ PY
 
 ## Legion Rule
 
-This is a shared weapon for all L1/L2 branches. Every branch can invoke it when the task requires multi-perspective decision pressure, but completion claims require runtime health evidence.
+This is an on-demand shared weapon for all L1/L2 branches. Codex commanders perform RoundTable initialization during normal startup because the default runtime bridge uses the Codex CLI. Claude commanders do not run RoundTable initialization during routine startup, but they can run explicit RoundTable/OpenClaw access tests when requested. Completion claims always require runtime health evidence.
+
+For native OpenClaw backend integration testing:
+
+```bash
+OPENCLAW_ROUNDTABLE_BACKEND=openclaw python3 .claude/skills/claw-roundtable-skill/roundtable_health.py --require-runtime
+```

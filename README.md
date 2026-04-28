@@ -89,6 +89,7 @@ legion h                             # 初始化后启动 Claude/Codex 双 L1，
 | `legion claude h` | 推荐启动项目军团：当前窗口 Claude L1，后台 Codex L1，双方 peer-sync |
 | `legion.sh claude l1 <名>` | 显式启动 / 恢复 Claude L1 指挥官 |
 | `legion.sh codex l1 <名>` | 显式启动 / 恢复 Codex L1 指挥官 |
+| `claude l1 <名>` | 通过 Claude shim 启动 / 恢复 Claude L1 指挥官 |
 | `codex l1 <名>` | 通过 Codex shim 启动 / 恢复 Codex L1 指挥官 |
 | `legion.sh dou` | 新增一个 Terminal 窗口跑 Codex L1，当前窗口切换为 Claude L1 |
 | `legion.sh duo` | 打开两个独立 Terminal 窗口，分别启动 Codex L1 和 Claude L1 |
@@ -161,23 +162,33 @@ L1 指挥官也可以显式选择 provider：
 ~/.claude/scripts/legion.sh codex l1 玄武军团
 # Codex L1 默认带 --dangerously-bypass-approvals-and-sandbox，保留本机默认模型
 
+# 后台启动 / 创建新 L1；只初始化 Legion 运行态，不展开项目 agents/skills 模板
+~/.claude/scripts/legion.sh claude l1 青龙军团 --no-attach
+~/.claude/scripts/legion.sh codex l1 玄武军团 --no-attach
+~/.claude/scripts/legion.sh claude l1+1 青龙军团 --no-attach
+~/.claude/scripts/legion.sh codex l1+1 玄武军团 --no-attach
+
 # 推荐短入口
 ~/.claude/scripts/legion codex l1 玄武军团
 
-# 如果你想直接输入 legion codex l1，把 Legion scripts 放到 PATH 前面
+# 如果你想直接输入 claude/codex l1，把 Legion scripts 放到 PATH 前面
 export PATH="$HOME/.claude/scripts:$PATH"
+claude l1 青龙军团
+claude l1 青龙军团 --no-attach
 legion codex l1 玄武军团
 
 # 不写军团名：优先载入当前项目在线 Codex L1；如果没有在线 L1，就随机新增一个
 legion codex l1
 
 # 兼容入口
+~/.claude/scripts/claude l1 青龙军团
 ~/.claude/scripts/codex l1 玄武军团
 
 # 如果你想直接输入 codex l1，把 Legion scripts 放到 PATH 前面
 codex l1 玄武军团
 
-# 这个 codex shim 只拦截 l1 / l1+1；codex exec、codex -C、codex --version 会转发给真实 Codex CLI
+# claude/codex shim 只拦截 l1 / l1+1；claude --version、codex exec、codex -C、codex --version 会转发给真实 CLI
+# 完整部署当前项目的 agents/skills/CLAUDE.md/settings.local.json 仍使用 `legion 0`
 
 # 推荐项目军团启动：当前窗口进入 Claude L1，Codex L1 后台独立 tmux session
 ~/.claude/scripts/legion.sh claude h

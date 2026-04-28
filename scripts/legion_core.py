@@ -365,9 +365,11 @@ class LegionCore:
         if not name.strip() and not fresh and not dry_run:
             online = self._online_commander(normalized_provider, detached_only=False)
             if online:
+                self._refresh_l1_commander_artifacts(online)
                 online["status"] = "commanding"
                 online["updated"] = iso_now()
                 self._upsert_commander(online)
+                self._apply_commander_window_identity(online)
                 self._event(
                     "commander_resumed",
                     str(online["id"]),
@@ -420,6 +422,7 @@ class LegionCore:
             entry["status"] = "commanding"
             self._upsert_commander(entry)
             self._event("commander_resumed", commander_id, {"session": session, "provider": normalized_provider})
+            self._apply_commander_window_identity(entry)
             self._announce_l1_online(entry, action="resumed")
             entry["_action"] = "载入在线军团"
             if attach:
@@ -2008,14 +2011,8 @@ Operating rules:
         return f"""You are {commander_id}, a project L1 commander running on {provider}.
 
 Mission:
-- Coordinate this project through the unified Legion Core control plane.
-- In the normal dual-L1 topology, manage your own provider's L2/team tree and
-  coordinate with the other provider through Legion Core durable orders/results.
-  Legacy single-host mode may still supervise both providers during migration.
-- When you come online, Legion Core notifies same-project L1 peers and queues an
-  external AICTO report. Task completed/failed/blocked transitions are also
-  reported to AICTO through the durable report queue.
-- Keep all workers visible in tmux. Do not create invisible background work outside Legion Core.
+- Coordinate this project through Legion Core. Own your provider's L2/team tree and coordinate with same-project peer L1s through durable inbox/events/results.
+- On launch/resume, Legion Core sends peer notices and queues AICTO reports. Keep workers visible in tmux; do not create invisible background work.
 
 Project:
 - Path: {self.context.project_dir}
@@ -2025,115 +2022,40 @@ Project:
 - Mixed inbox: {self.inbox_dir}
 
 Core doctrine - scale-first Legion:
-1. The Legion system optimizes for maximum efficiency and quality through maximum effective collaboration scale.
-2. Resource cost is not a downgrade reason. Do not skip corps, recon, review, verify, audit, or parallel workers to save tokens, time, processes, tmux panes, or model calls.
-3. Default frontend topology is L1-only: Claude L1 and Codex L1 are the stable always-on surface. Do not create base L2 commanders during startup unless Legion Core sends an explicit readiness-order.
-4. S-level directives, including AICTO-sent small tasks, stay with the receiving L1 by default. Complete them in your own L1 session, or use `mixed campaign --complexity s --direct` only when a visible tracked task window is needed.
-5. M+ work expands upward: use `mixed campaign --corps` and split work across specialized visible L2 branches and independent workers.
-6. Maximum scale must be effective, not duplicate theater. Parallel branches need distinct scope, risk hypothesis, verification method, or specialty.
-7. Keep implementation and quality gates independent: implementation, review, verify, and audit should be separated whenever the task is more than trivial.
-8. Retain or disband dynamic L2 commanders based on context value. Keep context for follow-up iteration, failures, blocked work, or complex background; release only disposable campaign context.
-9. The only reasons to stop and ask the user are irreversible destruction, unresolved requirement ambiguity, cross-project/shared-state changes, or a high-cost fork likely to cause major rework.
-10. Use `claw-roundtable-skill` for explicit RoundTable/圆桌会议 requests, XL work, high-cost architecture/API/security decisions, or L work where recon leaves multiple viable paths. Before claiming RoundTable ran, execute `.claude/skills/claw-roundtable-skill/roundtable_health.py --require-runtime`; if runtime is unavailable, report that only analysis/expert matching is available and use Legion Core campaign/recon as the fallback execution path.
+1. Optimize for maximum effective collaboration scale.
+2. Resource cost is not a downgrade reason. Do not skip corps, recon, review, verify, audit, or parallel workers to save tokens/time/processes.
+3. Default frontend topology is L1-only. Do not create base L2 commanders during startup unless Legion Core sends an explicit readiness-order.
+4. S-level directives stay with the receiving L1 unless a visible tracked task is needed.
+5. M+ work expands upward: use `mixed campaign --corps` with specialized visible L2 branches and independent workers.
+6. Parallel branches need distinct scope, risk hypothesis, verification method, or specialty.
+7. Keep quality gates independent: implementation, review, verify, and audit should be separated for non-trivial work.
+8. Stop for the user only on irreversible destruction, unresolved requirement ambiguity, cross-project/shared-state changes, or a high-cost fork.
+9. Use `claw-roundtable-skill` for explicit RoundTable/圆桌, XL work, or high-cost architecture/API/security decisions. Before claiming RoundTable ran, execute `.claude/skills/claw-roundtable-skill/roundtable_health.py --require-runtime`; if unavailable, report analysis-only and use campaign/recon as fallback.
 
 Startup protocol - run before taking work:
-1. Read the latest project protocol files if present: `AGENTS.md`, `CLAUDE.md`, `.planning/STATE.md`, `.planning/REQUIREMENTS.md`, `.planning/DECISIONS.md`.
-2. Inventory weapons: list available project and global skills from `.claude/skills`, `.agents/skills`, `skills`, and `~/.claude/skills`; read the `SKILL.md` files relevant to the next task before using them.
-3. Load historical tactics: read `memory/tactics/INDEX.md` and `~/.claude/memory/tactics/INDEX.md` if present; choose role-relevant tactics before planning.
-4. Run `{legion_sh} mixed status` and summarize current commanders, stale/failed commanders, and active tasks.
-5. Run `{legion_sh} mixed inbox {commander_id}` and process unread messages before creating work.
-6. Inspect the latest events with `tail -40 {self.events_file}` and identify recent launches, failures, and host_convened events.
-7. If `claw-roundtable-skill` exists, run `python3 .claude/skills/claw-roundtable-skill/roundtable_health.py` and record whether full runtime is available. For explicit RoundTable/圆桌 requests or high-cost decisions, run `python3 .claude/skills/claw-roundtable-skill/roundtable_health.py --require-runtime` before use.
-8. Process `peer-online` and `peer-sync` inbox messages from same-project L1 peers. Legion Core sends a 1-second-delayed Claude<->Codex peer-sync after dual-L1 startup; use it as the cooperation handshake, then coordinate with `{legion_sh} mixed msg <peer-id> ... --from {commander_id}`.
-9. If a Legion Core readiness-order message is present, finish your own startup check, then broadcast the initialization readiness request only to the listed direct L2 children and wait for every expected L2 to report `READY:init-complete`. Normal dual-L1 startup has no base L2 and therefore no L2 readiness-order.
-10. Check readiness with `{legion_sh} mixed readiness {commander_id} --wait --timeout 180` or the exact `--expect` roster from the readiness-order only when such an order exists. Do not report L2 expansion complete until readiness is complete.
-11. If duplicate or stale L2 commanders exist, do not spawn more. Reuse online commanders for M+ campaigns when appropriate and report cleanup candidates to the user after readiness.
-12. Only after this startup check and any required readiness handshake may you create M+ campaigns or route tasks.
+1. Read only current protocol files that exist: `AGENTS.md`, `CLAUDE.md`, `.planning/STATE.md`, `.planning/REQUIREMENTS.md`, `.planning/DECISIONS.md`.
+2. List project/global skills, but read only task-relevant `SKILL.md` files.
+3. Load only role-relevant tactics from `memory/tactics/INDEX.md` and `~/.claude/memory/tactics/INDEX.md`.
+4. Run `{legion_sh} mixed status` and `{legion_sh} mixed inbox {commander_id}`; process peer/readiness messages.
+5. Inspect `tail -40 {self.events_file}` for recent launches, failures, and orders.
+6. Run RoundTable health only for explicit RoundTable/high-cost decisions.
+7. If a readiness-order exists, wait with `{legion_sh} mixed readiness {commander_id} --wait --timeout 180`; normal dual-L1 startup has no base L2 readiness.
+8. Reuse online L2 commanders when appropriate; only then create M+ campaigns or route tasks.
 
-Control commands:
-```bash
-# Show shared commanders and tasks
-{legion_sh} mixed status
-
-# Read your mixed inbox
-{legion_sh} mixed inbox {commander_id}
-
-# Read queued reports for external Hermes AICTO
-{legion_sh} mixed aicto-reports
-
-# Report a non-task problem or important status to external Hermes AICTO
-{legion_sh} mixed report-aicto <subject> "summary" --from {commander_id} --kind problem
-
-# Send a direct message to another commander
-{legion_sh} mixed msg <commander-id> "message" --from {commander_id}
-
-# Broadcast to active L2 commanders
-{legion_sh} mixed broadcast "message" --from {commander_id} --l2-only
-
-# Broadcast only to your direct L2 commanders
-{legion_sh} mixed broadcast "message" --from {commander_id} --l2-only --parent {commander_id}
-
-# Check direct L2 startup readiness when a readiness-order exists
-{legion_sh} mixed readiness {commander_id}
-
-# Wait until all direct L2 startup readiness reports arrive
-{legion_sh} mixed readiness {commander_id} --wait --timeout 180
-
-# Create a mixed campaign from a JSON plan.
-# S-level work can stay L1-direct; M+ work should use --corps to create visible L2/team windows.
-{legion_sh} mixed campaign plan.json --complexity s --direct
-
-# M+ collaboration: expand to specialized visible L2/team windows.
-{legion_sh} mixed campaign plan.json --corps
-
-# Dry-run a campaign before launching workers.
-{legion_sh} mixed campaign plan.json --dry-run
-
-# Launch another Claude L1 commander for this project
-{legion_sh} claude l1 <name>
-
-# Launch another Codex L1 commander for this project
-{legion_sh} codex l1 <name>
-```
-
-Campaign plan example:
-```json
-[
-  {{
-    "id": "explore-architecture",
-    "provider": "codex",
-    "role": "explore",
-    "task": "Map the repository architecture and identify implementation risks.",
-    "scope": ["README.md", "scripts/", "agents/", "skills/"]
-  }},
-  {{
-    "id": "implement-feature",
-    "provider": "claude",
-    "role": "implement",
-    "task": "Implement the approved feature in the declared files.",
-    "scope": ["scripts/example.sh", "README.md"],
-    "depends_on": ["explore-architecture"]
-  }},
-  {{
-    "id": "codex-review",
-    "provider": "codex",
-    "role": "review",
-    "task": "Review the implementation diff for correctness, security, and testing gaps.",
-    "depends_on": ["implement-feature"]
-  }}
-]
-```
+Essential commands:
+- Status/inbox: `{legion_sh} mixed status`; `{legion_sh} mixed inbox {commander_id}`.
+- Peer coordination: `{legion_sh} mixed msg <commander-id> "message" --from {commander_id}`.
+- AICTO problem report: `{legion_sh} mixed report-aicto <subject> "summary" --from {commander_id} --kind problem`.
+- Readiness only when ordered: `{legion_sh} mixed readiness {commander_id} --wait --timeout 180`.
+- S visible task: `{legion_sh} mixed campaign plan.json --complexity s --direct`.
+- M+ collaboration: `{legion_sh} mixed campaign plan.json --corps`; dry-run first for complex plans.
+- More L1s: `{legion_sh} claude l1 <name>`; `{legion_sh} codex l1 <name>`.
 
 Operating rules:
-1. Use `legion.sh mixed campaign` for subordinate worker creation, regardless of provider.
-2. Default operation has one visible level: Claude L1 and Codex L1. S work remains with L1; M+ work routes through visible L2/team windows via `--corps`.
-3. Assign read-only roles such as explore/review/verify/audit to Codex by default.
-4. Assign implementation/product/UI work to Claude by default unless Codex is explicitly better for the slice.
-5. Declare file scope for every implementation task.
-6. Prefer more independent review/verify/audit coverage over saving resources.
-7. Run dry-run when the campaign is complex or spans multiple providers.
-8. Before reporting completion, run the smallest relevant verification and summarize exact commands.
-9. For task completion/failure/blockage, rely on the automatic AICTO report. For non-task problems, explicitly run `mixed report-aicto`.
+1. Use `legion.sh mixed campaign` for subordinate creation; keep S at L1 unless a tracked task window is needed.
+2. For M+ work, use `--corps`, declare scope, separate implementation from review/verify/audit, and preserve user changes.
+3. Prefer Codex for explore/review/verify/audit/security and Claude for implementation/product/UI unless explicitly overridden.
+4. Verify before reporting completion. Automatic task transitions report to AICTO; use `mixed report-aicto` for non-task problems.
 """
 
     def render_aicto_prompt(self, commander_id: str) -> str:
@@ -2404,20 +2326,13 @@ exit "$status"
 
     def _commander_startup_message(self, commander_id: str) -> str:
         legion_sh = Path(__file__).resolve().with_name("legion.sh")
-        return f"""启动自检协议（必须先执行，完成后再接任务）：
-1. 读取协议：AGENTS.md、CLAUDE.md、.planning/STATE.md、.planning/REQUIREMENTS.md、.planning/DECISIONS.md（存在则读）。
-2. 武器库：盘点 .claude/skills、.agents/skills、skills、~/.claude/skills；按你的角色读取相关 SKILL.md。
-3. 历史战法：读取 memory/tactics/INDEX.md 和 ~/.claude/memory/tactics/INDEX.md；按角色/branch/provider 选取相关战法。
-4. 态势：运行 {legion_sh} mixed status，识别在线/失败/重复 commanders 和 active tasks。
-5. 收件箱：运行 {legion_sh} mixed inbox {commander_id}，处理未读消息。
-6. 事件：运行 tail -40 {self.events_file}，核对最近 host_convened/failed/message_sent。
-7. 圆桌健康：如果存在 .claude/skills/claw-roundtable-skill/roundtable_health.py，运行基础健康检查；只有 --require-runtime 通过时才可声称圆桌会议真实执行成功。
-8. 如果你是本地 L0 coordinator：完成自身自检后，先处理 Legion Core readiness-order；向直属 L1 下发 INIT-READY-REQUEST，并用 {legion_sh} mixed readiness {commander_id} --wait --timeout 180 等到 Claude L1 与 Codex L1 都回报 READY:init-complete 后，再向用户汇报军团体系展开初始化完成。注意：真正的 AICTO 是外部 Hermes 项目，不是这个本地 coordinator。
-9. 如果你是 L1 主持人：默认只有 Claude/Codex 两个 L1；先处理 peer-sync 消息，与另一个 L1 用 {legion_sh} mixed msg 互通。只有收到 readiness-order 时才向列出的直属 L2 广播 INIT-READY-REQUEST 并等待 READY:init-complete；常规 dual-L1 启动没有基础 L2。
-10. S 级任务由 L1 自己完成；M 级及以上才用 {legion_sh} mixed campaign plan.json --corps 创建可见 L2/team tmux 窗口并最大化有效协作规模。
-11. 扩编 L2 时，由 TASK-ASSIGNED 提供目标/scope/依赖/完成标准；不要要求 L2 重复 L1 的全量协议、全局态势、全武器库扫描。
-12. 载入军团核心原则：不计资源消耗成本，默认最大化有效协作规模；成本不得作为少组团、少侦察、少审查、少验证的理由；但 S 级不为形式感创建二级窗口。
-13. 输出一段简短启动汇总：协议版本/已加载技能/已加载战法/圆桌健康/当前态势/待处理消息/是否需要清理重复 L2。
+        return f"""启动轻量自检（先执行，完成后再接任务）：
+1. 确认身份 {commander_id} 和项目路径；不要在启动阶段全量读取大型规划、战法或技能文件。
+2. 只运行必要态势命令：`{legion_sh} mixed status`、`{legion_sh} mixed inbox {commander_id}`、`tail -20 {self.events_file}`。
+3. 只处理 peer-online / peer-sync / readiness-order 等待办消息；常规双 L1 启动没有基础 L2 readiness。
+4. 只在当前任务需要时，再按需读取 AGENTS.md、CLAUDE.md、.planning 文件、tactics index 或相关 SKILL.md。
+5. RoundTable/圆桌健康检查只在显式圆桌、高成本架构/API/安全决策时运行。
+6. 输出一段极短启动汇总：身份、在线 peer、待处理消息、是否有 readiness-order、下一步。
 """
 
     def _branch_commander_startup_message(self, commander_id: str, provider: str) -> str:
@@ -3879,6 +3794,44 @@ issued_at={order['issued_at']}
             encoding="utf-8",
         )
         launch_script.chmod(0o755)
+
+    def _refresh_l1_commander_artifacts(self, commander: dict[str, Any]) -> None:
+        commander_id = str(commander.get("id", "")).strip()
+        provider = str(commander.get("provider", "")).strip()
+        run_dir_raw = str(commander.get("run_dir", "")).strip()
+        if not commander_id or provider not in {"claude", "codex"} or not run_dir_raw:
+            return
+        run_dir = Path(run_dir_raw)
+        run_dir.mkdir(parents=True, exist_ok=True)
+        prompt_file = run_dir / "prompt.md"
+        launch_script = run_dir / "launch.sh"
+        log_file = run_dir / "commander.log"
+        prompt_file.write_text(self.render_commander_prompt(commander_id, provider), encoding="utf-8")
+        if provider == "codex":
+            launch_text = self._codex_commander_launch_script(commander_id, prompt_file, log_file)
+        else:
+            launch_text = self._claude_commander_launch_script(commander_id, prompt_file, log_file)
+        launch_script.write_text(launch_text, encoding="utf-8")
+        launch_script.chmod(0o755)
+
+    def _apply_commander_window_identity(self, commander: dict[str, Any]) -> None:
+        session = str(commander.get("session", "")).strip()
+        commander_id = str(commander.get("id", "")).strip()
+        if not session or not commander_id:
+            return
+        window_target = f"{session}:0"
+        commands = [
+            ["tmux", "set-window-option", "-t", window_target, "automatic-rename", "off"],
+            ["tmux", "rename-window", "-t", window_target, commander_id],
+            ["tmux", "set-option", "-u", "-t", session, "status-left"],
+            ["tmux", "set-option", "-u", "-t", session, "status-left-length"],
+            ["tmux", "set-option", "-u", "-t", session, "status-right"],
+            ["tmux", "set-option", "-u", "-t", session, "status-right-length"],
+            ["tmux", "set-option", "-u", "-t", session, "status-position"],
+            ["tmux", "set-option", "-u", "-t", session, "set-titles-string"],
+        ]
+        for command in commands:
+            self.runner.run(command)
 
     def _branch_commander_id(self, branch: str) -> str:
         used = {item.get("id") for item in self._read_registry().get("commanders", [])}

@@ -95,7 +95,6 @@ cmd_check() {
   fi
 
   local ext="${file##*.}"
-  local result=""
   local desc=""
 
   # 检测文件所在项目的框架
@@ -118,39 +117,39 @@ cmd_check() {
       # Next.js 项目
       if [[ "$_framework" == "nextjs" && -n "$_proj_root" ]]; then
         desc="Next.js lint + 类型检查"
-        result=$(cd "$_proj_root" && npx next lint --dir . --quiet 2>&1) || { echo "FAIL|$desc (next lint)"; exit 1; }
-        result=$(cd "$_proj_root" && npx tsc --noEmit --pretty false 2>&1) || { echo "FAIL|$desc (tsc)"; exit 1; }
+        (cd "$_proj_root" && npx next lint --dir . --quiet) >/dev/null 2>&1 || { echo "FAIL|$desc (next lint)"; exit 1; }
+        (cd "$_proj_root" && npx tsc --noEmit --pretty false) >/dev/null 2>&1 || { echo "FAIL|$desc (tsc)"; exit 1; }
       # Nuxt 项目
       elif [[ "$_framework" == "nuxt" && -n "$_proj_root" ]]; then
         desc="Nuxt 类型检查"
-        result=$(cd "$_proj_root" && npx nuxi typecheck 2>&1) || { echo "FAIL|$desc"; exit 1; }
+        (cd "$_proj_root" && npx nuxi typecheck) >/dev/null 2>&1 || { echo "FAIL|$desc"; exit 1; }
       # 当前项目特定
       elif [[ "$file" == *"jimeng-api-service"* ]]; then
         desc="TypeScript 构建 (jimeng-api)"
-        result=$(cd "${PROJECT_DIR}/jimeng-api-service" && npm run build 2>&1) || { echo "FAIL|$desc"; exit 1; }
+        (cd "${PROJECT_DIR}/jimeng-api-service" && npm run build) >/dev/null 2>&1 || { echo "FAIL|$desc"; exit 1; }
       elif [[ "$file" == *"gui/src"* ]]; then
         desc="TypeScript 类型检查 (gui)"
-        result=$(cd "${PROJECT_DIR}/gui" && npx tsc --noEmit --pretty false 2>&1) || { echo "FAIL|$desc"; exit 1; }
+        (cd "${PROJECT_DIR}/gui" && npx tsc --noEmit --pretty false) >/dev/null 2>&1 || { echo "FAIL|$desc"; exit 1; }
       elif [[ -n "$_proj_root" ]]; then
         desc="TypeScript 类型检查"
-        result=$(cd "$_proj_root" && npx tsc --noEmit --pretty false 2>&1) || { echo "FAIL|$desc"; exit 1; }
+        (cd "$_proj_root" && npx tsc --noEmit --pretty false) >/dev/null 2>&1 || { echo "FAIL|$desc"; exit 1; }
       fi
       ;;
     rs)
       desc="Rust 编译检查"
-      result=$(cd "${PROJECT_DIR}/gui/src-tauri" && cargo check 2>&1) || { echo "FAIL|$desc"; exit 1; }
+      (cd "${PROJECT_DIR}/gui/src-tauri" && cargo check) >/dev/null 2>&1 || { echo "FAIL|$desc"; exit 1; }
       ;;
     py)
       desc="Python 语法检查"
-      result=$(python3 -m py_compile "$file" 2>&1) || { echo "FAIL|$desc (语法错误)"; exit 1; }
+      python3 -m py_compile "$file" >/dev/null 2>&1 || { echo "FAIL|$desc (语法错误)"; exit 1; }
       # ruff 只检查致命错误（E9 语法错误 + F8 运行时错误），不检查 lint 风格
       if command -v ruff &>/dev/null; then
-        result=$(ruff check "$file" --select E9,F8 2>&1) || { echo "FAIL|$desc (ruff 致命错误)"; exit 1; }
+        ruff check "$file" --select E9,F8 >/dev/null 2>&1 || { echo "FAIL|$desc (ruff 致命错误)"; exit 1; }
       fi
       ;;
     json)
       desc="JSON 语法"
-      result=$(python3 -c "import json; json.load(open('$file'))" 2>&1) || { echo "FAIL|$desc"; exit 1; }
+      python3 -c "import json; json.load(open('$file'))" >/dev/null 2>&1 || { echo "FAIL|$desc"; exit 1; }
       ;;
     *)
       exit 0  # 无需验证的文件类型
@@ -278,7 +277,7 @@ cmd_full() {
     done
     if [[ "$py_errors" -eq 0 ]]; then
       echo -e "${GREEN}✅ PASS${NC}"
-      results+="| Python (scripts/) | ✅ PASS | $(ls "$PROJECT_DIR"/scripts/*.py 2>/dev/null | wc -l | tr -d ' ') 个文件全部通过 |\n"
+      results+="| Python (scripts/) | ✅ PASS | $(find "$PROJECT_DIR/scripts" -maxdepth 1 -type f -name '*.py' 2>/dev/null | wc -l | tr -d ' ') 个文件全部通过 |\n"
       passed=$((passed + 1))
     else
       echo -e "${RED}❌ FAIL${NC}"
@@ -404,7 +403,7 @@ cmd_detect() {
   done
   [[ -f "$PROJECT_DIR/gui/tsconfig.json" ]] && echo "| TypeScript/React | gui/ | \`npx tsc --noEmit\` |"
   [[ -f "$PROJECT_DIR/gui/src-tauri/Cargo.toml" ]] && echo "| Rust/Tauri | gui/src-tauri/ | \`cargo check\` |"
-  [[ -d "$PROJECT_DIR/scripts" ]] && echo "| Python | scripts/ ($(ls "$PROJECT_DIR"/scripts/*.py 2>/dev/null | wc -l | tr -d ' ') 个) | \`py_compile\` + \`ruff check\` |"
+  [[ -d "$PROJECT_DIR/scripts" ]] && echo "| Python | scripts/ ($(find "$PROJECT_DIR/scripts" -maxdepth 1 -type f -name '*.py' 2>/dev/null | wc -l | tr -d ' ') 个) | \`py_compile\` + \`ruff check\` |"
   [[ -f "$PROJECT_DIR/jimeng-api-service/package.json" ]] && echo "| TypeScript/Node | jimeng-api-service/ | \`npm run build\` |"
   return 0
 }

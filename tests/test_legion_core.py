@@ -423,6 +423,48 @@ class LegionCoreTests(unittest.TestCase):
             self.assertEqual(completed.returncode, 0, completed.stderr)
             self.assertEqual(completed.stdout.strip(), "REAL:exec --help")
 
+    def test_claude_shim_routes_l1_to_legion_entrypoint(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            fake_legion = root / "legion.sh"
+            fake_legion.write_text("#!/usr/bin/env bash\nprintf '%s\\n' \"$*\"\n", encoding="utf-8")
+            fake_legion.chmod(0o755)
+
+            env = os.environ.copy()
+            env["CLAUDE_LEGION_SH"] = str(fake_legion)
+            completed = subprocess.run(
+                ["bash", "scripts/claude", "l1", "青龙军团", "--no-attach"],
+                capture_output=True,
+                text=True,
+                env=env,
+                check=False,
+            )
+
+            self.assertEqual(completed.returncode, 0, completed.stderr)
+            self.assertEqual(completed.stdout.strip(), "claude l1 青龙军团 --no-attach")
+
+    def test_claude_shim_forwards_non_legion_args_to_real_claude(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            fake_bin = root / "bin"
+            fake_bin.mkdir()
+            fake_claude = fake_bin / "claude"
+            fake_claude.write_text("#!/usr/bin/env bash\nprintf 'REAL:%s\\n' \"$*\"\n", encoding="utf-8")
+            fake_claude.chmod(0o755)
+
+            env = os.environ.copy()
+            env["PATH"] = f"{fake_bin}:/bin:/usr/bin"
+            completed = subprocess.run(
+                ["bash", "scripts/claude", "--version"],
+                capture_output=True,
+                text=True,
+                env=env,
+                check=False,
+            )
+
+            self.assertEqual(completed.returncode, 0, completed.stderr)
+            self.assertEqual(completed.stdout.strip(), "REAL:--version")
+
     def test_legion_shim_routes_to_legion_entrypoint(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
@@ -528,6 +570,39 @@ class LegionCoreTests(unittest.TestCase):
             self.assertEqual(commander["_action"], "载入在线军团")
             commands = [cmd for cmd, _ in runner.commands]
             self.assertFalse(any(cmd[:2] == ["tmux", "new-session"] for cmd in commands))
+
+    def test_codex_l1_resume_refreshes_launch_artifacts_and_restores_legion_tmux_identity(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            run_dir = root / "home" / "mixed" / "commanders" / "L1-玄武军团"
+            run_dir.mkdir(parents=True)
+            (run_dir / "prompt.md").write_text("stale prompt", encoding="utf-8")
+            (run_dir / "launch.sh").write_text("LEGION_CODEX_STATUSLINE\n", encoding="utf-8")
+            runner = NamedSessionRunner({"live-codex-session"})
+            core = LegionCore(root, legion_home=root / "home", runner=runner)
+            core._upsert_commander(
+                {
+                    "id": "L1-玄武军团",
+                    "provider": "codex",
+                    "role": "commander",
+                    "status": "planned",
+                    "session": "live-codex-session",
+                    "run_dir": str(run_dir),
+                    "project": str(root),
+                    "updated": "old",
+                }
+            )
+
+            core.start_commander(provider="codex", name="", dry_run=False, attach=False)
+
+            launch_text = (run_dir / "launch.sh").read_text(encoding="utf-8")
+            self.assertNotIn("LEGION_CODEX_WINDOW_STATUS", launch_text)
+            self.assertNotIn("LEGION_CODEX_STATUSLINE", launch_text)
+            commands = [cmd for cmd, _ in runner.commands]
+            self.assertTrue(any(cmd[:4] == ["tmux", "rename-window", "-t", "live-codex-session:0"] and cmd[-1] == "L1-玄武军团" for cmd in commands))
+            self.assertTrue(any(cmd[:4] == ["tmux", "set-window-option", "-t", "live-codex-session:0"] and "automatic-rename" in cmd for cmd in commands))
+            self.assertTrue(any(cmd[:4] == ["tmux", "set-option", "-u", "-t"] and cmd[4] == "live-codex-session" and cmd[-1] == "status-left" for cmd in commands))
+            self.assertTrue(any(cmd[:4] == ["tmux", "set-option", "-u", "-t"] and cmd[4] == "live-codex-session" and cmd[-1] == "status-right" for cmd in commands))
 
     def test_codex_l1_without_name_reuses_commander_already_open_in_frontend(self):
         with tempfile.TemporaryDirectory() as td:
@@ -640,6 +715,28 @@ class LegionCoreTests(unittest.TestCase):
             self.assertIn(" completed", launch_text)
             self.assertIn(" failed", launch_text)
 
+    def test_codex_commander_launch_script_does_not_write_model_status_to_tmux_identity(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            core = LegionCore(root, legion_home=root / "home", runner=RecordingRunner())
+            prompt_file = root / "prompt.md"
+            prompt_file.write_text("commander prompt", encoding="utf-8")
+
+            launch_text = core._codex_commander_launch_script(
+                "L1-codex",
+                prompt_file,
+                root / "commander.log",
+            )
+
+            self.assertNotIn("LEGION_CODEX_WINDOW_STATUS", launch_text)
+            self.assertNotIn("LEGION_CODEX_STATUSLINE", launch_text)
+            self.assertNotIn("CODEX_INITIAL_TOKENS", launch_text)
+            self.assertNotIn("models_cache.json", launch_text)
+            self.assertNotIn("tmux rename-window", launch_text)
+            self.assertNotIn("status-left", launch_text)
+            self.assertIn("CODEX_INITIAL_PROMPT", launch_text)
+            self.assertIn("codex -C", launch_text)
+
     def test_commander_tmux_launch_failure_marks_failed(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
@@ -713,6 +810,24 @@ class LegionCoreTests(unittest.TestCase):
             self.assertIn("implementation, review, verify, and audit should be separated", prompt)
             self.assertIn("claw-roundtable-skill", prompt)
             self.assertIn("roundtable_health.py --require-runtime", prompt)
+            self.assertLess(len(prompt.encode("utf-8")), 6500)
+            self.assertNotIn("Campaign plan example", prompt)
+
+    def test_l1_startup_message_is_lightweight(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            core = LegionCore(root, legion_home=root / "home", runner=RecordingRunner())
+
+            message = core._commander_startup_message("L1-host")
+
+            self.assertLess(len(message.encode("utf-8")), 1600)
+            self.assertIn("轻量自检", message)
+            self.assertIn("mixed status", message)
+            self.assertIn("mixed inbox L1-host", message)
+            self.assertNotIn(".planning/REQUIREMENTS.md", message)
+            self.assertNotIn(".planning/DECISIONS.md", message)
+            self.assertNotIn("memory/tactics/INDEX.md", message)
+            self.assertNotIn("盘点 .claude/skills", message)
 
     def test_l2_prompt_enforces_specialty_scale_first_doctrine(self):
         with tempfile.TemporaryDirectory() as td:

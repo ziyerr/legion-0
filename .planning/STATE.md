@@ -148,3 +148,13 @@
 - Planned/implemented in this change: `mixed dual-host` no longer auto-opens `legion-view-...-dual-l1`; it prints both independent sessions and attaches Claude L1 unless `--no-attach` is set.
 - Planned/implemented in this change: `legion codex l1` without a name reuses an existing Codex L1 even if it is already attached elsewhere, so a new terminal opens the Codex L1 session instead of creating a duplicate.
 - Verification: `PYTHONPYCACHEPREFIX=/tmp/legion-pycache python3 -m py_compile scripts/legion_core.py` passed; `/bin/bash -n scripts/legion.sh` passed; `python3 -m json.tool .planning/features.json >/dev/null` passed; `TMPDIR=/tmp PYTHONPYCACHEPREFIX=/tmp/legion-pycache PYTHONDONTWRITEBYTECODE=1 python3 -m unittest tests/test_legion_core.py tests/test_legion_shell_contract.py -v` passed (139 tests OK); dry-run smoke for `/bin/bash scripts/legion.sh claude h --dry-run --no-attach`, `/bin/bash scripts/legion.sh host --dry-run --no-attach`, `/bin/bash scripts/legion.sh mixed dual-host --dry-run --no-attach`, and `/bin/bash scripts/legion.sh codex l1 --dry-run` passed.
+
+## Baihu L1 Readiness / Worker Window Repair (2026-04-27)
+
+- Status: completed
+- Trigger: Baihu L1 startup found a stale readiness order expecting old base L2 `L2-audit-1777286184`; later runtime smoke exposed that task windows were launched into the project mixed session instead of the assigned L2 commander's tmux session.
+- Implemented: L1-only `mixed dual-host` clears stale readiness orders for the two stable L1 parents and emits `readiness_order_cleared` events instead of leaving obsolete base-L2 rosters active.
+- Implemented: task launch records and uses the assigned commander's tmux session for `tmux new-window` and `tmux send-keys`; reconcile now checks each task window in the task's recorded session instead of the project mixed session.
+- Live repair: `/bin/bash scripts/legion.sh mixed dual-host --no-attach` refreshed the current registry and cleared the stale Baihu readiness order for `L2-audit-1777286184`; current `mixed readiness L1-legion-0-codex-白虎军团` reports `Expected L2: (none)` and `Ready: 0/0`.
+- Verification: focused readiness/window-routing unit tests passed; scrubbed live-env full `tests/test_legion_core.py` passed (132 tests OK); live `mixed campaign --corps` smoke created and completed `baihu-audit-window-smoke-v2-20260427` under `legion-mixed-bf21e79d-L2-audit-1777294915` with task session/window recorded and a valid `result.md`.
+- Cleanup: after the smoke task completed, the disposable `L2-audit-1777294915` campaign commander received a disband message, its tmux session was killed, and its registry state is `completed` with disband reason `manual L1 cleanup after completed verification smoke; context no longer needed`.

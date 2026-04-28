@@ -65,6 +65,64 @@ CORE_AGENTS=(
   "plan.md"
 )
 
+BACKUP_ROOT="${TARGET_DIR}/.claude/backups/legion-init/$(date +%Y%m%d-%H%M%S)"
+
+backup_existing_file() {
+  local existing="$1"
+  local rel backup_file
+  [[ -e "$existing" ]] || return 0
+  rel="${existing#"${TARGET_DIR}/"}"
+  backup_file="${BACKUP_ROOT}/${rel}"
+  mkdir -p "$(dirname "$backup_file")"
+  cp -p "$existing" "$backup_file"
+  echo -e "  ${YELLOW}⚠ 已备份将被覆盖文件: ${rel}${NC}"
+}
+
+copy_file_with_backup() {
+  local src="$1"
+  local dst="$2"
+  mkdir -p "$(dirname "$dst")"
+  if [[ "$(cd "$(dirname "$src")" && pwd -P)/$(basename "$src")" == "$(cd "$(dirname "$dst")" && pwd -P 2>/dev/null || pwd)/$(basename "$dst")" ]]; then
+    return 0
+  fi
+  if [[ -e "$dst" ]] && ! cmp -s "$src" "$dst"; then
+    backup_existing_file "$dst"
+  fi
+  cp "$src" "$dst"
+}
+
+copy_dir_with_backup() {
+  local src="$1"
+  local dst_parent="$2"
+  local dst rel src_file dst_file
+  [[ -d "$src" ]] || return 0
+  dst="${dst_parent}/$(basename "$src")"
+  mkdir -p "$dst_parent"
+  if [[ "$(cd "$src" && pwd -P)" == "$(mkdir -p "$dst" && cd "$dst" && pwd -P)" ]]; then
+    return 0
+  fi
+  if [[ -d "$dst" ]]; then
+    while IFS= read -r -d '' src_file; do
+      rel="${src_file#"$src"/}"
+      dst_file="$dst/$rel"
+      if [[ -e "$dst_file" ]] && ! cmp -s "$src_file" "$dst_file"; then
+        backup_existing_file "$dst_file"
+      fi
+    done < <(find "$src" -type f -print0 2>/dev/null)
+  fi
+  cp -r "$src" "$dst_parent/"
+}
+
+install_generated_file_with_backup() {
+  local src="$1"
+  local dst="$2"
+  mkdir -p "$(dirname "$dst")"
+  if [[ -e "$dst" ]] && ! cmp -s "$src" "$dst"; then
+    backup_existing_file "$dst"
+  fi
+  mv "$src" "$dst"
+}
+
 # 解析参数
 while [[ $# -gt 0 ]]; do
   case $1 in
@@ -136,7 +194,7 @@ mkdir -p "${TARGET_DIR}/.claude/skills"
 if $MINIMAL; then
   for skill in "${CORE_SKILLS[@]}"; do
     if [[ -d "${REF_SKILLS_DIR}/${skill}" ]]; then
-      cp -r "${REF_SKILLS_DIR}/${skill}" "${TARGET_DIR}/.claude/skills/"
+      copy_dir_with_backup "${REF_SKILLS_DIR}/${skill}" "${TARGET_DIR}/.claude/skills"
       echo "  ✓ ${skill}"
     else
       echo -e "  ${YELLOW}⚠ ${skill} 不存在于参考项目${NC}"
@@ -146,8 +204,7 @@ else
   # 复制全部技能
   for skill_dir in "${REF_SKILLS_DIR}"/*; do
     [[ -d "$skill_dir" ]] || continue
-    skill_name=$(basename "$skill_dir")
-    cp -r "$skill_dir" "${TARGET_DIR}/.claude/skills/"
+    copy_dir_with_backup "$skill_dir" "${TARGET_DIR}/.claude/skills"
   done
 fi
 SKILL_COUNT=$(find "${TARGET_DIR}/.claude/skills" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l | tr -d ' ')
@@ -157,7 +214,8 @@ echo -e "  ${GREEN}→ ${SKILL_COUNT} 个技能已就位${NC}"
 # Codex uses .agents/skills as its project skill root. Keep a lightweight bridge
 # so Codex L1/L2 commanders can discover Claude-native Legion skills.
 mkdir -p "${TARGET_DIR}/.agents/skills/claw-roundtable-skill"
-cat > "${TARGET_DIR}/.agents/skills/claw-roundtable-skill/SKILL.md" << 'CODEX_ROUNDTABLE_SKILL_EOF'
+BRIDGE_TMP=$(mktemp "${TARGET_DIR}/.agents/skills/claw-roundtable-skill/SKILL.md.tmp.XXXXXX")
+cat > "$BRIDGE_TMP" << 'CODEX_ROUNDTABLE_SKILL_EOF'
 ---
 name: claw-roundtable-skill
 description: Use when Legion/Codex is asked for RoundTable, 圆桌会议, multi-expert debate, high-cost architecture/API/security decisions, XL planning, or when recon leaves multiple viable paths. Bridges to the project Claude RoundTable runtime and must health-check before claiming execution.
@@ -195,8 +253,15 @@ PY
 
 ## Legion Rule
 
-This is a shared weapon for all L1/L2 branches. Every branch can invoke it when the task requires multi-perspective decision pressure, but completion claims require runtime health evidence.
+This is an on-demand shared weapon for all L1/L2 branches. Codex commanders perform RoundTable initialization during normal startup because the default runtime bridge uses the Codex CLI. Claude commanders do not run RoundTable initialization during routine startup, but they can run explicit RoundTable/OpenClaw access tests when requested. Completion claims always require runtime health evidence.
+
+For native OpenClaw backend integration testing:
+
+```bash
+OPENCLAW_ROUNDTABLE_BACKEND=openclaw python3 .claude/skills/claw-roundtable-skill/roundtable_health.py --require-runtime
+```
 CODEX_ROUNDTABLE_SKILL_EOF
+install_generated_file_with_backup "$BRIDGE_TMP" "${TARGET_DIR}/.agents/skills/claw-roundtable-skill/SKILL.md"
 echo "  ✓ Codex 圆桌 skill 桥接入口已就位"
 
 # ─────────────────────────────────────────
@@ -210,15 +275,18 @@ mkdir -p "${TARGET_DIR}/.claude/agents"
 if $MINIMAL; then
   for agent in "${CORE_AGENTS[@]}"; do
     if [[ -f "${REF_AGENTS_DIR}/${agent}" ]]; then
-      cp "${REF_AGENTS_DIR}/${agent}" "${TARGET_DIR}/.claude/agents/"
+      copy_file_with_backup "${REF_AGENTS_DIR}/${agent}" "${TARGET_DIR}/.claude/agents/${agent}"
       echo "  ✓ ${agent}"
     fi
   done
 else
-  cp "${REF_AGENTS_DIR}/"*.md "${TARGET_DIR}/.claude/agents/" 2>/dev/null
+  for agent_file in "${REF_AGENTS_DIR}/"*.md; do
+    [[ -f "$agent_file" ]] || continue
+    copy_file_with_backup "$agent_file" "${TARGET_DIR}/.claude/agents/$(basename "$agent_file")"
+  done
 fi
 
-AGENT_COUNT=$(ls "${TARGET_DIR}/.claude/agents/"*.md 2>/dev/null | wc -l | tr -d ' ')
+AGENT_COUNT=$(find "${TARGET_DIR}/.claude/agents" -maxdepth 1 -type f -name '*.md' 2>/dev/null | wc -l | tr -d ' ')
 echo -e "  ${GREEN}→ ${AGENT_COUNT} 个 Agent 定义已就位${NC}"
 
 # ─────────────────────────────────────────

@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+# Legion-aware Claude shim.
+#
+#   claude l1 [name]     -> Legion Claude L1 commander
+#   claude l1+1 [name]   -> fresh Legion Claude L1 commander
+#   claude ...           -> real Claude CLI
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LEGION_SH="${CLAUDE_LEGION_SH:-$SCRIPT_DIR/legion.sh}"
+
+case "${1:-}" in
+  l1)
+    shift
+    exec "$LEGION_SH" claude l1 "$@"
+    ;;
+  l1+1)
+    shift
+    exec "$LEGION_SH" claude l1+1 "$@"
+    ;;
+esac
+
+find_real_claude() {
+  if [[ -n "${CLAUDE_REAL_BIN:-}" ]]; then
+    printf '%s\n' "$CLAUDE_REAL_BIN"
+    return 0
+  fi
+
+  local self
+  self="$(cd -P "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")"
+
+  local old_ifs="$IFS"
+  IFS=':'
+  read -r -a path_entries <<< "${PATH:-}"
+  IFS="$old_ifs"
+
+  local dir candidate candidate_abs
+  for dir in "${path_entries[@]}"; do
+    [[ -n "$dir" ]] || dir="."
+    candidate="$dir/claude"
+    [[ -x "$candidate" ]] || continue
+    candidate_abs="$(cd -P "$(dirname "$candidate")" 2>/dev/null && pwd)/$(basename "$candidate")" || continue
+    [[ "$candidate_abs" != "$self" ]] || continue
+    printf '%s\n' "$candidate"
+    return 0
+  done
+
+  return 1
+}
+
+REAL_CLAUDE="$(find_real_claude)" || {
+  echo "claude shim: real Claude CLI not found. Set CLAUDE_REAL_BIN=/path/to/claude." >&2
+  exit 127
+}
+
+exec "$REAL_CLAUDE" "$@"

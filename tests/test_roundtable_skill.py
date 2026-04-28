@@ -67,6 +67,15 @@ class RoundTableSkillTests(unittest.TestCase):
         self.assertIn("architecture", result["detected_types"])
         self.assertTrue(result["recommended_experts"])
 
+
+    def test_roundtable_runtime_defaults_to_codex_backend(self):
+        tools = importlib.import_module("openclaw.tools")
+
+        info = tools.runtime_available()
+
+        self.assertEqual(info["backend"], "codex")
+        self.assertIn("codex", Path(info["command"]).name)
+
     def test_codex_bridge_skill_exposes_roundtable_to_agents_skills(self):
         content = CODEX_BRIDGE.read_text(encoding="utf-8")
 

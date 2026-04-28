@@ -79,6 +79,7 @@ class LegionShellContractTests(unittest.TestCase):
             ["host", "--dry-run", "--host-only"],
             ["host", "--dual-only", "--dry-run", "--no-attach"],
             ["claude", "h", "--dry-run", "--no-attach"],
+            ["claude", "l1", "--dry-run", "--no-attach"],
             ["codex", "l1", "--dry-run"],
             ["aicto", "--dry-run", "--no-attach"],
             ["duo", "--dry-run"],
@@ -107,6 +108,86 @@ class LegionShellContractTests(unittest.TestCase):
         self.assertNotIn("L2:", completed.stdout)
         self.assertNotIn("legion-view", completed.stdout)
         self.assertNotIn("view:", completed.stdout)
+
+    def test_provider_l1_entrypoints_initialize_runtime_without_deploying_project_templates(self):
+        def run_provider_l1(root, args):
+            project = root / "project"
+            home = root / "home"
+            fake_bin = root / "fake-bin"
+            reference = root / "reference"
+            project.mkdir()
+            home.mkdir()
+            fake_bin.mkdir()
+            (reference / ".claude" / "agents").mkdir(parents=True)
+            (reference / ".claude" / "skills").mkdir(parents=True)
+            for agent in ("explore", "implement", "plan", "review", "verify"):
+                (reference / ".claude" / "agents" / f"{agent}.md").write_text(
+                    f"# {agent}\n", encoding="utf-8"
+                )
+            for skill in ("agent-team", "audit", "recon", "safe-exec"):
+                skill_dir = reference / ".claude" / "skills" / skill
+                skill_dir.mkdir()
+                (skill_dir / "SKILL.md").write_text(f"# {skill}\n", encoding="utf-8")
+            tmux = fake_bin / "tmux"
+            tmux.write_text(
+                "#!/usr/bin/env bash\n"
+                "if [[ \"$1\" == \"has-session\" ]]; then exit 1; fi\n"
+                "exit 0\n",
+                encoding="utf-8",
+            )
+            tmux.chmod(0o755)
+            env = os.environ.copy()
+            for key in (
+                "LEGION_DIR",
+                "MIXED_DIR",
+                "REGISTRY_DIR",
+                "PROJECT_DIR",
+                "PLANNING_DIR",
+                "LEGION_TRUST_PROJECT_DIR",
+                "RETROSPECTOR_TRUST_BOUNDARY_ENV",
+                "RETROSPECTOR_TRUST_PROJECT_DIR",
+            ):
+                env.pop(key, None)
+            env.update(
+                {
+                    "HOME": str(home),
+                    "TMPDIR": str(root / "missing-tmp"),
+                    "PYTHONDONTWRITEBYTECODE": "1",
+                    "LEGION_REFERENCE_PROJECT": str(reference),
+                }
+            )
+            env["PATH"] = f"{fake_bin}:{env.get('PATH', '')}"
+            completed = subprocess.run(
+                ["bash", str(self.legion_sh), *args],
+                cwd=project,
+                env=env,
+                capture_output=True,
+                text=True,
+                timeout=20,
+            )
+            return project, home, completed
+
+        cases = [
+            ["claude", "l1", "青龙军团", "--no-attach"],
+            ["codex", "l1", "玄武军团", "--no-attach"],
+        ]
+
+        for args in cases:
+            with self.subTest(args=args):
+                with tempfile.TemporaryDirectory() as td:
+                    project, home, completed = run_provider_l1(Path(td), args)
+                    self.assertEqual(
+                        completed.returncode,
+                        0,
+                        msg=f"stdout:\n{completed.stdout}\nstderr:\n{completed.stderr}",
+                    )
+                    self.assertFalse((project / "CLAUDE.md").exists())
+                    self.assertFalse((project / ".claude" / "agents").exists())
+                    self.assertFalse((project / ".claude" / "skills").exists())
+                    self.assertFalse((project / ".claude" / "settings.local.json").exists())
+                    self.assertTrue((home / ".claude" / "legion").is_dir())
+                    self.assertTrue(any((home / ".claude" / "legion").glob("*/mixed/mixed-registry.json")))
+                    self.assertFalse((project / ".claude" / "skills" / "safe-exec").exists())
 
     def test_aicto_entrypoint_is_external_hermes_status_not_local_commander(self):
         completed = self.assert_read_only_shell_result(["aicto", "--dry-run", "--no-attach"])

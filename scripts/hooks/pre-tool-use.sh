@@ -4,7 +4,8 @@
 # ============================================================================
 # 1. 审批门检查（gate.json blocked → 先尝试巡查复查自动放行）
 # 2. 巡查通知书检查（未整改 → fail-closed 阻断）
-# 3. L1/L2 团队强制：编辑源码无 teammate → 渐进式拦截
+# 3. L1 no-delivery：L1 直接编辑源码立即阻断，必须通过 L2/campaign 交付
+# 4. L2 团队强制：编辑源码无 teammate → 渐进式拦截
 #    - 1-5 次：放行（可能是 S 级）
 #    - 6-10 次：软警告
 #    - 11+ 次：硬阻断 + 发通知书（commander 编组团队后自动放行）
@@ -35,11 +36,83 @@ case "$CLAUDE_LEGION_TEAM_ID" in
   L1-*|L2-*) _IS_LEGION_COMMANDER=true ;;
 esac
 
+# hook stdin 只能消费一次，后续所有检查复用同一份输入。
+HOOK_INPUT=$(cat)
+
+# ── 巡查整改命令白名单 ──
+# pending_remediation 状态下必须允许 commander 执行 remediate，否则会形成
+# “要求整改 → Bash 被拦 → 无法整改”的死锁。
+_is_patrol_remediate_call() {
+  printf '%s' "$HOOK_INPUT" | PATROL_TEAM_ID="$CLAUDE_LEGION_TEAM_ID" python3 -c '
+import json, os, shlex, sys
+
+try:
+    data = json.load(sys.stdin)
+except Exception:
+    sys.exit(1)
+
+if data.get("tool_name") != "Bash":
+    sys.exit(1)
+
+command = str((data.get("tool_input") or {}).get("command", "")).strip()
+if not command:
+    sys.exit(1)
+
+try:
+    tokens = shlex.split(command)
+except Exception:
+    sys.exit(1)
+
+if not tokens:
+    sys.exit(1)
+
+idx = 0
+if tokens[idx] in {"bash", "sh", "/bin/bash", "/bin/sh"}:
+    idx += 1
+
+if idx >= len(tokens):
+    sys.exit(1)
+
+script = tokens[idx]
+if not (
+    script in {"~/.claude/scripts/legion-patrol.sh", "$HOME/.claude/scripts/legion-patrol.sh"}
+    or script.endswith("/.claude/scripts/legion-patrol.sh")
+    or script.endswith("/legion-patrol.sh")
+):
+    sys.exit(1)
+
+idx += 1
+if idx + 1 >= len(tokens):
+    sys.exit(1)
+
+if tokens[idx] == "remediate" and tokens[idx + 1] == os.environ["PATROL_TEAM_ID"]:
+    sys.exit(0)
+
+sys.exit(1)
+' 2>/dev/null
+}
+
+if [[ "$_IS_LEGION_COMMANDER" == "true" ]] && _is_patrol_remediate_call; then
+  exit 0
+fi
+
 # ── 巡查复查辅助：仅在脚本可用时尝试自动放行 ──
 _try_patrol_reinspect() {
   if [[ -f "$PATROL_SCRIPT" ]]; then
     local out
     out=$(source "$PATROL_SCRIPT" && patrol_reinspect "$CLAUDE_LEGION_TEAM_ID" 2>/dev/null) || out=""
+    if [[ "$out" == PASS:* ]]; then
+      printf '%s' "${out#PASS:}"
+      return 0
+    fi
+  fi
+  return 1
+}
+
+_try_patrol_teammate_evidence() {
+  if [[ -f "$PATROL_SCRIPT" ]]; then
+    local out
+    out=$(source "$PATROL_SCRIPT" && patrol_teammate_evidence "$CLAUDE_LEGION_TEAM_ID" 2>/dev/null) || out=""
     if [[ "$out" == PASS:* ]]; then
       printf '%s' "${out#PASS:}"
       return 0
@@ -129,17 +202,19 @@ if [[ "$_IS_LEGION_COMMANDER" == "true" ]]; then
   # teammate 编辑 → 直接放行（不计入指挥官的编辑计数）
   _AGENT_NAME="${CLAUDE_CODE_AGENT_NAME:-$CLAUDE_LEGION_TEAM_ID}"
   if [[ "$_AGENT_NAME" != "$CLAUDE_LEGION_TEAM_ID" && "$_AGENT_NAME" != "" ]]; then
-    cat > /dev/null  # drain stdin
     exit 0
   fi
 
   PHASE_FILE="$TEAM_DIR/task_phase.json"
   mkdir -p "$TEAM_DIR"
 
-  # 从 stdin 预读
-  INPUT=$(cat)
+  HAS_TEAMMATES=false
+  TEAMMATE_REASON=""
+  if TEAMMATE_REASON=$(_try_patrol_teammate_evidence); then
+    HAS_TEAMMATES=true
+  fi
 
-  RESULT=$(echo "$INPUT" | python3 -c "
+  RESULT=$(printf '%s' "$HOOK_INPUT" | LEGION_HAS_TEAMMATES="$HAS_TEAMMATES" python3 -c "
 import sys, json, os, time
 
 d = json.load(sys.stdin)
@@ -172,7 +247,9 @@ try:
 except:
     phase = {}
 
-has_teammates = phase.get('has_teammates', False)
+has_teammates = os.environ.get('LEGION_HAS_TEAMMATES') == 'true' or phase.get('has_teammates', False)
+if has_teammates:
+    phase['has_teammates'] = True
 edit_count = phase.get('source_edit_count', 0)
 edit_count += 1
 phase['source_edit_count'] = edit_count
@@ -180,6 +257,11 @@ phase['last_edit'] = time.strftime('%Y-%m-%dT%H:%M:%SZ')
 
 with open(phase_file, 'w') as f:
     json.dump(phase, f, ensure_ascii=False)
+
+# L1 只做需求判断、分类、拆分、调度和验收；源码交付必须路由给 L2/worker。
+if os.environ.get('CLAUDE_LEGION_TEAM_ID', '').startswith('L1-'):
+    print(f'L1_BLOCK:{edit_count}')
+    sys.exit(0)
 
 # 有 teammate → 放行
 if has_teammates:
@@ -207,6 +289,12 @@ else:
 " 2>/dev/null)
 
   case "$RESULT" in
+    L1_BLOCK:*)
+      COUNT="${RESULT#L1_BLOCK:}"
+      echo "⛔ L1 no-delivery：L1 指挥官不能直接编辑源码（本次为第 $COUNT 次源码编辑尝试）。" >&2
+      echo "处理方式：把实现/修复写成 plan.json，并使用 ~/.claude/scripts/legion.sh mixed campaign plan.json --corps 路由给 L2/worker；L1 只负责分类、派工、验收和复盘。" >&2
+      exit 2
+      ;;
     WARN:*)
       COUNT="${RESULT#WARN:}"
       echo "{\"additionalContext\": \"⚠️ 团队强制提醒 ($COUNT/10)：你已编辑 $COUNT 个源文件但未创建任何 teammate。超过 10 次将被自动阻断。如果这是 S 级小修复请在 task_phase.json 中设置 has_teammates:true 跳过检查；否则请立即 TeamCreate 组建团队。\"}"

@@ -85,6 +85,7 @@ say "确保 scripts/ 可执行"
 chmod +x "${LEGION_ROOT}"/scripts/*.sh 2>/dev/null || true
 chmod +x "${LEGION_ROOT}"/scripts/*.py 2>/dev/null || true
 [ -f "${LEGION_ROOT}/scripts/codex" ] && chmod +x "${LEGION_ROOT}/scripts/codex" || true
+[ -f "${LEGION_ROOT}/scripts/claude" ] && chmod +x "${LEGION_ROOT}/scripts/claude" || true
 [ -f "${LEGION_ROOT}/scripts/legion" ] && chmod +x "${LEGION_ROOT}/scripts/legion" || true
 [ -d "${LEGION_ROOT}/scripts/hooks" ] && chmod +x "${LEGION_ROOT}/scripts/hooks"/* 2>/dev/null || true
 [ -f "${LEGION_ROOT}/install.sh" ] && chmod +x "${LEGION_ROOT}/install.sh" || true
@@ -114,10 +115,10 @@ say "安装自检"
 [ -d "${LEGION_ROOT}/commander" ] || warn "commander/ 缺失 — L1 指挥官启动可能降级"
 [ -f "${LEGION_ROOT}/CLAUDE.md" ] || warn "CLAUDE.md 缺失 — 全局自主权第一原则未定义"
 
-n_agents="$(ls "${LEGION_ROOT}/agents"/*.md 2>/dev/null | wc -l | tr -d ' ')"
-n_skills="$(ls -d "${LEGION_ROOT}/skills"/*/ 2>/dev/null | wc -l | tr -d ' ')"
-n_scripts="$(ls "${LEGION_ROOT}/scripts"/*.sh 2>/dev/null | wc -l | tr -d ' ')"
-n_tactics="$(ls "${LEGION_ROOT}/memory/tactics"/tactic-*.md 2>/dev/null | wc -l | tr -d ' ')"
+n_agents="$(find "${LEGION_ROOT}/agents" -maxdepth 1 -type f -name '*.md' 2>/dev/null | wc -l | tr -d ' ')"
+n_skills="$(find "${LEGION_ROOT}/skills" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l | tr -d ' ')"
+n_scripts="$(find "${LEGION_ROOT}/scripts" -maxdepth 1 -type f -name '*.sh' 2>/dev/null | wc -l | tr -d ' ')"
+n_tactics="$(find "${LEGION_ROOT}/memory/tactics" -maxdepth 1 -type f -name 'tactic-*.md' 2>/dev/null | wc -l | tr -d ' ')"
 
 ok "agents=$n_agents  skills=$n_skills  scripts=$n_scripts  tactics=$n_tactics"
 
@@ -135,14 +136,17 @@ ${G} 军团体系部署完成${N}
    2. 一键主持启动：     legion h
    3. 启动 L1 指挥官：   ~/.claude/scripts/legion.sh l1 <军团名>
    4. Codex L1 指挥官：  ~/.claude/scripts/legion codex l1 [军团名]
+   4b. Claude L1 指挥官： ~/.claude/scripts/claude l1 [军团名]
    5. 状态查询：         ~/.claude/scripts/legion.sh status
    6. 作战态势：         ~/.claude/scripts/legion.sh sitrep
 
- 裸命令 legion codex l1：
+ 裸命令 claude/codex l1：
    export PATH="\$HOME/.claude/scripts:\$PATH"
    legion 0                 # 当前项目初始化
    legion h                 # 初始化并启动主持人 + Claude/Codex 军团
+   claude l1 青龙军团        # 进入/启动 Claude L1；--no-attach 可后台启动
    legion codex l1          # 载入在线 Codex L1；没有才随机新增
+   codex l1 玄武军团         # 进入/启动 Codex L1；--no-attach 可后台启动
    legion codex l1 玄武军团  # 进入/启动指定军团名
 
  项目级定制：

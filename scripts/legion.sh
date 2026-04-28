@@ -36,6 +36,8 @@
 #   legion.sh host                     # 一键启动独立 Claude L1 + Codex L1；不自动合并分屏
 #   legion.sh aicto                    # 查看外部 Hermes AICTO profile 状态/启动指引
 #   legion.sh codex l1 [名]            # 启动 Codex L1；不写名则载入在线军团，没有才新增
+#   claude l1 [名]                     # 通过 Claude shim 启动/恢复 Claude L1
+#   codex l1 [名]                      # 通过 Codex shim 启动/恢复 Codex L1
 #   legion.sh claude h                 # Claude L1 当前窗口，Codex L1 后台，同时初始化军团
 #   legion.sh claude l1 [名]           # 启动 / 恢复 Claude L1 指挥官
 #   legion.sh duo                      # 打开两个终端窗口：Codex L1 + Claude L1
@@ -312,6 +314,7 @@ _legion_source_fingerprint() {
       scripts/legion.sh \
       scripts/legion-init.sh \
       scripts/legion_core.py \
+      scripts/claude \
       scripts/codex \
       scripts/stack-verify.sh \
       schemas/legion-worker-result.schema.json
@@ -403,7 +406,7 @@ _ensure_global_legion_config() {
 
   chmod +x "$scripts_dst"/*.sh 2>/dev/null || true
   chmod +x "$scripts_dst"/*.py 2>/dev/null || true
-  chmod +x "$scripts_dst"/legion "$scripts_dst"/codex 2>/dev/null || true
+  chmod +x "$scripts_dst"/legion "$scripts_dst"/claude "$scripts_dst"/codex 2>/dev/null || true
   chmod +x "$scripts_dst"/hooks/* 2>/dev/null || true
 
   _install_legion_command
@@ -424,12 +427,18 @@ _run_project_initializer() {
 }
 
 _ensure_project_initialized() {
+  local mode="${1:-full}"
   if _project_legion_ready; then
     echo "✅ 项目军团体系已初始化"
     return 0
   fi
-  echo "🔧 项目军团体系未完整展开，先执行 legion 0 初始化..."
-  _run_project_initializer
+  if [[ "$mode" == "minimal" ]]; then
+    echo "🔧 项目军团体系未完整展开，先执行轻量初始化..."
+    _run_project_initializer --minimal
+  else
+    echo "🔧 项目军团体系未完整展开，先执行 legion 0 初始化..."
+    _run_project_initializer
+  fi
 }
 
 _init_project_legion() {
@@ -526,7 +535,7 @@ if [[ "$LEGION_READ_ONLY" -eq 1 ]]; then
   :  # 只读视图：不触发项目模板初始化
 else
   case "$REQUESTED_ACTION" in
-    0|h|host|主持|clean|kill-all|msg|xmsg|watcher)
+    0|h|host|主持|claude|codex|clean|kill-all|msg|xmsg|watcher)
       ;;
     *)
       _init_project_legion
@@ -1705,11 +1714,13 @@ case "$ACTION" in
     case "$PROVIDER_SUB" in
       l1)
         shift
-        exec "$0" l1 "$@"
+        python3 "$LEGION_SCRIPT_DIR/legion_core.py" l1 --provider claude "$@"
+        exit $?
         ;;
       l1+1)
         shift
-        exec "$0" l1+1 "$@"
+        python3 "$LEGION_SCRIPT_DIR/legion_core.py" l1 --provider claude --fresh "$@"
+        exit $?
         ;;
       h|host|主持)
         shift
