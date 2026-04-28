@@ -78,6 +78,17 @@ backup_existing_file() {
   echo -e "  ${YELLOW}⚠ 已备份将被覆盖文件: ${rel}${NC}"
 }
 
+move_conflicting_path_to_backup() {
+  local existing="$1"
+  local rel backup_path
+  [[ -e "$existing" || -L "$existing" ]] || return 0
+  rel="${existing#"${TARGET_DIR}/"}"
+  backup_path="${BACKUP_ROOT}/${rel}"
+  mkdir -p "$(dirname "$backup_path")"
+  mv "$existing" "$backup_path"
+  echo -e "  ${YELLOW}⚠ 已备份并移开冲突路径: ${rel}${NC}"
+}
+
 copy_file_with_backup() {
   local src="$1"
   local dst="$2"
@@ -98,9 +109,17 @@ copy_dir_with_backup() {
   [[ -d "$src" ]] || return 0
   dst="${dst_parent}/$(basename "$src")"
   mkdir -p "$dst_parent"
-  if [[ "$(cd "$src" && pwd -P)" == "$(mkdir -p "$dst" && cd "$dst" && pwd -P)" ]]; then
-    return 0
+
+  if [[ -e "$dst" || -L "$dst" ]]; then
+    if [[ -L "$dst" || ! -d "$dst" ]]; then
+      move_conflicting_path_to_backup "$dst"
+    elif [[ "$(cd "$src" && pwd -P)" == "$(cd "$dst" && pwd -P)" ]]; then
+      return 0
+    fi
+  else
+    mkdir -p "$dst"
   fi
+
   if [[ -d "$dst" ]]; then
     while IFS= read -r -d '' src_file; do
       rel="${src_file#"$src"/}"

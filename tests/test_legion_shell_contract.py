@@ -219,6 +219,9 @@ class LegionShellContractTests(unittest.TestCase):
             claude_md = project / "CLAUDE.md"
             original_claude = "# Project Notes\n\nKeep custom local rules.\n"
             claude_md.write_text(original_claude, encoding="utf-8")
+            target_skills_dir = project / ".claude" / "skills"
+            target_skills_dir.mkdir(parents=True)
+            (target_skills_dir / "brainstorming").symlink_to("../../.agents/skills/brainstorming")
 
             skills_dir = reference / ".claude" / "skills"
             agents_dir = reference / ".claude" / "agents"
@@ -267,6 +270,12 @@ class LegionShellContractTests(unittest.TestCase):
             backups = list((project / ".claude" / "backups" / "legion-init").glob("*/CLAUDE.md"))
             self.assertEqual(len(backups), 1)
             self.assertEqual(backups[0].read_text(encoding="utf-8"), original_claude)
+            self.assertTrue((target_skills_dir / "brainstorming").is_dir())
+            self.assertFalse((target_skills_dir / "brainstorming").is_symlink())
+            backup_runs = list((project / ".claude" / "backups" / "legion-init").iterdir())
+            symlink_backup = backup_runs[0] / ".claude" / "skills" / "brainstorming"
+            self.assertTrue(os.path.lexists(symlink_backup))
+            self.assertTrue(symlink_backup.is_symlink())
 
             second = subprocess.run(
                 [
