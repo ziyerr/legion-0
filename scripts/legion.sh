@@ -36,8 +36,8 @@
 #   legion.sh host                     # 一键启动独立 Claude L1 + Codex L1；不自动合并分屏
 #   legion.sh aicto                    # 查看外部 Hermes AICTO profile 状态/启动指引
 #   legion.sh codex l1 [名]            # 启动 Codex L1；不写名则载入在线军团，没有才新增
-#   claude l1 [名]                     # 通过 Claude shim 启动/恢复 Claude L1
-#   codex l1 [名]                      # 通过 Codex shim 启动/恢复 Codex L1
+#   claudel1 [名]                      # 无冲突裸命令：启动/恢复 Claude L1
+#   codexl1 [名]                       # 无冲突裸命令：启动/恢复 Codex L1
 #   legion.sh claude h                 # Claude L1 当前窗口，Codex L1 后台，同时接入军团通讯
 #   legion.sh claude l1 [名]           # 启动 / 恢复 Claude L1 指挥官
 #   legion.sh duo                      # 打开两个终端窗口：Codex L1 + Claude L1
@@ -317,15 +317,18 @@ EOF
   echo "     新终端可直接使用 legion；当前终端可执行: export PATH=\"\$HOME/.claude/scripts:\$PATH\""
 }
 
-_write_legion_wrapper() {
+_write_global_command_wrappers() {
   local target_dir="$1"
-  local legion_cmd="$HOME/.claude/scripts/legion"
+  local scripts_dir="$HOME/.claude/scripts"
+  local command_name
   mkdir -p "$target_dir"
-  cat > "$target_dir/legion" <<EOF
+  for command_name in legion claudel1 codexl1; do
+    cat > "$target_dir/$command_name" <<EOF
 #!/usr/bin/env bash
-exec "$legion_cmd" "\$@"
+exec "$scripts_dir/$command_name" "\$@"
 EOF
-  chmod +x "$target_dir/legion"
+    chmod +x "$target_dir/$command_name"
+  done
 }
 
 _legion_source_fingerprint() {
@@ -333,6 +336,8 @@ _legion_source_fingerprint() {
     cd "$LEGION_REPO_ROOT" || exit 1
     for path in \
       scripts/legion \
+      scripts/claudel1 \
+      scripts/codexl1 \
       scripts/legion.sh \
       scripts/legion-init.sh \
       scripts/legion-self-check.py \
@@ -357,8 +362,11 @@ _global_legion_config_ready() {
   local fingerprint_file="$HOME/.claude/legion/.global-entrypoint-fingerprint"
   local current_fingerprint
 
-  [[ -x "$scripts_dst/legion" && -x "$scripts_dst/legion.sh" && -x "$scripts_dst/legion-init.sh" ]] || return 1
+  [[ -x "$scripts_dst/legion" && -x "$scripts_dst/claudel1" && -x "$scripts_dst/codexl1" ]] || return 1
+  [[ -x "$scripts_dst/legion.sh" && -x "$scripts_dst/legion-init.sh" ]] || return 1
   [[ -x "$(command -v legion 2>/dev/null || true)" ]] || return 1
+  [[ -x "$(command -v claudel1 2>/dev/null || true)" ]] || return 1
+  [[ -x "$(command -v codexl1 2>/dev/null || true)" ]] || return 1
   [[ -f "$fingerprint_file" ]] || return 1
 
   current_fingerprint="$(_legion_source_fingerprint)"
@@ -366,17 +374,16 @@ _global_legion_config_ready() {
 }
 
 _install_legion_command() {
-  local legion_cmd="$HOME/.claude/scripts/legion"
   local path_dir
 
   if [[ -n "${LEGION_GLOBAL_BIN_DIR:-}" ]]; then
-    _write_legion_wrapper "$LEGION_GLOBAL_BIN_DIR"
-    echo "  ✅ legion 裸命令: $LEGION_GLOBAL_BIN_DIR/legion"
+    _write_global_command_wrappers "$LEGION_GLOBAL_BIN_DIR"
+    echo "  ✅ legion/claudel1/codexl1 裸命令: $LEGION_GLOBAL_BIN_DIR"
     return 0
   fi
 
   if _path_contains_dir "$HOME/.claude/scripts"; then
-    echo "  ✅ PATH 已包含 ~/.claude/scripts"
+    echo "  ✅ PATH 已包含 ~/.claude/scripts（legion/claudel1/codexl1）"
     return 0
   fi
 
@@ -386,8 +393,8 @@ _install_legion_command() {
     case "$path_dir" in
       /bin|/sbin|/usr/bin|/usr/sbin) continue ;;
     esac
-    _write_legion_wrapper "$path_dir" 2>/dev/null || continue
-    echo "  ✅ legion 裸命令: $path_dir/legion"
+    _write_global_command_wrappers "$path_dir" 2>/dev/null || continue
+    echo "  ✅ legion/claudel1/codexl1 裸命令: $path_dir"
     return 0
   done
 
@@ -429,7 +436,8 @@ _ensure_global_legion_config() {
 
   chmod +x "$scripts_dst"/*.sh 2>/dev/null || true
   chmod +x "$scripts_dst"/*.py 2>/dev/null || true
-  chmod +x "$scripts_dst"/legion "$scripts_dst"/claude "$scripts_dst"/codex 2>/dev/null || true
+  chmod +x "$scripts_dst"/legion "$scripts_dst"/claudel1 "$scripts_dst"/codexl1 2>/dev/null || true
+  chmod +x "$scripts_dst"/claude "$scripts_dst"/codex 2>/dev/null || true
   chmod +x "$scripts_dst"/hooks/* 2>/dev/null || true
 
   _install_legion_command

@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# Conflict-free Legion Codex L1 entrypoint.
+#
+#   codexl1 [name] [--no-attach] [--fresh] -> Legion Codex L1 commander
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LEGION_SH="${CODEX_LEGION_SH:-$SCRIPT_DIR/legion.sh}"
+
+exec "$LEGION_SH" codex l1 "$@"

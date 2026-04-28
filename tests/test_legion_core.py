@@ -401,6 +401,26 @@ class LegionCoreTests(unittest.TestCase):
             self.assertEqual(completed.returncode, 0, completed.stderr)
             self.assertEqual(completed.stdout.strip(), "codex l1 玄武军团 --dry-run")
 
+    def test_codexl1_shim_routes_to_codex_l1_entrypoint(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            fake_legion = root / "legion.sh"
+            fake_legion.write_text("#!/usr/bin/env bash\nprintf '%s\\n' \"$*\"\n", encoding="utf-8")
+            fake_legion.chmod(0o755)
+
+            env = os.environ.copy()
+            env["CODEX_LEGION_SH"] = str(fake_legion)
+            completed = subprocess.run(
+                ["bash", "scripts/codexl1", "玄武军团", "--dry-run"],
+                capture_output=True,
+                text=True,
+                env=env,
+                check=False,
+            )
+
+            self.assertEqual(completed.returncode, 0, completed.stderr)
+            self.assertEqual(completed.stdout.strip(), "codex l1 玄武军团 --dry-run")
+
     def test_codex_shim_forwards_non_legion_args_to_real_codex(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
@@ -434,6 +454,26 @@ class LegionCoreTests(unittest.TestCase):
             env["CLAUDE_LEGION_SH"] = str(fake_legion)
             completed = subprocess.run(
                 ["bash", "scripts/claude", "l1", "青龙军团", "--no-attach"],
+                capture_output=True,
+                text=True,
+                env=env,
+                check=False,
+            )
+
+            self.assertEqual(completed.returncode, 0, completed.stderr)
+            self.assertEqual(completed.stdout.strip(), "claude l1 青龙军团 --no-attach")
+
+    def test_claudel1_shim_routes_to_claude_l1_entrypoint(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            fake_legion = root / "legion.sh"
+            fake_legion.write_text("#!/usr/bin/env bash\nprintf '%s\\n' \"$*\"\n", encoding="utf-8")
+            fake_legion.chmod(0o755)
+
+            env = os.environ.copy()
+            env["CLAUDE_LEGION_SH"] = str(fake_legion)
+            completed = subprocess.run(
+                ["bash", "scripts/claudel1", "青龙军团", "--no-attach"],
                 capture_output=True,
                 text=True,
                 env=env,

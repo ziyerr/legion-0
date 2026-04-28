@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# Conflict-free Legion Claude L1 entrypoint.
+#
+#   claudel1 [name] [--no-attach] [--fresh] -> Legion Claude L1 commander
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LEGION_SH="${CLAUDE_LEGION_SH:-$SCRIPT_DIR/legion.sh}"
+
+exec "$LEGION_SH" claude l1 "$@"

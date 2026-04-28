@@ -109,6 +109,85 @@ class LegionShellContractTests(unittest.TestCase):
         self.assertNotIn("legion-view", completed.stdout)
         self.assertNotIn("view:", completed.stdout)
 
+    def test_legion_zero_installs_conflict_free_l1_commands(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            project = root / "project"
+            home = root / "home"
+            bin_dir = root / "bin"
+            reference = root / "reference"
+            project.mkdir()
+            home.mkdir()
+            bin_dir.mkdir()
+            (reference / ".claude" / "agents").mkdir(parents=True)
+            (reference / ".claude" / "skills").mkdir(parents=True)
+            for agent in ("explore", "implement", "plan", "review", "verify"):
+                (reference / ".claude" / "agents" / f"{agent}.md").write_text(
+                    f"# {agent}\n", encoding="utf-8"
+                )
+            for skill in (
+                "agent-team",
+                "audit",
+                "brainstorming",
+                "claw-roundtable-skill",
+                "degradation-policy",
+                "product-counselor",
+                "recon",
+                "sniper",
+                "spec-driven",
+                "using-superpowers",
+                "verification-before-completion",
+                "writing-plans",
+            ):
+                skill_dir = reference / ".claude" / "skills" / skill
+                skill_dir.mkdir()
+                (skill_dir / "SKILL.md").write_text(f"# {skill}\n", encoding="utf-8")
+
+            env = os.environ.copy()
+            env.update(
+                {
+                    "HOME": str(home),
+                    "LEGION_GLOBAL_BIN_DIR": str(bin_dir),
+                    "LEGION_REFERENCE_PROJECT": str(reference),
+                    "LEGION_INIT_ASSUME_YES": "1",
+                    "PYTHONDONTWRITEBYTECODE": "1",
+                }
+            )
+            completed = subprocess.run(
+                ["bash", str(self.legion_sh), "0", "--minimal"],
+                cwd=project,
+                env=env,
+                capture_output=True,
+                text=True,
+                timeout=20,
+            )
+            self.assertEqual(completed.returncode, 0, msg=f"stdout:\n{completed.stdout}\nstderr:\n{completed.stderr}")
+            self.assertIn("legion/claudel1/codexl1 裸命令", completed.stdout)
+            for command_name in ("legion", "claudel1", "codexl1"):
+                self.assertTrue((bin_dir / command_name).exists())
+                self.assertTrue(os.access(bin_dir / command_name, os.X_OK))
+
+            claudel1 = subprocess.run(
+                [str(bin_dir / "claudel1"), "青龙军团", "--dry-run", "--no-attach"],
+                cwd=project,
+                env=env,
+                capture_output=True,
+                text=True,
+                timeout=20,
+            )
+            codexl1 = subprocess.run(
+                [str(bin_dir / "codexl1"), "玄武军团", "--dry-run", "--no-attach"],
+                cwd=project,
+                env=env,
+                capture_output=True,
+                text=True,
+                timeout=20,
+            )
+            self.assertEqual(claudel1.returncode, 0, msg=f"stdout:\n{claudel1.stdout}\nstderr:\n{claudel1.stderr}")
+            self.assertEqual(codexl1.returncode, 0, msg=f"stdout:\n{codexl1.stdout}\nstderr:\n{codexl1.stderr}")
+            self.assertIn("planned: L1-青龙军团 [claude]", claudel1.stdout)
+            self.assertIn("planned: L1-玄武军团 [codex]", codexl1.stdout)
+
     def test_provider_l1_entrypoints_initialize_runtime_without_deploying_project_templates(self):
         def run_provider_l1(root, args):
             project = root / "project"
