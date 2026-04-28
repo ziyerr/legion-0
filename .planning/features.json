@@ -195,6 +195,22 @@
       ],
       "verified": true,
       "notes": "Default startup attaches Claude L1 in the current terminal and leaves Codex L1 in a separate background tmux session; combined views are explicit only. Verified with py_compile, bash -n, JSON validation, focused unittest, and launcher dry-run smokes."
+    },
+    {
+      "id": "F019",
+      "name": "AICTO L1 authority and next directive requests",
+      "status": "completed",
+      "assignee": "commander",
+      "files": [
+        "scripts/legion_core.py",
+        "tests/test_legion_core.py",
+        "README.md",
+        ".planning/REQUIREMENTS.md",
+        ".planning/DECISIONS.md",
+        ".planning/STATE.md"
+      ],
+      "verified": true,
+      "notes": "Persist external Hermes AICTO command authority in project/L1/report payloads and make terminal task reports request the next AICTO directive. Verified with py_compile, focused AICTO tests, full core+shell contract tests, JSON validation, and diff check."
     }
   ]
 }

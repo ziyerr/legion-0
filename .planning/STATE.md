@@ -140,6 +140,14 @@
 - Planned/implemented in this change: `mixed aicto-reports` reads the durable report queue; `mixed report-aicto <subject> "summary" --from <commander> --kind <kind>` lets L1 commanders report non-task problems.
 - Verification: `PYTHONPYCACHEPREFIX=/tmp/legion-pycache python3 -m py_compile scripts/legion_core.py` passed; `/bin/bash -n scripts/legion.sh` passed; `TMPDIR=/tmp PYTHONPYCACHEPREFIX=/tmp/legion-pycache PYTHONDONTWRITEBYTECODE=1 python3 -m unittest tests/test_legion_core.py tests/test_legion_shell_contract.py -v` passed (137 tests OK); isolated CLI smoke for `mixed report-aicto` + `mixed aicto-reports` passed; `git diff --check -- scripts/legion_core.py scripts/legion.sh tests/test_legion_core.py tests/test_legion_shell_contract.py README.md .planning/REQUIREMENTS.md .planning/DECISIONS.md .planning/STATE.md .planning/features.json` passed.
 
+## AICTO L1 Authority / Next Directive Requests (2026-04-28)
+
+- Status: completed
+- Trigger: user required AICTO to always retain project L1 command authority through a durable communication chain, and required task completion to report directly to AICTO and ask for the next task instead of only notifying the user.
+- Locked direction: external Hermes AICTO remains the command authority; Legion Core persists the authority contract in project registry records, L1 commander records, L1 online reports, and task terminal reports.
+- Planned/implemented in this change: terminal task reports include `next_directive_request`; completed tasks request the next AICTO directive, while failed/blocked tasks request remediation direction. Legion Core emits `aicto_next_directive_requested` events linked to the AICTO report correlation id.
+- Verification: `PYTHONPYCACHEPREFIX=/tmp/legion-pycache python3 -m py_compile scripts/legion_core.py` passed; focused AICTO authority/next-directive unit tests passed (4 tests OK); `TMPDIR=/tmp PYTHONPYCACHEPREFIX=/tmp/legion-pycache PYTHONDONTWRITEBYTECODE=1 python3 -m unittest tests/test_legion_core.py tests/test_legion_shell_contract.py -v` passed (148 tests OK); `python3 -m json.tool .planning/features.json >/dev/null` passed; `git diff --check -- scripts/legion_core.py tests/test_legion_core.py README.md .planning/REQUIREMENTS.md .planning/DECISIONS.md .planning/STATE.md .planning/features.json` passed.
+
 ## Separate Claude/Codex L1 Startup (2026-04-27)
 
 - Status: completed

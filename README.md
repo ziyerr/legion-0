@@ -128,9 +128,9 @@ legion h                             # 初始化后启动 Claude/Codex 双 L1，
 - `runs/<task>/result.md` 负责 worker 交付结果；没有结构化 result 的退出码 0 不是完成证据。
 - tmux session/window 负责实时可见性；状态命令只能读取，修复漂移必须走显式 `reconcile` / `repair`。
 
-AICTO 是独立 Hermes 项目 `/Users/feijun/Documents/AICTO`，是项目开发军团的最高技术指挥官；Legion Core 不是 AICTO 本体，只是 Claude/Codex 军团运行时底座。Claude L1 与 Codex L1 各自管理本 provider 的 team tree，并通过 durable inbox/events/results 接收外部 AICTO 的指令、向 AICTO 汇报。双 L1 启动后 Legion Core 会延迟 1 秒互发 `peer-sync`，确认双方协作关系。AICTO 下发的 S 级任务默认由接收任务的 L1 自己完成；M 级及以上才通过 `--corps` 进入专业 L2。L2 可以直接带本专业 worker；跨专业或多切片继续使用 `--corps`。
+AICTO 是独立 Hermes 项目 `/Users/feijun/Documents/AICTO`，是项目开发军团的最高技术指挥官；Legion Core 不是 AICTO 本体，只是 Claude/Codex 军团运行时底座。Claude L1 与 Codex L1 各自管理本 provider 的 team tree，并通过 durable inbox/events/results 接收外部 AICTO 的指令、向 AICTO 汇报。项目 registry、L1 commander 记录、L1 online report、task terminal report 都携带 `aicto_authority` / `aicto_control` 契约，固定外部 Hermes AICTO 对项目 L1 的指挥权。双 L1 启动后 Legion Core 会延迟 1 秒互发 `peer-sync`，确认双方协作关系。AICTO 下发的 S 级任务默认由接收任务的 L1 自己完成；M 级及以上才通过 `--corps` 进入专业 L2。L2 可以直接带本专业 worker；跨专业或多切片继续使用 `--corps`。
 
-L1 上线或恢复时会主动向同项目其他在线 L1 写入 `peer-online` inbox 消息，并向外部 AICTO 写入 `aicto-reports.jsonl`。任务进入 `completed` / `failed` / `blocked` 等终态时，Legion Core 自动追加 AICTO report；L1 遇到非任务类问题时用 `legion mixed report-aicto ...` 手动追加。这个 report 队列是外部 Hermes AICTO/plugin 的 durable outbox，不会创建本地 Legion L0。
+L1 上线或恢复时会主动向同项目其他在线 L1 写入 `peer-online` inbox 消息，并向外部 AICTO 写入 `aicto-reports.jsonl`。任务进入 `completed` / `failed` / `blocked` 等终态时，Legion Core 自动追加 AICTO report；`completed` 报告同时携带 `next_directive_request`，明确请求外部 AICTO 下发下一步任务或待命指令，失败/阻塞报告请求 AICTO 修复决策。L1 遇到非任务类问题时用 `legion mixed report-aicto ...` 手动追加。这个 report 队列是外部 Hermes AICTO/plugin 的 durable outbox，不会创建本地 Legion L0。
 
 消息顺序是 inbox-before-tmux：`mixed msg` / `mixed broadcast` 先写 durable inbox，再尝试 tmux 通知；tmux 失败只记录 `delivered_tmux=false`，不能抹掉 inbox。发给 L1/L2 指挥官的 tmux 通知使用非侵入 `display-message`，不把长消息塞进提示符。
 

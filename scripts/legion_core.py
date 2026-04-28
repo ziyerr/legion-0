@@ -82,6 +82,9 @@ WORKER_FINDING_KEYS = {"severity", "file", "line", "description", "recommendatio
 WORKER_RESULT_STATUSES = {"completed", "blocked", "failed"}
 WORKER_VERIFICATION_RESULTS = {"pass", "fail", "not-run"}
 WORKER_FINDING_SEVERITIES = {"critical", "major", "minor", "suggestion"}
+AICTO_CONTROL_PLANE_ID = "external-hermes-aicto"
+AICTO_DIRECTIVE_SENDER = "AICTO-CTO"
+AICTO_PLUGIN_ENTRYPOINT = "/Users/feijun/Documents/AICTO/hermes-plugin/legion_api.py::send_to_commander"
 
 L1_CODENAMES = [
     "烈焰",
@@ -355,6 +358,7 @@ class LegionCore:
                 "session": f"legion-mixed-{self.context.project_hash}-{commander_id}",
                 "run_dir": str(run_dir),
                 "project": str(self.context.project_dir),
+                "aicto_authority": self._aicto_control_contract(commander_id),
                 "updated": iso_now(),
                 "_action": "planned",
             }
@@ -367,6 +371,7 @@ class LegionCore:
             if online:
                 self._refresh_l1_commander_artifacts(online)
                 online["status"] = "commanding"
+                online["aicto_authority"] = self._aicto_control_contract(str(online.get("id", "")))
                 online["updated"] = iso_now()
                 self._upsert_commander(online)
                 self._apply_commander_window_identity(online)
@@ -409,6 +414,7 @@ class LegionCore:
             "session": session,
             "run_dir": str(run_dir),
             "project": str(self.context.project_dir),
+            "aicto_authority": self._aicto_control_contract(commander_id),
             "updated": iso_now(),
         }
         self._upsert_commander(entry)
@@ -540,6 +546,7 @@ class LegionCore:
             "session": session,
             "run_dir": str(run_dir),
             "project": str(self.context.project_dir),
+            "aicto_authority": self._aicto_control_contract(commander_id),
             "updated": iso_now(),
         }
         self._upsert_commander(entry)
@@ -648,6 +655,7 @@ class LegionCore:
             "session": session,
             "run_dir": "",
             "project": str(self.context.project_dir),
+            "aicto_authority": self._aicto_control_contract(commander_id),
             "updated": iso_now(),
         }
         self._upsert_commander(entry)
@@ -2012,6 +2020,7 @@ Operating rules:
 
 Mission:
 - Coordinate this project through Legion Core. Own your provider's L2/team tree and coordinate with same-project peer L1s through durable inbox/events/results.
+- External Hermes AICTO is your project-level technical commander. Treat `AICTO-CTO` durable inbox messages as superior directives, and report terminal task state back to AICTO before waiting for user-visible follow-up.
 - On launch/resume, Legion Core sends peer notices and queues AICTO reports. Keep workers visible in tmux; do not create invisible background work.
 
 Project:
@@ -2020,6 +2029,7 @@ Project:
 - Event log: {self.events_file}
 - AICTO report queue: {self.aicto_reports_file}
 - Mixed inbox: {self.inbox_dir}
+- AICTO command source: {AICTO_PLUGIN_ENTRYPOINT} -> mixed inbox / legacy inbox as `AICTO-CTO`
 
 Core doctrine - scale-first Legion:
 1. Optimize for maximum effective collaboration scale.
@@ -2046,6 +2056,7 @@ Essential commands:
 - Status/inbox: `{legion_sh} mixed status`; `{legion_sh} mixed inbox {commander_id}`.
 - Peer coordination: `{legion_sh} mixed msg <commander-id> "message" --from {commander_id}`.
 - AICTO problem report: `{legion_sh} mixed report-aicto <subject> "summary" --from {commander_id} --kind problem`.
+- AICTO next-step request: task terminal transitions automatically queue a report with `next_directive_request`; use `mixed report-aicto` only for non-task requests.
 - Readiness only when ordered: `{legion_sh} mixed readiness {commander_id} --wait --timeout 180`.
 - S visible task: `{legion_sh} mixed campaign plan.json --complexity s --direct`.
 - M+ collaboration: `{legion_sh} mixed campaign plan.json --corps`; dry-run first for complex plans.
@@ -2055,7 +2066,7 @@ Operating rules:
 1. Use `legion.sh mixed campaign` for subordinate creation; keep S at L1 unless a tracked task window is needed.
 2. For M+ work, use `--corps`, declare scope, separate implementation from review/verify/audit, and preserve user changes.
 3. Prefer Codex for explore/review/verify/audit/security and Claude for implementation/product/UI unless explicitly overridden.
-4. Verify before reporting completion. Automatic task transitions report to AICTO; use `mixed report-aicto` for non-task problems.
+4. Verify before reporting completion. Automatic task transitions report to AICTO and request the next directive; use `mixed report-aicto` for non-task problems or manual next-step requests.
 """
 
     def render_aicto_prompt(self, commander_id: str) -> str:
@@ -2373,6 +2384,21 @@ fi"""
             "hash": self.context.project_hash,
             "path": str(self.context.project_dir),
             "session": self.context.session_name,
+            "aicto_control": self._aicto_control_contract(),
+        }
+
+    def _aicto_control_contract(self, commander_id: str = "") -> dict[str, Any]:
+        return {
+            "control_plane": AICTO_CONTROL_PLANE_ID,
+            "authority": "project-l1-command",
+            "directive_sender": AICTO_DIRECTIVE_SENDER,
+            "directive_entrypoint": AICTO_PLUGIN_ENTRYPOINT,
+            "directive_channels": ["mixed-inbox", "legacy-inbox"],
+            "report_outbox": str(self.aicto_reports_file),
+            "project_hash": self.context.project_hash,
+            "project_path": str(self.context.project_dir),
+            "commander_id": commander_id,
+            "next_directive_required_on_terminal_task": True,
         }
 
     def _read_registry(self) -> dict[str, Any]:
@@ -2452,17 +2478,20 @@ fi"""
             self._write_registry(registry)
 
     def _upsert_commander(self, entry: dict[str, Any]) -> None:
+        prepared = dict(entry)
+        if prepared.get("role") == "commander" and self._entry_level(prepared) == 1:
+            prepared["aicto_authority"] = self._aicto_control_contract(str(prepared.get("id", "")))
         with self._registry_lock():
             registry = self._read_registry()
             commanders = registry.setdefault("commanders", [])
             for idx, existing in enumerate(commanders):
-                if existing.get("id") == entry["id"]:
+                if existing.get("id") == prepared["id"]:
                     merged = dict(existing)
-                    merged.update(entry)
+                    merged.update(prepared)
                     commanders[idx] = merged
                     break
             else:
-                commanders.append(entry)
+                commanders.append(prepared)
             registry.setdefault("tasks", [])
             registry["project"] = self._project_record()
             self._write_registry(registry)
@@ -2507,6 +2536,17 @@ fi"""
         correlation = correlation_id.strip() or self._new_correlation_id(f"aicto:{kind}:{subject_id}")
         report_payload = dict(payload or {})
         report_payload.setdefault("project", self._project_record())
+        source_id = str(source or "").strip()
+        report_payload.setdefault("aicto_authority", self._aicto_control_contract(source_id))
+        report_payload.setdefault(
+            "communication_chain",
+            {
+                "direction": "legion-to-aicto",
+                "outbox": str(self.aicto_reports_file),
+                "control_plane": AICTO_CONTROL_PLANE_ID,
+                "directive_sender": AICTO_DIRECTIVE_SENDER,
+            },
+        )
         material = json.dumps(
             {
                 "timestamp": timestamp,
@@ -2561,9 +2601,25 @@ fi"""
         )
         if len(detail) > 240:
             detail = detail[:237] + "..."
-        summary = f"{task_id} {status}: {detail or '(no detail)'}"
         source = str(task.get("origin_commander") or task.get("commander") or "Legion Core")
-        return self._queue_aicto_report(
+        request_type = "next-task" if status == "completed" else "remediation"
+        request_summary = (
+            "requesting next AICTO directive"
+            if status == "completed"
+            else "requesting AICTO remediation directive"
+        )
+        summary = f"{task_id} {status}: {detail or '(no detail)'} | {request_summary}"
+        next_directive = {
+            "required": True,
+            "request_type": request_type,
+            "requested_from": AICTO_DIRECTIVE_SENDER,
+            "requested_by": source,
+            "reason": "task-terminal-state",
+            "status": status,
+            "subject_id": task_id,
+            "authority": "external Hermes AICTO holds project L1 command authority",
+        }
+        record = self._queue_aicto_report(
             kind=kind,
             subject_id=task_id,
             summary=summary,
@@ -2582,8 +2638,21 @@ fi"""
                 "result_summary": task.get("result_summary", ""),
                 "failure": task.get("failure", ""),
                 "blocked_reason": task.get("blocked_reason", ""),
+                "next_directive_request": next_directive,
             },
         )
+        self._event(
+            "aicto_next_directive_requested",
+            task_id,
+            {
+                "report_id": record["id"],
+                "request_type": request_type,
+                "requested_from": AICTO_DIRECTIVE_SENDER,
+                "requested_by": source,
+            },
+            correlation_id=str(record.get("correlation_id", "")),
+        )
+        return record
 
     def _parse_control_fields(self, content: str) -> dict[str, str]:
         fields: dict[str, str] = {}
@@ -2707,7 +2776,8 @@ fi"""
             f"L1-ONLINE action={action} commander={commander_id} "
             f"provider={commander.get('provider', '?')} project={self.context.project_dir}. "
             "I am online for same-project L1 coordination; S work stays with L1, "
-            "M+ work expands via `mixed campaign --corps`, and AICTO receives durable reports."
+            "M+ work expands via `mixed campaign --corps`; external Hermes AICTO keeps "
+            "project L1 command authority through durable inbox directives and report outbox."
         )
         delivered_peer_ids: list[str] = []
         for peer in peers:
@@ -2732,6 +2802,8 @@ fi"""
                 "provider": commander.get("provider", ""),
                 "session": commander.get("session", ""),
                 "peer_l1": delivered_peer_ids,
+                "aicto_authority": self._aicto_control_contract(commander_id),
+                "awaiting_directives_from": AICTO_DIRECTIVE_SENDER,
             },
             correlation_id=correlation,
         )

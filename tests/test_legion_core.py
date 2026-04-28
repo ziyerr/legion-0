@@ -1303,6 +1303,14 @@ class LegionCoreTests(unittest.TestCase):
             online_reports = [record for record in reports if record["kind"] == "l1-online"]
             self.assertEqual(online_reports[-1]["subject_id"], commander["id"])
             self.assertIn("L1-peer", online_reports[-1]["payload"]["peer_l1"])
+            self.assertEqual(
+                online_reports[-1]["payload"]["aicto_authority"]["control_plane"],
+                "external-hermes-aicto",
+            )
+            self.assertEqual(online_reports[-1]["payload"]["awaiting_directives_from"], "AICTO-CTO")
+            registry = json.loads(core.registry_file.read_text(encoding="utf-8"))
+            registered = next(item for item in registry["commanders"] if item["id"] == commander["id"])
+            self.assertEqual(registered["aicto_authority"]["authority"], "project-l1-command")
 
     def test_manual_aicto_report_is_durable_and_readable(self):
         with tempfile.TemporaryDirectory() as td:
@@ -1320,6 +1328,19 @@ class LegionCoreTests(unittest.TestCase):
             text = core.aicto_reports_text()
             self.assertIn(record["id"], core.aicto_reports_file.read_text(encoding="utf-8"))
             self.assertIn("problem L1-host: blocked on missing dependency", text)
+            self.assertEqual(record["payload"]["aicto_authority"]["directive_sender"], "AICTO-CTO")
+
+    def test_l1_prompt_declares_aicto_authority_and_next_directive_contract(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            core = LegionCore(root, legion_home=root / "home", runner=RecordingRunner())
+
+            prompt = core.render_commander_prompt("L1-alpha", "claude")
+
+            self.assertIn("External Hermes AICTO is your project-level technical commander", prompt)
+            self.assertIn("AICTO-CTO", prompt)
+            self.assertIn("next_directive_request", prompt)
+            self.assertIn("report to AICTO and request the next directive", prompt)
 
     def test_dual_host_base_l2_mode_sends_independent_readiness_orders(self):
         with tempfile.TemporaryDirectory() as td:
@@ -1534,7 +1555,16 @@ class LegionCoreTests(unittest.TestCase):
             task_reports = [record for record in reports if record["subject_id"] == "audit"]
             self.assertEqual(task_reports[-1]["kind"], "task-completed")
             self.assertIn("audit completed: audit passed", task_reports[-1]["summary"])
+            self.assertIn("requesting next AICTO directive", task_reports[-1]["summary"])
             self.assertEqual(task_reports[-1]["payload"]["status"], "completed")
+            request = task_reports[-1]["payload"]["next_directive_request"]
+            self.assertTrue(request["required"])
+            self.assertEqual(request["request_type"], "next-task")
+            self.assertEqual(request["requested_from"], "AICTO-CTO")
+            events = [json.loads(line) for line in core.events_file.read_text(encoding="utf-8").splitlines()]
+            next_events = [event for event in events if event["event"] == "aicto_next_directive_requested"]
+            self.assertEqual(next_events[-1]["task_id"], "audit")
+            self.assertEqual(next_events[-1]["payload"]["request_type"], "next-task")
 
     def test_claude_plain_text_worker_success_is_failed(self):
         with tempfile.TemporaryDirectory() as td:

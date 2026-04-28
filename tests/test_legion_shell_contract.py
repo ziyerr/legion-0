@@ -189,6 +189,128 @@ class LegionShellContractTests(unittest.TestCase):
                     self.assertTrue(any((home / ".claude" / "legion").glob("*/mixed/mixed-registry.json")))
                     self.assertFalse((project / ".claude" / "skills" / "safe-exec").exists())
 
+    def test_project_initializer_merges_execution_discipline_into_existing_claude_md_once(self):
+        core_skills = [
+            "agent-team",
+            "audit",
+            "autonomous-loop",
+            "degradation-policy",
+            "recon",
+            "spec-driven",
+            "startup",
+            "verification-before-completion",
+            "using-superpowers",
+            "writing-plans",
+            "brainstorming",
+            "claw-roundtable-skill",
+            "product-counselor",
+            "sniper",
+        ]
+        core_agents = ["implement.md", "review.md", "verify.md", "explore.md", "plan.md"]
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            project = root / "project"
+            home = root / "home"
+            reference = root / "reference"
+            project.mkdir()
+            home.mkdir()
+            (project / ".git").mkdir()
+            claude_md = project / "CLAUDE.md"
+            original_claude = "# Project Notes\n\nKeep custom local rules.\n"
+            claude_md.write_text(original_claude, encoding="utf-8")
+
+            skills_dir = reference / ".claude" / "skills"
+            agents_dir = reference / ".claude" / "agents"
+            skills_dir.mkdir(parents=True)
+            agents_dir.mkdir(parents=True)
+            for skill in core_skills:
+                skill_dir = skills_dir / skill
+                skill_dir.mkdir()
+                (skill_dir / "SKILL.md").write_text(f"# {skill}\n", encoding="utf-8")
+            for agent in core_agents:
+                (agents_dir / agent).write_text(f"# {agent}\n", encoding="utf-8")
+
+            env = os.environ.copy()
+            env.update(
+                {
+                    "HOME": str(home),
+                    "LEGION_INIT_ASSUME_YES": "1",
+                    "PYTHONDONTWRITEBYTECODE": "1",
+                }
+            )
+
+            first = subprocess.run(
+                [
+                    "bash",
+                    str(self.repo_root / "scripts" / "legion-init.sh"),
+                    "--from",
+                    str(reference),
+                    "--minimal",
+                ],
+                cwd=project,
+                env=env,
+                capture_output=True,
+                text=True,
+                timeout=20,
+            )
+            self.assertEqual(first.returncode, 0, msg=f"stdout:\n{first.stdout}\nstderr:\n{first.stderr}")
+            self.assertIn("CLAUDE.md 已备份并合并最新完整执行纪律模板", first.stdout)
+
+            updated = claude_md.read_text(encoding="utf-8")
+            self.assertIn(original_claude, updated)
+            self.assertTrue(updated.startswith("# >>> legion-init execution-discipline/v2 >>>"))
+            self.assertIn("# >>> legion-init execution-discipline/v2 >>>", updated)
+            self.assertIn("# 指挥官自主权（全局第一原则）", updated)
+            self.assertIn("## 军团核心原则：规模优先", updated)
+            self.assertIn("## 作战纪律", updated)
+            backups = list((project / ".claude" / "backups" / "legion-init").glob("*/CLAUDE.md"))
+            self.assertEqual(len(backups), 1)
+            self.assertEqual(backups[0].read_text(encoding="utf-8"), original_claude)
+
+            second = subprocess.run(
+                [
+                    "bash",
+                    str(self.repo_root / "scripts" / "legion-init.sh"),
+                    "--from",
+                    str(reference),
+                    "--minimal",
+                ],
+                cwd=project,
+                env=env,
+                capture_output=True,
+                text=True,
+                timeout=20,
+            )
+            self.assertEqual(second.returncode, 0, msg=f"stdout:\n{second.stdout}\nstderr:\n{second.stderr}")
+            rerun = claude_md.read_text(encoding="utf-8")
+            self.assertEqual(rerun.count("# >>> legion-init execution-discipline/v2 >>>"), 1)
+            self.assertIn("CLAUDE.md 已存在且包含执行纪律，跳过", second.stdout)
+
+            fresh_project = root / "fresh-project"
+            fresh_project.mkdir()
+            (fresh_project / ".git").mkdir()
+            fresh = subprocess.run(
+                [
+                    "bash",
+                    str(self.repo_root / "scripts" / "legion-init.sh"),
+                    "--from",
+                    str(reference),
+                    "--minimal",
+                ],
+                cwd=fresh_project,
+                env=env,
+                capture_output=True,
+                text=True,
+                timeout=20,
+            )
+            self.assertEqual(fresh.returncode, 0, msg=f"stdout:\n{fresh.stdout}\nstderr:\n{fresh.stderr}")
+            fresh_claude = (fresh_project / "CLAUDE.md").read_text(encoding="utf-8")
+            self.assertIn("# >>> legion-init execution-discipline/v2 >>>", fresh_claude)
+            self.assertIn("## 军团核心原则：规模优先", fresh_claude)
+            self.assertIn("# Project: fresh-project", fresh_claude)
+            self.assertEqual(fresh_claude.count("# Project: fresh-project"), 1)
+
     def test_aicto_entrypoint_is_external_hermes_status_not_local_commander(self):
         completed = self.assert_read_only_shell_result(["aicto", "--dry-run", "--no-attach"])
 

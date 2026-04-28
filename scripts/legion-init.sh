@@ -7,7 +7,7 @@
 #   1. 复制 skills（从参考项目）
 #   2. 复制 agents（从参考项目）
 #   3. 创建 commander 简报目录
-#   4. 生成 CLAUDE.md 模板（如不存在）
+#   4. 生成/补齐 CLAUDE.md 模板（如不存在或缺少执行纪律）
 #   5. 创建 settings.local.json（如不存在）
 #   6. 创建 memory 目录结构
 #   7. 注册到全局 legion directory
@@ -121,6 +121,73 @@ install_generated_file_with_backup() {
     backup_existing_file "$dst"
   fi
   mv "$src" "$dst"
+}
+
+claude_has_execution_discipline() {
+  local claude_file="$1"
+  grep -q "legion-init execution-discipline/v2" "$claude_file" 2>/dev/null
+}
+
+merge_claude_execution_discipline() {
+  local claude_file="$1"
+
+  backup_existing_file "$claude_file"
+  CLAUDE_FILE="$claude_file" python3 << 'PY'
+from pathlib import Path
+import os
+
+path = Path(os.environ["CLAUDE_FILE"])
+text = path.read_text(encoding="utf-8")
+block = """# >>> legion-init execution-discipline/v2 >>>
+# 指挥官自主权（全局第一原则）
+
+所有 L1 指挥官在所有项目中默认拥有流程决策的完全自主权。
+
+**流程决策（要不要组团 / 侦察 / spec / 审查 / 放行 / 升级复杂度 / 选技能 / 选 teammate 配置）→ 直接判断执行，不向用户确认。**
+
+## 军团核心原则：规模优先
+
+军团目标是不计资源消耗成本，通过最大化有效军团规模协作提升效率和质量。
+
+1. **资源成本不是降级理由** — token、时间、进程数、tmux 窗口数、模型调用成本不得作为降级理由。
+2. **默认向上扩编** — 非平凡任务优先用 `--corps` 扩编 L2，并并行组织侦察 / 实现 / 审查 / 验证 / 审计 / 产品 / UI。
+3. **最大有效规模，不是盲目重复** — 扩编必须带来互补视角或并行吞吐。
+4. **质量门前置且独立** — 实现与 review / verify / audit 分离。
+5. **上下文即资产** — L2 是否解散取决于上下文是否仍有价值。
+
+## 四种例外：只有这些情形才停下问用户
+
+1. **不可逆破坏** — rm -rf、force push 主分支、drop table、覆盖未提交代码、删除分支、删除未备份数据
+2. **需求本身模糊** — 有多种合理解释，无法通过读代码 / 读 memory 消除歧义
+3. **跨项目 / 共享状态变更** — 影响他人、跨 repo、改 CI/CD 管线、改全局配置 / hooks / 技能 / 全局 AGENTS.md / 全局 CLAUDE.md
+4. **关键决策成本高** — 走到死胡同需要大成本返工的岔路口
+
+## 句式纪律
+
+禁止流程确认（“可以吗 / 要不要先 recon / 需要我组团吗 / 可以进入下一步吗”）。允许汇报已发生动作；命中例外时说“命中第 N 种例外：[情形]，请你决定：[A / B]”。
+
+## 作战纪律
+
+S 级单文件可轻量；M 级 2-5 文件需侦察/实现/审查；L 级跨域需多路侦察、流水线与独立验证；XL 级架构变更用最大有效规模。铁律：不跑验证不许完成；禁止降级核心目标；复杂度拿不准向上；功能开发先经产品参谋。
+
+项目级 AGENTS.md / CLAUDE.md 可以覆盖本规则；需要更严格人工确认时写“禁用自主权第一原则”。
+# <<< legion-init execution-discipline/v2 <<<"""
+
+start_token = "# >>> legion-init execution-discipline"
+end_token = "# <<< legion-init execution-discipline"
+start = text.find(start_token)
+end = text.find(end_token, start + 1) if start != -1 else -1
+
+if start != -1 and end != -1:
+    line_end = text.find("\n", end)
+    line_end = len(text) if line_end == -1 else line_end + 1
+    merged = text[:start].rstrip() + "\n\n" + block + "\n\n" + text[line_end:].lstrip()
+else:
+    merged = block + "\n\n---\n\n" + text.lstrip()
+
+path.write_text(merged.rstrip() + "\n", encoding="utf-8")
+PY
+  echo -e "  ${GREEN}✓ CLAUDE.md 已备份并合并最新完整执行纪律模板${NC}"
 }
 
 # 解析参数
@@ -317,7 +384,46 @@ echo -e "${GREEN}[${COUNTER}/${TOTAL}]${NC} 检查 CLAUDE.md..."
 if [[ ! -f "${TARGET_DIR}/CLAUDE.md" ]]; then
   PROJECT_NAME=$(basename "$TARGET_DIR")
   cat > "${TARGET_DIR}/CLAUDE.md" << CLAUDE_EOF
-# ⛔ 执行纪律（按任务复杂度分级，Hook 辅助提醒）
+# >>> legion-init execution-discipline/v2 >>>
+# 指挥官自主权（全局第一原则）
+
+所有 L1 指挥官在所有项目中默认拥有流程决策的完全自主权。
+
+**流程决策（要不要组团 / 侦察 / spec / 审查 / 放行 / 升级复杂度 / 选技能 / 选 teammate 配置）→ 直接判断执行，不向用户确认。**
+
+## 军团核心原则：规模优先
+
+军团体系的核心目标是：**不计资源消耗成本，通过最大化有效军团规模协作，实现效率和质量的最大化提升。**
+
+默认策略：
+
+1. **资源成本不是降级理由** — token、时间、进程数、tmux 窗口数、模型调用成本，不得作为少组团、少侦察、少审查、少验证的理由。
+2. **默认向上扩编** — 遇到非平凡任务，优先用 \`--corps\` 按专业分支扩编 L2，并并行组织侦察 / 实现 / 审查 / 验证 / 审计 / 产品 / UI 等军种。
+3. **最大有效规模，不是盲目重复** — 扩编必须带来互补视角或并行吞吐：不同文件范围、不同风险假设、不同验证方法、不同专业分支。禁止多个军团无差别重复同一动作。
+4. **质量门前置且独立** — 实现与审计/验证必须分离；中型及以上任务默认引入独立 review / verify / audit 分支，不以“节省成本”为由省略。
+5. **上下文即资产** — 动态扩编 L2 是否解散，取决于其持有上下文是否仍有价值；需要后续迭代、失败诊断、复杂背景延续时保留，不需要时才释放。
+
+本原则中的“不计成本”指资源消耗成本，不覆盖下面四种例外；不可逆破坏、需求歧义、跨项目共享状态、高返工风险仍必须停下请示。
+
+## 四种例外：只有这些情形才停下问用户
+
+1. **不可逆破坏** — rm -rf、force push 主分支、drop table、覆盖未提交代码、删除分支、删除未备份数据
+2. **需求本身模糊** — 有多种合理解释，无法通过读代码 / 读 memory 消除歧义
+3. **跨项目 / 共享状态变更** — 影响他人、跨 repo、改 CI/CD 管线、改全局配置 / hooks / 技能 / 全局 AGENTS.md / 全局 CLAUDE.md
+4. **关键决策成本高** — 走到死胡同需要大成本返工的岔路口
+
+## 句式纪律
+
+**禁止**：任何形式的流程确认（"我打算…可以吗" / "要不要先 recon" / "需要我组团吗" / "可以进入下一步吗"）——这些都是流程决策，指挥官全权自主。
+**允许**：汇报已发生动作（"已经 xxx，结果是 xxx"）、命中例外时的停下请示（"命中第 N 种例外：[情形]，请你决定：[A / B]"）。
+
+## 覆盖优先级
+
+项目级 AGENTS.md / CLAUDE.md 可以覆盖本规则。需要更严格的人工确认流程，在项目 AGENTS.md 或 CLAUDE.md 里写"禁用自主权第一原则"即可。
+
+---
+
+# 作战执行纪律（按任务复杂度分级，Hook 辅助提醒）
 
 接到任务后**先判断复杂度**，确认问题后**再评估一次**（修复可能比预期复杂），再决定执行方式：
 
@@ -337,15 +443,14 @@ if [[ ! -f "${TARGET_DIR}/CLAUDE.md" ]]; then
 4. **模型适配** — 写代码的 agent（implement, verify）必须 Opus；只读 agent（explore, review, plan）允许 Sonnet
 5. **产品参谋必经** — 所有功能开发必须经产品参谋设计
 
----
+## 执行流程
 
-# Harness 哲学（架构原则）
+\`\`\`
+三步深挖 → 判断复杂度 → 侦察(recon) → ⚡再评估 → 产品设计 → 设计(spec-driven) → 流水线实现+审查(agent-team) → 对抗性验证(audit)
+\`\`\`
 
-## 为删除而写
-每个 hook、skill、脚本都是临时的。模型升级时，先删再加。
-
-## 三步深挖（苏格拉底 + 第一性原理 + 奥卡姆剃刀）
-接到需求默认过一遍：用户说的是真需求吗？基于基本事实的最优解是什么？最小可执行方案是什么？
+**指挥官简报**: \`.claude/commander/briefings/{L1名}.md\`
+# <<< legion-init execution-discipline/v2 <<<
 
 ---
 
@@ -359,24 +464,14 @@ if [[ ! -f "${TARGET_DIR}/CLAUDE.md" ]]; then
 
 ## Coding Rules
 <!-- TODO: 填写编码规范 -->
-
-## 执行流程
-
-\`\`\`
-三步深挖 → 判断复杂度 → 侦察(recon) → ⚡再评估 → 产品设计 → 设计(spec-driven) → 流水线实现+审查(agent-team) → 对抗性验证(audit)
-\`\`\`
-
-**指挥官简报**: \`.claude/commander/briefings/{L1名}.md\`
-
-通过 TeamCreate 创建 teammate（tmux 模式），每个 teammate 独立 pane。
 CLAUDE_EOF
   echo -e "  ${GREEN}✓ CLAUDE.md 模板已创建（请手动填写 Tech Stack / Architecture / Coding Rules）${NC}"
 else
   # 检查是否包含执行纪律
-  if grep -q "执行纪律" "${TARGET_DIR}/CLAUDE.md" 2>/dev/null; then
+  if claude_has_execution_discipline "${TARGET_DIR}/CLAUDE.md"; then
     echo "  → CLAUDE.md 已存在且包含执行纪律，跳过"
   else
-    echo -e "  ${YELLOW}⚠ CLAUDE.md 已存在但缺少执行纪律模板，请手动补充${NC}"
+    merge_claude_execution_discipline "${TARGET_DIR}/CLAUDE.md"
   fi
 fi
 
