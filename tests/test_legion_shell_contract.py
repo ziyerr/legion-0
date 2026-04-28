@@ -168,11 +168,17 @@ class LegionShellContractTests(unittest.TestCase):
             return project, home, completed
 
         cases = [
-            ["claude", "l1", "青龙军团", "--no-attach"],
-            ["codex", "l1", "玄武军团", "--no-attach"],
+            (
+                ["claude", "l1", "青龙军团", "--no-attach"],
+                "Claude L1 军团初始化",
+            ),
+            (
+                ["codex", "l1", "玄武军团", "--no-attach"],
+                "Codex L1 军团初始化",
+            ),
         ]
 
-        for args in cases:
+        for args, provider_init in cases:
             with self.subTest(args=args):
                 with tempfile.TemporaryDirectory() as td:
                     project, home, completed = run_provider_l1(Path(td), args)
@@ -181,13 +187,21 @@ class LegionShellContractTests(unittest.TestCase):
                         0,
                         msg=f"stdout:\n{completed.stdout}\nstderr:\n{completed.stderr}",
                     )
+                    self.assertNotIn("项目军团体系未完整展开", completed.stdout)
                     self.assertFalse((project / "CLAUDE.md").exists())
                     self.assertFalse((project / ".claude" / "agents").exists())
                     self.assertFalse((project / ".claude" / "skills").exists())
                     self.assertFalse((project / ".claude" / "settings.local.json").exists())
+                    self.assertFalse((home / ".claude" / "legion" / "directory.json").exists())
                     self.assertTrue((home / ".claude" / "legion").is_dir())
                     self.assertTrue(any((home / ".claude" / "legion").glob("*/mixed/mixed-registry.json")))
-                    self.assertFalse((project / ".claude" / "skills" / "safe-exec").exists())
+                    launch_scripts = list((home / ".claude" / "legion").glob("*/mixed/commanders/*/launch.sh"))
+                    self.assertEqual(len(launch_scripts), 1)
+                    launch_text = launch_scripts[0].read_text(encoding="utf-8")
+                    self.assertIn(provider_init, launch_text)
+                    self.assertIn("不执行项目模板初始化", launch_text)
+                    self.assertIn("全局/项目/记忆/技能/工具初始化只归 `legion 0`", launch_text)
+                    self.assertIn("接入军团通讯", launch_text)
 
     def test_project_initializer_merges_execution_discipline_into_existing_claude_md_once(self):
         core_skills = [
@@ -315,6 +329,22 @@ class LegionShellContractTests(unittest.TestCase):
             implement_text = implement_agent.read_text(encoding="utf-8")
             self.assertLessEqual(len(implement_text), 2500)
             self.assertIn("legion-agent-compressed/v1", implement_text)
+            directory = json.loads((home / ".claude" / "legion" / "directory.json").read_text(encoding="utf-8"))
+            directory_entry = next(
+                item for item in directory["legions"] if Path(item["path"]).resolve(strict=False) == project.resolve(strict=False)
+            )
+            project_hash = directory_entry["hash"]
+            legion_dir = home / ".claude" / "legion" / project_hash
+            mixed_dir = legion_dir / "mixed"
+            mixed_registry = json.loads((mixed_dir / "mixed-registry.json").read_text(encoding="utf-8"))
+            self.assertEqual(mixed_registry["project"]["hash"], project_hash)
+            self.assertEqual(Path(mixed_registry["project"]["path"]).resolve(strict=False), project.resolve(strict=False))
+            self.assertEqual(mixed_registry["project"]["aicto_control"]["directive_sender"], "AICTO-CTO")
+            self.assertEqual(mixed_registry["commanders"], [])
+            self.assertEqual(mixed_registry["tasks"], [])
+            self.assertTrue((mixed_dir / "events.jsonl").exists())
+            self.assertTrue((mixed_dir / "aicto-reports.jsonl").exists())
+            self.assertTrue((mixed_dir / "inbox").is_dir())
 
             second = subprocess.run(
                 [

@@ -72,7 +72,7 @@ macOS：`brew install tmux jq python3 node git && npm i -g @anthropic-ai/claude-
 claude                              # 进入 Claude Code，自动加载全局 agents/skills
 # 或
 ~/.claude/scripts/legion 0           # 配置 legion 裸命令，并在当前项目展开军团体系初始化
-legion h                             # 初始化后启动 Claude/Codex 双 L1，并进入分屏
+legion h                             # 启动/恢复 Claude/Codex 双 L1，并接入军团通讯
 # 或
 ~/.claude/scripts/legion.sh l1 磐石  # 显式启动 L1-磐石军团（新 tmux session）
 ```
@@ -81,16 +81,16 @@ legion h                             # 初始化后启动 Claude/Codex 双 L1，
 
 | 命令 | 用途 |
 |------|------|
-| `legion 0` | 配置/更新全局 `legion` 入口，并初始化当前项目军团体系 |
-| `legion h` | 自动补齐配置和项目初始化，当前窗口进入 Claude L1，Codex L1 在后台独立 session 启动；默认不创建基础 L2 |
+| `legion 0` | 配置/更新全局 `legion` 入口，初始化当前项目军团体系、memory、skills、tools，并注册项目持久化通讯信息 |
+| `legion h` | 启动/恢复 Claude L1 当前窗口和 Codex L1 后台独立 session，接入 mixed 通讯链；默认不创建基础 L2 |
 | `legion.sh l1 <名>` | 启动 / 恢复 L1 指挥官（新 tmux session） |
 | `legion.sh l1+1 <名>` | 强制创建全新军团 |
-| `legion codex l1 [名]` | 通过短命令启动 Codex L1 指挥官；不写名则载入在线军团，没有在线军团才新增 |
+| `legion codex l1 [名]` | 启动/恢复 Codex L1 指挥官；创建新 L1 时执行 Codex 军团初始化并接入通讯，不展开项目模板 |
 | `legion claude h` | 推荐启动项目军团：当前窗口 Claude L1，后台 Codex L1，双方 peer-sync |
-| `legion.sh claude l1 <名>` | 显式启动 / 恢复 Claude L1 指挥官 |
-| `legion.sh codex l1 <名>` | 显式启动 / 恢复 Codex L1 指挥官 |
-| `claude l1 <名>` | 通过 Claude shim 启动 / 恢复 Claude L1 指挥官 |
-| `codex l1 <名>` | 通过 Codex shim 启动 / 恢复 Codex L1 指挥官 |
+| `legion.sh claude l1 <名>` | 启动/恢复 Claude L1；创建新 L1 时执行 Claude 军团初始化并接入通讯，不展开项目模板 |
+| `legion.sh codex l1 <名>` | 启动/恢复 Codex L1；创建新 L1 时执行 Codex 军团初始化并接入通讯，不展开项目模板 |
+| `claude l1 <名>` | 通过 Claude shim 启动/恢复 Claude L1，不执行 `legion 0` 项目初始化 |
+| `codex l1 <名>` | 通过 Codex shim 启动/恢复 Codex L1，不执行 `legion 0` 项目初始化 |
 | `legion.sh dou` | 新增一个 Terminal 窗口跑 Codex L1，当前窗口切换为 Claude L1 |
 | `legion.sh duo` | 打开两个独立 Terminal 窗口，分别启动 Codex L1 和 Claude L1 |
 | `legion.sh duo --terminal vscode` | 在当前 VS Code 集成终端里启动 tmux 双 L1 作战面 |
@@ -217,6 +217,8 @@ codex l1 玄武军团
 ~/.claude/scripts/legion.sh duo --dry-run
 ~/.claude/scripts/legion.sh duo --terminal vscode --dry-run
 ```
+
+`legion 0` 是唯一的全局/项目初始化入口：它负责展开项目模板、memory、skills、tools，注册项目目录，并预建 mixed 持久化通讯链。`claude l1` / `codex l1` 只负责启动或恢复对应 provider 的 L1；如果创建新 L1，会执行 provider 专属军团初始化并接入 mixed 通讯，不复制项目模板。
 
 Codex L1 启动后会收到统一控制面提示：创建下属 worker 时通过 `legion.sh mixed campaign`，并在计划里用 `"provider": "claude"` 或 `"provider": "codex"` 明确调度哪类军团成员。Claude L1 通过 `legion.sh claude h` 或 `legion.sh claude l1 <名>` 启动时也会登记到同一个 mixed registry，因此同项目里的 Claude L1 和 Codex L1 可以互相看见，围绕同一份任务态势协同。默认启动不会把两个 L1 塞进同一个 `legion-view` 分屏；它们是两个独立 tmux session，需要合并观察时才显式运行 `legion view`。
 

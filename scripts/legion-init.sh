@@ -10,7 +10,7 @@
 #   4. 生成/补齐 CLAUDE.md 模板（如不存在或缺少执行纪律）
 #   5. 创建 settings.local.json（如不存在）
 #   6. 创建 memory 目录结构
-#   7. 注册到全局 legion directory
+#   7. 注册到全局 legion directory，并初始化 mixed 持久化通讯链
 #
 # 用法：
 #   cd /path/to/new-project
@@ -657,9 +657,18 @@ fi
 # Step 7: 注册到全局 directory
 # ─────────────────────────────────────────
 COUNTER=$((COUNTER + 1))
-echo -e "${GREEN}[${COUNTER}/${TOTAL}]${NC} 注册到军团目录..."
+echo -e "${GREEN}[${COUNTER}/${TOTAL}]${NC} 注册到军团目录并初始化持久化通讯链..."
 
-PROJECT_HASH=$(echo -n "$TARGET_DIR" | md5 | cut -c1-8)
+if PROJECT_HASH=$(LEGION_HASH_INPUT="$TARGET_DIR" python3 -c 'import hashlib, os; print(hashlib.md5(os.environ["LEGION_HASH_INPUT"].encode("utf-8")).hexdigest()[:8])' 2>/dev/null); then
+  :
+elif command -v md5 >/dev/null 2>&1; then
+  PROJECT_HASH=$(printf "%s" "$TARGET_DIR" | md5 | cut -c1-8)
+elif command -v md5sum >/dev/null 2>&1; then
+  PROJECT_HASH=$(printf "%s" "$TARGET_DIR" | md5sum | cut -c1-8)
+else
+  echo "❌ 找不到 python3/md5/md5sum，无法计算项目 hash" >&2
+  exit 1
+fi
 LEGION_DIR="$HOME/.claude/legion/${PROJECT_HASH}"
 mkdir -p "$LEGION_DIR"
 
@@ -694,6 +703,57 @@ d['legions'] = legions
 json.dump(d, open('$DIRECTORY', 'w'), indent=4, ensure_ascii=False)
 print('  ✓ 已注册到全局目录 (hash: ${PROJECT_HASH})')
 "
+
+# 初始化 mixed 持久化通讯链：L1 启动只连接/恢复这里，不负责项目模板初始化。
+MIXED_DIR="$LEGION_DIR/mixed"
+mkdir -p "$MIXED_DIR/inbox" "$MIXED_DIR/commanders" "$MIXED_DIR/runs"
+[[ -f "$MIXED_DIR/events.jsonl" ]] || : > "$MIXED_DIR/events.jsonl"
+[[ -f "$MIXED_DIR/aicto-reports.jsonl" ]] || : > "$MIXED_DIR/aicto-reports.jsonl"
+python3 - "$MIXED_DIR/mixed-registry.json" "$TARGET_DIR" "$PROJECT_HASH" << 'PY'
+import json
+import sys
+from pathlib import Path
+
+registry_path = Path(sys.argv[1])
+target_dir = Path(sys.argv[2])
+project_hash = sys.argv[3]
+project_name = target_dir.name
+project_path = str(target_dir)
+
+project = {
+    "name": project_name,
+    "hash": project_hash,
+    "path": project_path,
+    "session": f"legion-mixed-{project_hash}-{project_name}",
+    "aicto_control": {
+        "control_plane": "external-hermes-aicto",
+        "authority": "project-l1-command",
+        "directive_sender": "AICTO-CTO",
+        "directive_entrypoint": "/Users/feijun/Documents/AICTO/hermes-plugin/legion_api.py::send_to_commander",
+        "directive_channels": ["mixed-inbox", "legacy-inbox"],
+        "report_outbox": str(registry_path.with_name("aicto-reports.jsonl")),
+        "project_hash": project_hash,
+        "project_path": project_path,
+        "commander_id": "",
+        "next_directive_required_on_terminal_task": True,
+        "requires_actual_external_handshake": True,
+        "isolated_status_without_handshake": "isolated",
+    },
+}
+
+try:
+    registry = json.loads(registry_path.read_text(encoding="utf-8"))
+    if not isinstance(registry, dict):
+        registry = {}
+except (FileNotFoundError, json.JSONDecodeError):
+    registry = {}
+
+registry["project"] = project
+registry.setdefault("commanders", [])
+registry.setdefault("tasks", [])
+registry_path.write_text(json.dumps(registry, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+PY
+echo "  ✓ mixed 持久化通讯链已初始化"
 
 # ─────────────────────────────────────────
 # 完成

@@ -2255,7 +2255,7 @@ exit "$status"
     ) -> str:
         mark_running = self._mark_commander_cmd(commander_id, "commanding")
         finish = self._commander_finish_cmd(commander_id)
-        resolved_startup_message = startup_message or self._commander_startup_message(commander_id)
+        resolved_startup_message = startup_message or self._commander_startup_message(commander_id, "codex")
         startup_heredoc = self._startup_message_heredoc(resolved_startup_message)
         return f"""#!/usr/bin/env bash
 set -o pipefail
@@ -2284,7 +2284,7 @@ exit "$status"
     def _claude_commander_launch_script(self, commander_id: str, prompt_file: Path, log_file: Path) -> str:
         mark_running = self._mark_commander_cmd(commander_id, "commanding")
         finish = self._commander_finish_cmd(commander_id)
-        startup_message = self._commander_startup_message(commander_id)
+        startup_message = self._commander_startup_message(commander_id, "claude")
         startup_heredoc = self._startup_message_heredoc(startup_message)
         return f"""#!/usr/bin/env bash
 set -o pipefail
@@ -2345,15 +2345,24 @@ status=$?
 exit "$status"
 """
 
-    def _commander_startup_message(self, commander_id: str) -> str:
+    def _commander_startup_message(self, commander_id: str, provider: str = "") -> str:
         legion_sh = Path(__file__).resolve().with_name("legion.sh")
-        return f"""启动轻量自检（先执行，完成后再接任务）：
-1. 确认身份 {commander_id} 和项目路径；不要在启动阶段全量读取大型规划、战法或技能文件。
-2. 只运行必要态势命令：`{legion_sh} mixed status`、`{legion_sh} mixed inbox {commander_id}`、`tail -20 {self.events_file}`。
-3. 只处理 peer-online / peer-sync / readiness-order 等待办消息；常规双 L1 启动没有基础 L2 readiness。
-4. 只在当前任务需要时，再按需读取 AGENTS.md、CLAUDE.md、.planning 文件、tactics index 或相关 SKILL.md。
-5. RoundTable/圆桌健康检查只在显式圆桌、高成本架构/API/安全决策时运行。
-6. 输出一段极短启动汇总：身份、在线 peer、待处理消息、是否有 readiness-order、下一步。
+        provider_key = provider.strip().lower()
+        if provider_key == "claude":
+            provider_init = "Claude L1 军团初始化：接管实现 / 产品 / UI 方向；后续 M+ 任务用 Claude L2 分支，不冒充 Codex。"
+        elif provider_key == "codex":
+            provider_init = "Codex L1 军团初始化：接管侦察 / 审查 / 验证 / 审计方向；后续 M+ 任务用 Codex L2 分支，不冒充 Claude。"
+        else:
+            provider_init = "L1 军团初始化：确认 provider 与职责边界。"
+        return f"""启动 L1 军团初始化（创建新 L1 时先执行，完成后再接任务）：
+1. 确认身份 {commander_id} 和项目路径；这是 L1 指挥官初始化，不执行项目模板初始化，不复制 CLAUDE/agents/skills；全局/项目/记忆/技能/工具初始化只归 `legion 0`。
+2. {provider_init}
+3. 接入军团通讯：确认 mixed registry/events/inbox/aicto-reports 可读；AICTO 指挥链由 Legion Core 上线握手接入，失败即 isolated。
+4. 只运行必要态势命令：`{legion_sh} mixed status`、`{legion_sh} mixed inbox {commander_id}`、`tail -20 {self.events_file}`。
+5. 只处理 peer-online / peer-sync / readiness-order 等待办消息；同项目同级 L1 是本地指挥链，常规双 L1 启动没有基础 L2 readiness。
+6. 只在当前任务需要时，再按需读取 AGENTS.md、CLAUDE.md、.planning 文件、tactics index 或相关 SKILL.md。
+7. RoundTable/圆桌健康检查只在显式圆桌、高成本架构/API/安全决策时运行。
+8. 输出一段极短启动汇总：身份、provider 职责、AICTO/本地通讯链、在线 peer、待处理消息、是否有 readiness-order、下一步。
 """
 
     def _branch_commander_startup_message(self, commander_id: str, provider: str) -> str:

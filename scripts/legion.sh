@@ -32,13 +32,13 @@
 #   legion.sh watch                    # 实时活动流（tail 所有通信）
 #   legion.sh audit                    # 部署审计 team 做最终质量把关
 #   legion.sh mixed <cmd>              # 统一 Legion Core 混编调度器（Claude + Codex）
-#   legion.sh h                        # 初始化项目，Claude L1 当前窗口，Codex L1 后台
+#   legion.sh h                        # 启动/恢复 Claude L1 当前窗口，Codex L1 后台
 #   legion.sh host                     # 一键启动独立 Claude L1 + Codex L1；不自动合并分屏
 #   legion.sh aicto                    # 查看外部 Hermes AICTO profile 状态/启动指引
 #   legion.sh codex l1 [名]            # 启动 Codex L1；不写名则载入在线军团，没有才新增
 #   claude l1 [名]                     # 通过 Claude shim 启动/恢复 Claude L1
 #   codex l1 [名]                      # 通过 Codex shim 启动/恢复 Codex L1
-#   legion.sh claude h                 # Claude L1 当前窗口，Codex L1 后台，同时初始化军团
+#   legion.sh claude h                 # Claude L1 当前窗口，Codex L1 后台，同时接入军团通讯
 #   legion.sh claude l1 [名]           # 启动 / 恢复 Claude L1 指挥官
 #   legion.sh duo                      # 打开两个终端窗口：Codex L1 + Claude L1
 #   legion.sh dou                      # 新窗口 Codex L1，当前窗口 Claude L1
@@ -92,7 +92,7 @@ _legion_has_arg() {
 }
 
 # 只读视图操作不应当触发初始化、目录注册或 commander 注入。
-# 命中此清单的子命令跳过 _register_to_directory / _init_project_legion / _init_* 等写入。
+# 命中此清单的子命令跳过启动态写入。
 LEGION_READ_ONLY=0
 case "$REQUESTED_ACTION" in
   status|board|locks|inbox|sitrep|watch|health|usage|patrol|retro|retrospector|mailbox|gc-zombies|switch|account|war-room|gate|ops)
@@ -146,7 +146,7 @@ case "$REQUESTED_ACTION" in
     ;;
 esac
 
-# ── 全局军团名册：每次启动自动注册，支持跨项目发现 ──
+# ── 全局军团名册：仅由 legion 0 / legion-init.sh 注册项目 ──
 LEGION_DIRECTORY="$HOME/.claude/legion/directory.json"
 if [[ "$LEGION_READ_ONLY" -eq 0 ]]; then
   mkdir -p "$REGISTRY_DIR" "$(dirname "$LEGION_DIRECTORY")"
@@ -193,7 +193,8 @@ except Exception:
     pass
 REGEOF
 }
-[[ "$LEGION_READ_ONLY" -eq 1 ]] || _register_to_directory
+# 普通启动/恢复 L1 只创建 mixed runtime 通讯状态，不注册项目目录。
+# 项目注册、memory、技能、工具和持久化通讯基座初始化统一归 legion 0。
 
 # ── 项目军团初始化：新项目首次启动时复制 agent/skill 定义 ──
 LEGION_TEMPLATE_PROJECT="$HOME/.claude/legion/template"
@@ -553,17 +554,7 @@ for l in data.get('legions', []):
 
   echo "  🎯 初始化完成。各知识库将在首次使用时由第零步机制从代码自动重建。"
 }
-if [[ "$LEGION_READ_ONLY" -eq 1 ]]; then
-  :  # 只读视图：不触发项目模板初始化
-else
-  case "$REQUESTED_ACTION" in
-    0|h|host|主持|claude|codex|clean|kill-all|msg|xmsg|watcher)
-      ;;
-    *)
-      _init_project_legion
-      ;;
-  esac
-fi
+# 普通启动路径不再隐式展开项目模板；全局/项目/记忆/技能/工具初始化只归 legion 0。
 
 # ── 加载邮箱工具库（已废弃，保留向后兼容）──
 MAILBOX_SCRIPT=""
@@ -1746,10 +1737,6 @@ case "$ACTION" in
         ;;
       h|host|主持)
         shift
-        if [[ "$LEGION_READ_ONLY" -eq 0 ]]; then
-          _ensure_global_legion_config
-          _ensure_project_initialized
-        fi
         python3 "$LEGION_SCRIPT_DIR/legion_core.py" claude-host "$@"
         exit $?
         ;;
@@ -1812,10 +1799,6 @@ case "$ACTION" in
   # ── 双 L1 控制面：Claude 当前窗口，Codex 后台；M+ 任务再动态创建本体系 L2 ──
   h|host|主持)
     shift
-    if [[ "$LEGION_READ_ONLY" -eq 0 ]]; then
-      _ensure_global_legion_config
-      _ensure_project_initialized
-    fi
     if _legion_has_arg --host-only "$@"; then
       python3 "$LEGION_SCRIPT_DIR/legion_core.py" host "$@"
       exit $?
@@ -1843,10 +1826,6 @@ case "$ACTION" in
   # ── 自动分屏作战面：L1 主持人 + 基础 L2 + 执行任务 L2 同屏交互 ──
   view|v|看板|作战面)
     shift
-    if [[ "$LEGION_READ_ONLY" -eq 0 ]]; then
-      _ensure_global_legion_config
-      _ensure_project_initialized
-    fi
     python3 "$LEGION_SCRIPT_DIR/legion_core.py" view "$@"
     exit $?
     ;;
