@@ -232,6 +232,25 @@ _legion_commander_script() {
   fi
 }
 
+_legion_self_check_script() {
+  if [[ -f "$LEGION_SCRIPT_DIR/legion-self-check.py" ]]; then
+    printf '%s\n' "$LEGION_SCRIPT_DIR/legion-self-check.py"
+  elif [[ -f "$HOME/.claude/scripts/legion-self-check.py" ]]; then
+    printf '%s\n' "$HOME/.claude/scripts/legion-self-check.py"
+  else
+    return 1
+  fi
+}
+
+_run_legion_project_self_check() {
+  local self_check_script
+  [[ "${LEGION_SELF_CHECK_DISABLE:-0}" == "1" ]] && return 0
+  self_check_script="$(_legion_self_check_script)" || return 0
+  python3 "$self_check_script" --project "$PROJECT_DIR" --quiet || {
+    echo "⚠ Legion 项目自检发现问题，请运行 legion 0 修复" >&2
+  }
+}
+
 _legion_reference_project() {
   if [[ -d "$HOME/.claude/skills" && -d "$HOME/.claude/agents" ]]; then
     printf '%s\n' "$HOME"
@@ -243,6 +262,8 @@ _legion_reference_project() {
     printf '%s\n' "$HOME"
   fi
 }
+
+_run_legion_project_self_check
 
 _sync_dir_contents() {
   local src="$1"
@@ -313,6 +334,7 @@ _legion_source_fingerprint() {
       scripts/legion \
       scripts/legion.sh \
       scripts/legion-init.sh \
+      scripts/legion-self-check.py \
       scripts/legion_core.py \
       scripts/claude \
       scripts/codex \

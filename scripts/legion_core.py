@@ -7,6 +7,7 @@ import argparse
 import contextlib
 import fcntl
 import hashlib
+import importlib.util
 import json
 import os
 import random
@@ -57,6 +58,7 @@ CLAUDE_DEFAULT_BRANCHES = {
 TERMINAL_TASK_STATUSES = {"completed", "failed", "blocked"}
 TERMINAL_COMMANDER_STATUSES = {"completed", "failed"}
 ACTIVE_COMMANDER_STATUSES = {"launching", "commanding"}
+ISOLATED_COMMANDER_STATUS = "isolated"
 DELIVERY_ROLES = {
     "implement",
     "product",
@@ -380,9 +382,9 @@ class LegionCore:
                     str(online["id"]),
                     {"session": online.get("session", ""), "provider": normalized_provider},
                 )
-                self._announce_l1_online(online, action="resumed")
+                online = self._announce_l1_online(online, action="resumed")
                 online["_action"] = "载入在线军团"
-                if attach:
+                if attach and online.get("status") == "commanding":
                     os.execvp("tmux", self._tmux_foreground_argv(str(online["session"])))
                 return online
 
@@ -429,9 +431,9 @@ class LegionCore:
             self._upsert_commander(entry)
             self._event("commander_resumed", commander_id, {"session": session, "provider": normalized_provider})
             self._apply_commander_window_identity(entry)
-            self._announce_l1_online(entry, action="resumed")
+            entry = self._announce_l1_online(entry, action="resumed")
             entry["_action"] = "载入在线军团"
-            if attach:
+            if attach and entry.get("status") == "commanding":
                 os.execvp("tmux", self._tmux_foreground_argv(session))
             return entry
 
@@ -457,9 +459,9 @@ class LegionCore:
         entry["updated"] = iso_now()
         self._upsert_commander(entry)
         self._event("commander_launched", commander_id, {"session": session, "provider": normalized_provider})
-        self._announce_l1_online(entry, action="launched")
+        entry = self._announce_l1_online(entry, action="launched")
         entry["_action"] = "新增军团"
-        if attach:
+        if attach and entry.get("status") == "commanding":
             os.execvp("tmux", self._tmux_foreground_argv(session))
         return entry
 
@@ -660,6 +662,8 @@ class LegionCore:
         }
         self._upsert_commander(entry)
         self._event("commander_registered", commander_id, {"provider": normalized_provider, "session": session})
+        if status == "commanding":
+            entry = self._announce_l1_online(entry, action="registered")
         return entry
 
     def convene_host(
@@ -1888,10 +1892,14 @@ class LegionCore:
                 branch = commander.get("branch") or "-"
                 parent = commander.get("parent") or "-"
                 lifecycle = commander.get("lifecycle") or "-"
+                chains = commander.get("command_chains") or {}
+                aicto_chain = (chains.get("aicto") or commander.get("aicto_link") or {}).get("status", "-")
+                local_chain = (chains.get("local_l1") or commander.get("local_l1_link") or {}).get("status", "-")
                 lines.append(
                     f"  {commander_id:18} {commander.get('provider','?'):7} "
                     f"{commander.get('status','?'):10} L{level} branch={branch} "
-                    f"parent={parent} lifecycle={lifecycle} {commander.get('session','')}"
+                    f"parent={parent} lifecycle={lifecycle} "
+                    f"chain=AICTO:{aicto_chain}/localL1:{local_chain} {commander.get('session','')}"
                 )
         lines.append("")
 
@@ -2020,8 +2028,10 @@ Operating rules:
 
 Mission:
 - Coordinate this project through Legion Core. Own your provider's L2/team tree and coordinate with same-project peer L1s through durable inbox/events/results.
-- External Hermes AICTO is your project-level technical commander. Treat `AICTO-CTO` durable inbox messages as superior directives, and report terminal task state back to AICTO before waiting for user-visible follow-up.
-- On launch/resume, Legion Core sends peer notices and queues AICTO reports. Keep workers visible in tmux; do not create invisible background work.
+- External Hermes AICTO is the 总指挥部指挥链. Treat `AICTO-CTO` durable inbox messages as superior directives, and report terminal task state back to AICTO before waiting for user-visible follow-up.
+- Same-project L1 peers are the 本地 L1 指挥链 for coordination only. Peer-sync/local inbox communication never substitutes for AICTO command-chain access.
+- On launch/resume, Legion Core must receive a real external Hermes AICTO inbox-write result before this L1 counts as in the 总指挥部指挥链. Without that handshake, the registry marks the L1 `isolated` and it must not accept command-chain work.
+- After AICTO command-chain connection, Legion Core sends local L1 peer notices and queues AICTO reports. Keep workers visible in tmux; do not create invisible background work.
 
 Project:
 - Path: {self.context.project_dir}
@@ -2399,6 +2409,8 @@ fi"""
             "project_path": str(self.context.project_dir),
             "commander_id": commander_id,
             "next_directive_required_on_terminal_task": True,
+            "requires_actual_external_handshake": True,
+            "isolated_status_without_handshake": ISOLATED_COMMANDER_STATUS,
         }
 
     def _read_registry(self) -> dict[str, Any]:
@@ -2764,17 +2776,172 @@ fi"""
     def _tmux_message_text(self, record: dict[str, Any]) -> str:
         return f"[Legion mixed {record.get('type','message')}] {record.get('from','?')}: {record.get('content','')}"
 
-    def _announce_l1_online(self, commander: dict[str, Any], action: str) -> None:
-        if commander.get("role") != "commander" or self._entry_level(commander) != 1:
-            return
+    def _connect_aicto_command_chain(
+        self,
+        commander: dict[str, Any],
+        action: str,
+        correlation_id: str,
+    ) -> dict[str, Any]:
+        result = self._send_external_aicto_handshake(commander, action, correlation_id)
+        if not isinstance(result, dict):
+            raise RuntimeError("external Hermes AICTO returned a non-dict handshake result")
+
+        missing: list[str] = []
+        if not result.get("message_id"):
+            missing.append("message_id")
+        if result.get("mixed_inbox_written") is not True:
+            missing.append("mixed_inbox_written")
+        if result.get("legacy_inbox_written") is not True:
+            missing.append("legacy_inbox_written")
+        if missing:
+            raise RuntimeError(f"AICTO handshake incomplete: missing {', '.join(missing)}")
+
+        return {
+            "status": "connected",
+            "actual_communication": True,
+            "connected_at": iso_now(),
+            "control_plane": AICTO_CONTROL_PLANE_ID,
+            "directive_sender": AICTO_DIRECTIVE_SENDER,
+            "plugin_entrypoint": AICTO_PLUGIN_ENTRYPOINT,
+            "message_id": result.get("message_id"),
+            "mixed_inbox_written": result.get("mixed_inbox_written"),
+            "legacy_inbox_written": result.get("legacy_inbox_written"),
+            "inbox_path": result.get("inbox_path"),
+            "mixed_inbox_path": result.get("mixed_inbox_path"),
+            "legacy_inbox_path": result.get("legacy_inbox_path"),
+            "tmux_notified": result.get("tmux_notified"),
+        }
+
+    def _send_external_aicto_handshake(
+        self,
+        commander: dict[str, Any],
+        action: str,
+        correlation_id: str,
+    ) -> dict[str, Any]:
+        sender = self._external_aicto_sender()
         commander_id = str(commander.get("id", "")).strip()
         if not commander_id:
-            return
+            raise RuntimeError("missing L1 commander id for AICTO handshake")
+        payload = (
+            f"AICTO-L1-HANDSHAKE action={action} commander={commander_id} "
+            f"project={self.context.project_dir} correlation_id={correlation_id}. "
+            "You are now connected to the external Hermes AICTO command chain. "
+            "Report terminal task state to AICTO and request the next directive."
+        )
+        return sender(
+            commander_id,
+            payload,
+            msg_type="task",
+            summary=f"L1 command-chain handshake for {commander_id}",
+            cto_context={
+                "kind": "l1-command-chain-handshake",
+                "required": True,
+                "action": action,
+                "correlation_id": correlation_id,
+                "commander_id": commander_id,
+                "project_hash": self.context.project_hash,
+                "project_path": str(self.context.project_dir),
+                "authority": "external Hermes AICTO holds project L1 command authority",
+            },
+            priority="high",
+            legion_hash=self.context.project_hash,
+        )
+
+    def _external_aicto_sender(self) -> Any:
+        if "::" not in AICTO_PLUGIN_ENTRYPOINT:
+            raise RuntimeError(f"invalid AICTO plugin entrypoint: {AICTO_PLUGIN_ENTRYPOINT}")
+        path_text, function_name = AICTO_PLUGIN_ENTRYPOINT.split("::", 1)
+        plugin_path = Path(path_text).expanduser()
+        if not plugin_path.exists():
+            raise RuntimeError(f"external Hermes AICTO plugin not found: {plugin_path}")
+        module_name = f"external_hermes_aicto_{hashlib.sha256(str(plugin_path).encode('utf-8')).hexdigest()[:12]}"
+        spec = importlib.util.spec_from_file_location(module_name, plugin_path)
+        if spec is None or spec.loader is None:
+            raise RuntimeError(f"cannot load external Hermes AICTO plugin: {plugin_path}")
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[spec.name] = module
+        spec.loader.exec_module(module)
+        if hasattr(module, "LEGION_ROOT"):
+            module.LEGION_ROOT = self.legion_home
+        if hasattr(module, "LEGION_DIRECTORY"):
+            module.LEGION_DIRECTORY = self.legion_home / "directory.json"
+        sender = getattr(module, function_name, None)
+        if not callable(sender):
+            raise RuntimeError(f"AICTO plugin function is not callable: {AICTO_PLUGIN_ENTRYPOINT}")
+        return sender
+
+    def _mark_commander_isolated_from_aicto(
+        self,
+        commander: dict[str, Any],
+        action: str,
+        correlation_id: str,
+        failure: Exception,
+    ) -> dict[str, Any]:
+        commander_id = str(commander.get("id", "")).strip() or "unknown"
+        failure_text = str(failure) or failure.__class__.__name__
+        isolated = dict(commander)
+        isolated["status"] = ISOLATED_COMMANDER_STATUS
+        isolated["aicto_link"] = {
+            "status": ISOLATED_COMMANDER_STATUS,
+            "actual_communication": False,
+            "failure": failure_text,
+            "action": action,
+            "control_plane": AICTO_CONTROL_PLANE_ID,
+            "directive_sender": AICTO_DIRECTIVE_SENDER,
+            "plugin_entrypoint": AICTO_PLUGIN_ENTRYPOINT,
+            "isolated_at": iso_now(),
+        }
+        isolated["local_l1_link"] = {
+            "status": "not-established",
+            "actual_communication": False,
+            "reason": "aicto-command-chain-required-first",
+            "scope": "same-project-l1",
+        }
+        isolated["command_chains"] = {
+            "aicto": isolated["aicto_link"],
+            "local_l1": isolated["local_l1_link"],
+        }
+        isolated["aicto_failure"] = failure_text
+        isolated["updated"] = iso_now()
+        self._upsert_commander(isolated)
+        self._event(
+            "aicto_command_chain_failed",
+            commander_id,
+            {"action": action, "failure": failure_text, "status": ISOLATED_COMMANDER_STATUS},
+            correlation_id=correlation_id,
+        )
+        return isolated
+
+    def _announce_l1_online(self, commander: dict[str, Any], action: str) -> dict[str, Any]:
+        if commander.get("role") != "commander" or self._entry_level(commander) != 1:
+            return commander
+        commander_id = str(commander.get("id", "")).strip()
+        if not commander_id:
+            return commander
         correlation = self._new_correlation_id(f"l1-online:{commander_id}:{action}")
+        try:
+            aicto_link = self._connect_aicto_command_chain(commander, action, correlation)
+        except Exception as exc:  # noqa: BLE001 - failure becomes an explicit isolated commander state.
+            return self._mark_commander_isolated_from_aicto(commander, action, correlation, exc)
+
+        connected = dict(commander)
+        connected["status"] = "commanding"
+        connected["aicto_link"] = aicto_link
+        connected["command_chains"] = {
+            "aicto": aicto_link,
+            "local_l1": {
+                "status": "pending-peer-sync",
+                "actual_communication": False,
+                "scope": "same-project-l1",
+            },
+        }
+        connected["updated"] = iso_now()
+        self._upsert_commander(connected)
+
         peers = self._active_same_project_l1_peers(commander_id)
         content = (
             f"L1-ONLINE action={action} commander={commander_id} "
-            f"provider={commander.get('provider', '?')} project={self.context.project_dir}. "
+            f"provider={connected.get('provider', '?')} project={self.context.project_dir}. "
             "I am online for same-project L1 coordination; S work stays with L1, "
             "M+ work expands via `mixed campaign --corps`; external Hermes AICTO keeps "
             "project L1 command authority through durable inbox directives and report outbox."
@@ -2792,6 +2959,21 @@ fi"""
                 correlation_id=correlation,
             )
             delivered_peer_ids.append(peer_id)
+        local_l1_link = {
+            "status": "connected" if delivered_peer_ids else "no-peer-l1",
+            "actual_communication": bool(delivered_peer_ids),
+            "scope": "same-project-l1",
+            "peer_l1": delivered_peer_ids,
+            "authority": "local coordination only; cannot substitute for AICTO command chain",
+            "updated": iso_now(),
+        }
+        connected["local_l1_link"] = local_l1_link
+        connected["command_chains"] = {
+            "aicto": aicto_link,
+            "local_l1": local_l1_link,
+        }
+        connected["updated"] = iso_now()
+        self._upsert_commander(connected)
         report = self._queue_aicto_report(
             kind="l1-online",
             subject_id=commander_id,
@@ -2799,10 +2981,13 @@ fi"""
             source=commander_id,
             payload={
                 "action": action,
-                "provider": commander.get("provider", ""),
-                "session": commander.get("session", ""),
+                "provider": connected.get("provider", ""),
+                "session": connected.get("session", ""),
                 "peer_l1": delivered_peer_ids,
                 "aicto_authority": self._aicto_control_contract(commander_id),
+                "aicto_link": aicto_link,
+                "local_l1_link": local_l1_link,
+                "command_chains": connected["command_chains"],
                 "awaiting_directives_from": AICTO_DIRECTIVE_SENDER,
             },
             correlation_id=correlation,
@@ -2813,6 +2998,7 @@ fi"""
             {"action": action, "peer_l1": delivered_peer_ids, "aicto_report": report["id"]},
             correlation_id=correlation,
         )
+        return connected
 
     def _active_same_project_l1_peers(self, commander_id: str) -> list[dict[str, Any]]:
         peers: list[dict[str, Any]] = []
@@ -3221,6 +3407,7 @@ issued_at={order['issued_at']}
 
     def mark_commander(self, commander_id: str, status: str) -> None:
         self.init_state()
+        commander_to_announce: dict[str, Any] | None = None
         with self._registry_lock():
             registry = self._read_registry()
             for commander in registry.setdefault("commanders", []):
@@ -3237,10 +3424,26 @@ issued_at={order['issued_at']}
                         return
                     commander["status"] = status
                     commander["updated"] = iso_now()
+                    if (
+                        status == "commanding"
+                        and commander.get("role") == "commander"
+                        and self._entry_level(commander) == 1
+                        and not self._aicto_command_chain_connected(commander)
+                    ):
+                        commander_to_announce = dict(commander)
                     self._write_registry(registry)
                     self._event(f"commander_{status}", commander_id, {})
-                    return
-            raise SystemExit(f"unknown commander: {commander_id}")
+                    break
+            else:
+                raise SystemExit(f"unknown commander: {commander_id}")
+        if commander_to_announce:
+            self._announce_l1_online(commander_to_announce, action="marked-commanding")
+        return
+
+    def _aicto_command_chain_connected(self, commander: dict[str, Any]) -> bool:
+        chains = commander.get("command_chains") or {}
+        link = chains.get("aicto") or commander.get("aicto_link") or {}
+        return link.get("status") == "connected" and link.get("actual_communication") is True
 
     def repair_dependents(self, original_task_id: str, replacement_task_id: str = "") -> list[str]:
         """Explicit repair operation: unblock dependents of a failed/blocked task.
@@ -4544,7 +4747,7 @@ def main(argv: list[str] | None = None) -> int:
 
     mark_commander = sub.add_parser("mark-commander", help="Mark a commander status")
     mark_commander.add_argument("commander_id")
-    mark_commander.add_argument("status", choices=["planned", "launching", "commanding", "completed", "failed"])
+    mark_commander.add_argument("status", choices=["planned", "launching", "commanding", "isolated", "completed", "failed"])
 
     repair = sub.add_parser(
         "repair",
@@ -4561,7 +4764,7 @@ def main(argv: list[str] | None = None) -> int:
     register_commander.add_argument("provider", choices=["claude", "codex"])
     register_commander.add_argument("commander_id")
     register_commander.add_argument("--session", default="")
-    register_commander.add_argument("--status", default="commanding", choices=["planned", "launching", "commanding", "completed", "failed"])
+    register_commander.add_argument("--status", default="commanding", choices=["planned", "launching", "commanding", "isolated", "completed", "failed"])
 
     args = parser.parse_args(argv)
     core = LegionCore(Path(args.project_dir), Path(args.legion_home).expanduser() if args.legion_home else None)

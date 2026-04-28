@@ -1226,8 +1226,9 @@ class LegionCoreTests(unittest.TestCase):
             host = convened["host"]
             l2_ids = [commander["id"] for commander in convened["l2"]]
 
-            inbox = core._inbox_file(host["id"]).read_text(encoding="utf-8").strip()
-            record = json.loads(inbox)
+            inbox_lines = core._inbox_file(host["id"]).read_text(encoding="utf-8").splitlines()
+            records = [json.loads(line) for line in inbox_lines if line.strip()]
+            record = next(item for item in records if item["type"] == "readiness-order")
             self.assertEqual(record["type"], "readiness-order")
             self.assertIn("INIT-READY-REQUEST", record["content"])
             self.assertIn("READY:init-complete", record["content"])
@@ -1311,6 +1312,116 @@ class LegionCoreTests(unittest.TestCase):
             registry = json.loads(core.registry_file.read_text(encoding="utf-8"))
             registered = next(item for item in registry["commanders"] if item["id"] == commander["id"])
             self.assertEqual(registered["aicto_authority"]["authority"], "project-l1-command")
+            self.assertEqual(registered["command_chains"]["aicto"]["status"], "connected")
+            self.assertEqual(registered["command_chains"]["local_l1"]["status"], "connected")
+            self.assertIn("L1-peer", registered["command_chains"]["local_l1"]["peer_l1"])
+
+    def test_l1_enters_command_chain_only_after_external_aicto_handshake(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            core = LegionCore(root, legion_home=root / "home", runner=RecordingRunner())
+            handshake = {
+                "status": "connected",
+                "actual_communication": True,
+                "message_id": "msg-aicto-online",
+                "mixed_inbox_written": True,
+                "legacy_inbox_written": True,
+            }
+
+            with patch.object(LegionCore, "_connect_aicto_command_chain", return_value=handshake, create=True) as connect:
+                commander = core.start_commander(provider="claude", name="alpha", dry_run=False, attach=False)
+
+            connect.assert_called_once()
+            self.assertEqual(commander["status"], "commanding")
+            self.assertEqual(commander["aicto_link"]["status"], "connected")
+            self.assertTrue(commander["aicto_link"]["actual_communication"])
+            self.assertEqual(commander["command_chains"]["aicto"]["status"], "connected")
+            self.assertEqual(commander["command_chains"]["local_l1"]["status"], "no-peer-l1")
+            registry = json.loads(core.registry_file.read_text(encoding="utf-8"))
+            registered = next(item for item in registry["commanders"] if item["id"] == commander["id"])
+            self.assertEqual(registered["aicto_link"]["message_id"], "msg-aicto-online")
+            self.assertEqual(registered["command_chains"]["aicto"]["message_id"], "msg-aicto-online")
+
+    def test_l1_is_isolated_when_external_aicto_handshake_fails(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            core = LegionCore(root, legion_home=root / "home", runner=RecordingRunner())
+
+            with patch.object(
+                LegionCore,
+                "_connect_aicto_command_chain",
+                side_effect=RuntimeError("external Hermes AICTO unreachable"),
+                create=True,
+            ):
+                commander = core.start_commander(provider="claude", name="alpha", dry_run=False, attach=False)
+
+            self.assertEqual(commander["status"], "isolated")
+            self.assertEqual(commander["aicto_link"]["status"], "isolated")
+            self.assertFalse(commander["aicto_link"]["actual_communication"])
+            self.assertIn("external Hermes AICTO unreachable", commander["aicto_link"]["failure"])
+            self.assertEqual(commander["command_chains"]["aicto"]["status"], "isolated")
+            self.assertEqual(commander["command_chains"]["local_l1"]["status"], "not-established")
+            registry = json.loads(core.registry_file.read_text(encoding="utf-8"))
+            registered = next(item for item in registry["commanders"] if item["id"] == commander["id"])
+            self.assertEqual(registered["status"], "isolated")
+            events = [json.loads(line) for line in core.events_file.read_text(encoding="utf-8").splitlines()]
+            self.assertEqual(events[-1]["event"], "aicto_command_chain_failed")
+
+    def test_external_l1_registration_requires_external_aicto_handshake(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            core = LegionCore(root, legion_home=root / "home", runner=RecordingRunner())
+            handshake = {
+                "status": "connected",
+                "actual_communication": True,
+                "message_id": "msg-register",
+                "mixed_inbox_written": True,
+                "legacy_inbox_written": True,
+            }
+
+            with patch.object(LegionCore, "_connect_aicto_command_chain", return_value=handshake, create=True) as connect:
+                commander = core.register_external_commander(
+                    provider="claude",
+                    commander_id="L1-青龙军团",
+                    session="legion-test-L1-青龙军团",
+                    status="commanding",
+                )
+
+            connect.assert_called_once()
+            self.assertEqual(commander["status"], "commanding")
+            self.assertEqual(commander["aicto_link"]["status"], "connected")
+            self.assertEqual(commander["command_chains"]["aicto"]["status"], "connected")
+
+    def test_marking_l1_commanding_requires_external_aicto_handshake(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            core = LegionCore(root, legion_home=root / "home", runner=RecordingRunner())
+            core._upsert_commander(
+                {
+                    "id": "L1-launching",
+                    "provider": "claude",
+                    "role": "commander",
+                    "level": 1,
+                    "status": "launching",
+                    "session": "legion-test-L1-launching",
+                    "run_dir": "",
+                    "project": str(root),
+                    "updated": "old",
+                }
+            )
+
+            with patch.object(
+                LegionCore,
+                "_connect_aicto_command_chain",
+                side_effect=RuntimeError("external Hermes AICTO unreachable"),
+            ):
+                core.mark_commander("L1-launching", "commanding")
+
+            registry = json.loads(core.registry_file.read_text(encoding="utf-8"))
+            registered = next(item for item in registry["commanders"] if item["id"] == "L1-launching")
+            self.assertEqual(registered["status"], "isolated")
+            self.assertEqual(registered["command_chains"]["aicto"]["status"], "isolated")
+            self.assertEqual(registered["command_chains"]["local_l1"]["status"], "not-established")
 
     def test_manual_aicto_report_is_durable_and_readable(self):
         with tempfile.TemporaryDirectory() as td:
@@ -1337,7 +1448,9 @@ class LegionCoreTests(unittest.TestCase):
 
             prompt = core.render_commander_prompt("L1-alpha", "claude")
 
-            self.assertIn("External Hermes AICTO is your project-level technical commander", prompt)
+            self.assertIn("External Hermes AICTO is the 总指挥部指挥链", prompt)
+            self.assertIn("Same-project L1 peers are the 本地 L1 指挥链", prompt)
+            self.assertIn("Peer-sync/local inbox communication never substitutes for AICTO", prompt)
             self.assertIn("AICTO-CTO", prompt)
             self.assertIn("next_directive_request", prompt)
             self.assertIn("report to AICTO and request the next directive", prompt)
@@ -3207,8 +3320,9 @@ class LegionCoreTests(unittest.TestCase):
             self.assertTrue(order["nonce"])
             self.assertTrue(order["issued_at"])
             self.assertEqual(set(order["expected"]), {commander["id"] for commander in convened["l2"]})
-            inbox = core._inbox_file(host_id).read_text(encoding="utf-8").strip()
-            record = json.loads(inbox)
+            inbox_lines = core._inbox_file(host_id).read_text(encoding="utf-8").splitlines()
+            records = [json.loads(line) for line in inbox_lines if line.strip()]
+            record = next(item for item in records if item["type"] == "readiness-order")
             self.assertIn(order["order_id"], record["content"])
             self.assertIn(order["nonce"], record["content"])
 

@@ -229,6 +229,7 @@ class LegionShellContractTests(unittest.TestCase):
             target_skills_dir.mkdir(parents=True)
             (target_skills_dir / "brainstorming").symlink_to("../../.agents/skills/brainstorming")
             (target_skills_dir / "legacy-file").write_text("not a skill directory", encoding="utf-8")
+            (target_skills_dir / "broken-skill").mkdir()
 
             skills_dir = reference / ".claude" / "skills"
             agents_dir = reference / ".claude" / "agents"
@@ -239,7 +240,13 @@ class LegionShellContractTests(unittest.TestCase):
                 skill_dir.mkdir()
                 (skill_dir / "SKILL.md").write_text(f"# {skill}\n", encoding="utf-8")
             for agent in core_agents:
-                (agents_dir / agent).write_text(f"# {agent}\n", encoding="utf-8")
+                if agent == "implement.md":
+                    agent_body = "# implement\n\n" + "\n".join(
+                        f"- long agent rule {i}: detailed operational instruction" for i in range(120)
+                    )
+                    (agents_dir / agent).write_text(agent_body + "\n", encoding="utf-8")
+                else:
+                    (agents_dir / agent).write_text(f"# {agent}\n", encoding="utf-8")
 
             env = os.environ.copy()
             env.update(
@@ -284,15 +291,30 @@ class LegionShellContractTests(unittest.TestCase):
             self.assertTrue((target_skills_dir / "brainstorming").is_dir())
             self.assertFalse((target_skills_dir / "brainstorming").is_symlink())
             self.assertFalse((target_skills_dir / "legacy-file").exists())
+            self.assertFalse((target_skills_dir / "broken-skill").exists())
             for skill_entry in target_skills_dir.iterdir():
                 self.assertTrue(skill_entry.is_dir(), msg=f"{skill_entry} should be a directory")
                 self.assertFalse(skill_entry.is_symlink(), msg=f"{skill_entry} should not be a symlink")
-            backup_runs = list((project / ".claude" / "backups" / "legion-init").iterdir())
-            symlink_backup = backup_runs[0] / ".claude" / "skills" / "brainstorming"
-            file_backup = backup_runs[0] / ".claude" / "skills" / "legacy-file"
-            self.assertTrue(os.path.lexists(symlink_backup))
-            self.assertTrue(symlink_backup.is_symlink())
-            self.assertTrue(file_backup.is_file())
+            backup_root = project / ".claude" / "backups" / "legion-init"
+            symlink_backups = []
+            file_backups = []
+            broken_skill_backups = []
+            for dirpath, dirnames, filenames in os.walk(backup_root):
+                for name in dirnames + filenames:
+                    path = Path(dirpath) / name
+                    if name == "brainstorming" and os.path.islink(path):
+                        symlink_backups.append(path)
+                    if name == "legacy-file" and path.is_file():
+                        file_backups.append(path)
+                    if name == "broken-skill" and path.is_dir():
+                        broken_skill_backups.append(path)
+            self.assertEqual(len(symlink_backups), 1)
+            self.assertEqual(len(file_backups), 1)
+            self.assertEqual(len(broken_skill_backups), 1)
+            implement_agent = project / ".claude" / "agents" / "implement.md"
+            implement_text = implement_agent.read_text(encoding="utf-8")
+            self.assertLessEqual(len(implement_text), 2500)
+            self.assertIn("legion-agent-compressed/v1", implement_text)
 
             second = subprocess.run(
                 [
@@ -337,6 +359,66 @@ class LegionShellContractTests(unittest.TestCase):
             self.assertIn("## 军团核心原则：规模优先", fresh_claude)
             self.assertIn("# Project: fresh-project", fresh_claude)
             self.assertEqual(fresh_claude.count("# Project: fresh-project"), 1)
+
+    def test_entrypoint_self_check_compresses_oversized_claude_on_every_invocation(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            project = root / "project"
+            home = root / "home"
+            project.mkdir()
+            home.mkdir()
+            long_claude = "# Project Notes\n\n" + "\n".join(
+                f"- historical project detail {i}: verbose content that must be compacted" for i in range(120)
+            )
+            (project / "CLAUDE.md").write_text(long_claude + "\n", encoding="utf-8")
+            skill_dir = project / ".agents" / "skills" / "recon"
+            skill_dir.mkdir(parents=True)
+            long_skill = "# recon skill\n\n" + "\n".join(
+                f"- skill instruction {i}: this must remain a skill document, not an agent definition" for i in range(120)
+            )
+            (skill_dir / "SKILL.md").write_text(long_skill + "\n", encoding="utf-8")
+
+            env = os.environ.copy()
+            for key in (
+                "LEGION_DIR",
+                "MIXED_DIR",
+                "REGISTRY_DIR",
+                "PROJECT_DIR",
+                "PLANNING_DIR",
+                "LEGION_TRUST_PROJECT_DIR",
+                "RETROSPECTOR_TRUST_BOUNDARY_ENV",
+                "RETROSPECTOR_TRUST_PROJECT_DIR",
+            ):
+                env.pop(key, None)
+            env.update(
+                {
+                    "HOME": str(home),
+                    "TMPDIR": str(root / "missing-tmp"),
+                    "PYTHONDONTWRITEBYTECODE": "1",
+                }
+            )
+            completed = subprocess.run(
+                ["bash", str(self.legion_sh), "status"],
+                cwd=project,
+                env=env,
+                capture_output=True,
+                text=True,
+                timeout=20,
+            )
+            self.assertEqual(
+                completed.returncode,
+                0,
+                msg=f"stdout:\n{completed.stdout}\nstderr:\n{completed.stderr}",
+            )
+            claude_text = (project / "CLAUDE.md").read_text(encoding="utf-8")
+            self.assertLessEqual(len(claude_text), 2500)
+            self.assertTrue(claude_text.startswith("# >>> legion-init execution-discipline/v2 >>>"))
+            self.assertIn("历史 CLAUDE.md（已压缩）", claude_text)
+            skill_text = (skill_dir / "SKILL.md").read_text(encoding="utf-8")
+            self.assertEqual(skill_text, long_skill + "\n")
+            self.assertNotIn("legion-agent-compressed/v1", skill_text)
+            self.assertTrue(any((project / ".claude" / "backups" / "legion-self-check").glob("*/CLAUDE.md")))
+            self.assertFalse((home / ".claude" / "legion" / "directory.json").exists())
 
     def test_aicto_entrypoint_is_external_hermes_status_not_local_commander(self):
         completed = self.assert_read_only_shell_result(["aicto", "--dry-run", "--no-attach"])
