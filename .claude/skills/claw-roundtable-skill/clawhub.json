@@ -1,0 +1,49 @@
+{
+  "name": "roundtable-skill",
+  "version": "0.9.4",
+  "description": "多 Agent 深度讨论系统 - 需求驱动的智能专家匹配，集成 146 个全领域专家",
+  "author": "Krislu",
+  "license": "MIT",
+  "triggers": [
+    "RoundTable",
+    "圆桌会议",
+    "圆桌讨论",
+    "多 Agent 讨论",
+    "多专家讨论",
+    "深度讨论"
+  ],
+  "keywords": [
+    "roundtable",
+    "multi-agent",
+    "discussion",
+    "deep-analysis",
+    "decision-making"
+  ],
+  "main": "__init__.py",
+  "files": [
+    "__init__.py",
+    "requirement_analyzer.py",
+    "roundtable_engine_v2.py",
+    "roundtable_notifier.py",
+    "agency_agents_loader.py",
+    "agent_selector.py",
+    "model_selector.py",
+    "SKILL.md",
+    "INSTALL.md",
+    "CHANGELOG.md",
+    "RELEASE.md",
+    "clawhub.json",
+    "agency-agents/**/*"
+  ],
+  "scripts": {
+    "test": "python3 -c \"import roundtable_engine; print('✅ 模块加载成功')\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/openclaw/roundtable-skill"
+  },
+  "homepage": "https://clawhub.com/skills/roundtable-skill",
+  "bugs": {
+    "url": "https://github.com/openclaw/roundtable-skill/issues"
+  }
+}

@@ -211,6 +211,62 @@
       ],
       "verified": true,
       "notes": "Persist external Hermes AICTO command authority in project/L1/report payloads and make terminal task reports request the next AICTO directive. Verified with py_compile, focused AICTO tests, full core+shell contract tests, JSON validation, and diff check."
+    },
+    {
+      "id": "F020",
+      "name": "Framed colored L2 operator view",
+      "status": "completed",
+      "assignee": "L1-银河军团",
+      "files": [
+        "scripts/legion_core.py",
+        "tests/test_legion_core.py",
+        "README.md",
+        ".planning/REQUIREMENTS.md",
+        ".planning/DECISIONS.md",
+        ".planning/STATE.md",
+        ".planning/features.json"
+      ],
+      "verified": true,
+      "notes": "Persisted the live-tested tmux view style: L1 interactive on the left, live L2 previews stacked on the right, and each L2 rendered in its own deterministic colored frame with a bottom title. Verified with py_compile, JSON validation, focused view tests, scrubbed full core tests, shell contract tests, diff check, global script sync, global py_compile, and global view-script smoke."
+    },
+    {
+      "id": "F021",
+      "name": "L1 exit cascades L2 disband",
+      "status": "completed",
+      "assignee": "L1-银河军团",
+      "files": [
+        "scripts/legion_core.py",
+        "tests/test_legion_core.py",
+        ".planning/REQUIREMENTS.md",
+        ".planning/DECISIONS.md",
+        ".planning/STATE.md",
+        ".planning/features.json"
+      ],
+      "verified": true,
+      "notes": "When an L1 exits or is marked terminal, launch-script EXIT traps and Legion Core disband only that L1's subordinate L2 tree, block active child tasks with a parent-exit reason, kill reachable L2 tmux sessions, and leave peer L1 trees untouched. Verified with py_compile, bash -n, focused lifecycle tests, scrubbed full core tests, shell contract tests, JSON validation, diff check, and global script sync."
+    },
+    {
+      "id": "F022",
+      "name": "Short L1 startup commands",
+      "status": "completed",
+      "assignee": "L1-银河军团",
+      "files": [
+        "scripts/cc",
+        "scripts/cx",
+        "scripts/legion.sh",
+        "scripts/legion-init.sh",
+        "scripts/legion_core.py",
+        "install.sh",
+        "tests/test_legion_core.py",
+        "tests/test_legion_shell_contract.py",
+        "README.md",
+        ".planning/REQUIREMENTS.md",
+        ".planning/DECISIONS.md",
+        ".planning/STATE.md",
+        ".planning/features.json"
+      ],
+      "verified": true,
+      "notes": "Primary L1 startup shortcuts are now `cc l1` for Claude and `cx l1` for Codex; `legion 0` remains the sole global/project initialization command. Verified with py_compile, bash -n, focused shortcut tests, scrubbed full core tests, shell contract tests, JSON validation, diff check, global script sync, and live `cc l1` / `cx l1` dry-run smokes."
     }
   ]
 }

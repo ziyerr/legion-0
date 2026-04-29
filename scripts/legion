@@ -3,6 +3,8 @@
 #
 #   legion 0                -> initialize current project Legion files
 #   legion h                -> start/resume Claude L1 + Codex L1
+#   cc l1 <name>            -> Legion Claude L1 shortcut
+#   cx l1 <name>            -> Legion Codex L1 shortcut
 #   legion codex l1 <name>  -> legion.sh codex l1 <name>
 #   legion ...              -> legion.sh ...
 

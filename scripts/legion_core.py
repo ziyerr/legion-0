@@ -96,6 +96,20 @@ AICTO_MEMORY_REPORT_KINDS = {
     "task-problem",
     "problem",
 }
+TMUX_LEGION_PALETTE = (
+    "colour39",
+    "colour45",
+    "colour83",
+    "colour220",
+    "colour214",
+    "colour203",
+    "colour171",
+    "colour135",
+    "colour99",
+    "colour51",
+    "colour118",
+    "colour226",
+)
 L2_REQUEST_MARKERS = (
     "l2",
     "L2",
@@ -469,6 +483,7 @@ class LegionCore:
                 "commander_failed",
                 f"tmux new-session failed: {(stderr or stdout).strip()}",
             )
+        self._apply_commander_window_identity(entry)
         code, stdout, stderr = self.runner.run(
             ["tmux", "send-keys", "-t", f"{session}:{commander_id}", f"bash {shlex.quote(str(launch_script))}", "Enter"]
         )
@@ -580,6 +595,7 @@ class LegionCore:
         if self._tmux_has_session(session):
             entry["status"] = "commanding"
             self._upsert_commander(entry)
+            self._apply_commander_window_identity(entry)
             entry["_action"] = "载入在线总司令"
             if attach:
                 os.execvp("tmux", self._tmux_foreground_argv(session))
@@ -594,6 +610,7 @@ class LegionCore:
                 "aicto_failed",
                 f"tmux new-session failed: {(stderr or stdout).strip()}",
             )
+        self._apply_commander_window_identity(entry)
         code, stdout, stderr = self.runner.run(
             ["tmux", "send-keys", "-t", f"{session}:{commander_id}", f"bash {shlex.quote(str(launch_script))}", "Enter"]
         )
@@ -954,6 +971,7 @@ class LegionCore:
         if self._tmux_has_session(session):
             entry["status"] = "commanding"
             self._upsert_commander(entry)
+            self._apply_commander_window_identity(entry)
             if attach:
                 os.execvp("tmux", ["tmux", "a", "-t", session])
             return entry
@@ -967,6 +985,7 @@ class LegionCore:
                 "branch_commander_failed",
                 f"tmux new-session failed: {(stderr or stdout).strip()}",
             )
+        self._apply_commander_window_identity(entry)
         code, stdout, stderr = self.runner.run(
             ["tmux", "send-keys", "-t", f"{session}:{commander_id}", f"bash {shlex.quote(str(launch_script))}", "Enter"]
         )
@@ -1418,6 +1437,7 @@ class LegionCore:
             self._fail_task_launch(spec.task_id, f"tmux new-window failed: {(stderr or stdout).strip()}")
             return False
 
+        self._apply_worker_window_identity(target_session, window, spec.task_id)
         code, stdout, stderr = self.runner.run(
             ["tmux", "send-keys", "-t", f"{target_session}:{window}", f"bash {shlex.quote(str(launch_script))}", "Enter"]
         )
@@ -1977,6 +1997,7 @@ class LegionCore:
         """
         self.init_state()
         commander_failures: list[tuple[str, str]] = []
+        failed_l1_ids: list[str] = []
         commander_recoveries: list[tuple[str, str]] = []
         inaccessible_probes: list[tuple[str, str]] = []
         with self._registry_lock():
@@ -1992,7 +2013,10 @@ class LegionCore:
                     commander["status"] = "failed"
                     commander["failure"] = "tmux session is not alive"
                     commander["updated"] = iso_now()
-                    commander_failures.append((str(commander.get("id")), commander["failure"]))
+                    commander_id = str(commander.get("id"))
+                    commander_failures.append((commander_id, commander["failure"]))
+                    if self._is_l1_commander(commander):
+                        failed_l1_ids.append(commander_id)
                 elif status in ACTIVE_COMMANDER_STATUSES and probe["state"] == "inaccessible":
                     inaccessible_probes.append((str(commander.get("id")), probe.get("detail", "")))
                 elif status == "planned" and session and probe["state"] == "live":
@@ -2007,6 +2031,8 @@ class LegionCore:
             self._event("commander_resumed", commander_id, {"session": session})
         for commander_id, detail in inaccessible_probes:
             self._event("tmux_probe_inaccessible", commander_id, {"detail": detail or "tmux probe inaccessible"})
+        for commander_id in failed_l1_ids:
+            self._disband_l2_descendants_for_l1(commander_id, "parent L1 tmux session is not alive")
 
         session_probes: dict[str, dict[str, str]] = {}
         for task in list(self._read_registry().get("tasks", [])):
@@ -2120,7 +2146,7 @@ Essential commands:
 - S visible task on L1: `{legion_sh} mixed campaign plan.json --complexity s --direct`.
 - S task that explicitly asks for L2/代理团队/代理指令: `{legion_sh} mixed campaign plan.json --corps`.
 - M+ collaboration: `{legion_sh} mixed campaign plan.json --corps`; dry-run first for complex plans.
-- More L1s: `{legion_sh} claude l1 <name>`; `{legion_sh} codex l1 <name>`.
+- More L1s: `cc l1 <name>` for Claude; `cx l1 <name>` for Codex. Global/project initialization remains `legion 0`.
 
 Operating rules:
 1. Use `legion.sh mixed campaign` for subordinate creation; keep S at L1 unless a tracked task window or explicit L2/代理团队/代理指令 is needed.
@@ -2324,11 +2350,13 @@ echo "== Mixed Legion {display_label} {commander_id} =="
 echo "Project: {self.context.project_dir}"
 echo "Log: interactive Codex output remains in this tmux pane to preserve TTY"
 {mark_running}
+{finish}
 printf '%s\n' "$STARTUP_MESSAGE"
 CODEX_INITIAL_PROMPT=$(printf '%s\n\n%s\n' "$PROMPT" "$STARTUP_MESSAGE")
 codex -C {shlex.quote(str(self.context.project_dir))} --dangerously-bypass-approvals-and-sandbox --no-alt-screen "$CODEX_INITIAL_PROMPT"
 status=$?
-{finish}
+finish_commander "$status"
+trap - EXIT
 exit "$status"
 """
 
@@ -2353,10 +2381,12 @@ echo "== Mixed Legion Claude commander {commander_id} =="
 echo "Project: {self.context.project_dir}"
 echo "Log: interactive Claude output remains in this tmux pane"
 {mark_running}
+{finish}
 printf '%s\n' "$STARTUP_MESSAGE"
 claude --dangerously-skip-permissions --effort max --append-system-prompt "$PROMPT" "$STARTUP_MESSAGE"
 status=$?
-{finish}
+finish_commander "$status"
+trap - EXIT
 exit "$status"
 """
 
@@ -2389,10 +2419,12 @@ echo "== Mixed Legion Claude branch commander {commander_id} =="
 echo "Project: {self.context.project_dir}"
 echo "Log: interactive Claude output remains in this tmux pane"
 {mark_running}
+{finish}
 printf '%s\n' "$STARTUP_MESSAGE"
 claude --dangerously-skip-permissions --effort max --append-system-prompt "$PROMPT" "$STARTUP_MESSAGE"
 status=$?
-{finish}
+finish_commander "$status"
+trap - EXIT
 exit "$status"
 """
 
@@ -2439,11 +2471,19 @@ exit "$status"
     def _commander_finish_cmd(self, commander_id: str) -> str:
         completed = self._mark_commander_cmd(commander_id, "completed")
         failed = self._mark_commander_cmd(commander_id, "failed")
-        return f"""if [ "$status" -eq 0 ]; then
-  {completed}
-else
-  {failed}
-fi"""
+        return f"""finish_commander() {{
+  local status_code="${{1:-1}}"
+  if [ "${{LEGION_COMMANDER_FINISH_RECORDED:-0}}" = "1" ]; then
+    return
+  fi
+  LEGION_COMMANDER_FINISH_RECORDED=1
+  if [ "$status_code" -eq 0 ]; then
+    {completed}
+  else
+    {failed}
+  fi
+}}
+trap 'finish_commander "$?"' EXIT"""
 
     def _run_dir(self, spec: TaskSpec) -> Path:
         return self.state_dir / "runs" / spec.task_id
@@ -3563,14 +3603,104 @@ issued_at={order['issued_at']}
             self._disband_campaign_commander(dict(commander), owned_tasks)
 
     def _disband_campaign_commander(self, commander: dict[str, Any], tasks: list[dict[str, Any]]) -> None:
+        task_ids = [str(task.get("id", "")) for task in tasks if task.get("id")]
+        self._disband_branch_commander(
+            commander,
+            task_ids,
+            message_reason=(
+                "all assigned campaign tasks reached terminal state "
+                "and context retention was not requested"
+            ),
+            disbanded_reason="campaign tasks completed and context not retained",
+            event_reason="campaign-tasks-completed",
+        )
+
+    def _is_l1_commander(self, commander: dict[str, Any]) -> bool:
+        commander_id = str(commander.get("id", ""))
+        return commander_id.startswith("L1-") or (
+            commander.get("role") == "commander" and self._entry_level(commander, 0) == 1
+        )
+
+    def _l2_descendants_for_l1(self, l1_id: str) -> list[dict[str, Any]]:
+        registry = self._read_registry()
+        commanders = [dict(item) for item in registry.get("commanders", [])]
+        by_id = {str(item.get("id", "")): item for item in commanders if item.get("id")}
+        descendants: list[dict[str, Any]] = []
+        for commander in commanders:
+            if commander.get("role") != "branch-commander":
+                continue
+            if not self._commander_project_matches(commander):
+                continue
+            if not self._commander_is_in_host_tree(commander, l1_id, by_id):
+                continue
+            descendants.append(dict(commander))
+        return descendants
+
+    def _block_active_tasks_for_commander_exit(self, commander_id: str, reason: str) -> list[str]:
+        task_ids: list[str] = []
+        for task in list(self._read_registry().get("tasks", [])):
+            if str(task.get("commander", "")) != commander_id:
+                continue
+            if str(task.get("status", "")) in TERMINAL_TASK_STATUSES:
+                continue
+            task_id = str(task.get("id", ""))
+            if task_id:
+                task_ids.append(task_id)
+        for task_id in task_ids:
+            self._set_task_status(
+                task_id,
+                "blocked",
+                {
+                    "blocked_reason": reason,
+                    "commander_unavailable": {"commander": commander_id, "reason": reason},
+                },
+            )
+        return task_ids
+
+    def _disband_l2_descendants_for_l1(self, l1_id: str, reason: str) -> list[str]:
+        disbanded: list[str] = []
+        for commander in self._l2_descendants_for_l1(l1_id):
+            commander_id = str(commander.get("id", ""))
+            if not commander_id:
+                continue
+            current_status = str(commander.get("status", ""))
+            session = str(commander.get("session", ""))
+            if current_status in TERMINAL_COMMANDER_STATUSES and not (session and self._tmux_has_session(session)):
+                continue
+            block_reason = f"parent L1 {l1_id} exited: {reason}"
+            task_ids = [
+                str(task.get("id", ""))
+                for task in self._read_registry().get("tasks", [])
+                if task.get("id") and str(task.get("commander", "")) == commander_id
+            ]
+            blocked_task_ids = self._block_active_tasks_for_commander_exit(commander_id, block_reason)
+            if not task_ids:
+                task_ids = blocked_task_ids
+            refreshed = self._commander_entry(commander_id) or commander
+            self._disband_branch_commander(
+                refreshed,
+                task_ids,
+                message_reason=f"parent L1 {l1_id} exited; child L2 is being disbanded",
+                disbanded_reason=block_reason,
+                event_reason="parent-l1-exited",
+            )
+            disbanded.append(commander_id)
+        if disbanded:
+            self._event("l1_child_l2_cascade_disbanded", l1_id, {"reason": reason, "children": disbanded})
+        return disbanded
+
+    def _disband_branch_commander(
+        self,
+        commander: dict[str, Any],
+        task_ids: list[str],
+        message_reason: str,
+        disbanded_reason: str,
+        event_reason: str,
+    ) -> None:
         commander_id = str(commander.get("id", ""))
         if not commander_id:
             return
-        task_ids = [str(task.get("id", "")) for task in tasks if task.get("id")]
-        content = (
-            "DISBAND:init-complete | all assigned campaign tasks reached terminal state "
-            f"and context retention was not requested | tasks={','.join(task_ids)}"
-        )
+        content = f"DISBAND:init-complete | {message_reason} | tasks={','.join(task_ids)}"
         try:
             self.send_message(commander_id, content, sender="Legion Core", message_type="disband")
         except SystemExit:
@@ -3586,18 +3716,24 @@ issued_at={order['issued_at']}
             registry = self._read_registry()
             for item in registry.setdefault("commanders", []):
                 if item.get("id") == commander_id:
-                    item["status"] = "completed"
+                    if str(item.get("status", "")) not in TERMINAL_COMMANDER_STATUSES:
+                        item["status"] = "completed"
                     item["disbanded_at"] = iso_now()
-                    item["disbanded_reason"] = "campaign tasks completed and context not retained"
+                    item["disbanded_reason"] = disbanded_reason
                     item["tmux_killed"] = tmux_killed
                     item["updated"] = iso_now()
                     break
             self._write_registry(registry)
-        self._event("branch_commander_disbanded", commander_id, {"tasks": task_ids, "tmux_killed": tmux_killed})
+        self._event(
+            "branch_commander_disbanded",
+            commander_id,
+            {"tasks": task_ids, "tmux_killed": tmux_killed, "reason": event_reason},
+        )
 
     def mark_commander(self, commander_id: str, status: str) -> None:
         self.init_state()
         commander_to_announce: dict[str, Any] | None = None
+        cascade_l1_id = ""
         with self._registry_lock():
             registry = self._read_registry()
             for commander in registry.setdefault("commanders", []):
@@ -3621,6 +3757,8 @@ issued_at={order['issued_at']}
                         and not self._aicto_command_chain_connected(commander)
                     ):
                         commander_to_announce = dict(commander)
+                    if status in TERMINAL_COMMANDER_STATUSES and self._is_l1_commander(commander):
+                        cascade_l1_id = commander_id
                     self._write_registry(registry)
                     self._event(f"commander_{status}", commander_id, {})
                     break
@@ -3628,6 +3766,8 @@ issued_at={order['issued_at']}
                 raise SystemExit(f"unknown commander: {commander_id}")
         if commander_to_announce:
             self._announce_l1_online(commander_to_announce, action="marked-commanding")
+        if cascade_l1_id:
+            self._disband_l2_descendants_for_l1(cascade_l1_id, f"parent L1 marked {status}")
         return
 
     def _aicto_command_chain_connected(self, commander: dict[str, Any]) -> bool:
@@ -4284,16 +4424,76 @@ issued_at={order['issued_at']}
         commander_id = str(commander.get("id", "")).strip()
         if not session or not commander_id:
             return
+        color = tmux_legion_color(commander_id)
+        provider = str(commander.get("provider", "-")).strip() or "-"
+        level = str(commander.get("level", "?")).strip() or "?"
         window_target = f"{session}:0"
         commands = [
             ["tmux", "set-window-option", "-t", window_target, "automatic-rename", "off"],
+            ["tmux", "set-window-option", "-t", window_target, "@legion_window_color", color],
             ["tmux", "rename-window", "-t", window_target, commander_id],
-            ["tmux", "set-option", "-u", "-t", session, "status-left"],
-            ["tmux", "set-option", "-u", "-t", session, "status-left-length"],
-            ["tmux", "set-option", "-u", "-t", session, "status-right"],
-            ["tmux", "set-option", "-u", "-t", session, "status-right-length"],
-            ["tmux", "set-option", "-u", "-t", session, "status-position"],
-            ["tmux", "set-option", "-u", "-t", session, "set-titles-string"],
+            ["tmux", "set-option", "-t", session, "status", "on"],
+            ["tmux", "set-option", "-t", session, "status-style", f"bg=colour235,fg={color}"],
+            ["tmux", "set-option", "-t", session, "status-left-length", "90"],
+            [
+                "tmux",
+                "set-option",
+                "-t",
+                session,
+                "status-left",
+                f"#[fg=colour16,bg={color},bold] {commander_id} #[fg={color},bg=colour235] {provider} L{level} ",
+            ],
+            ["tmux", "set-option", "-t", session, "status-right-length", "60"],
+            ["tmux", "set-option", "-t", session, "status-right", f"#[fg={color},bg=colour235] %H:%M #[default]"],
+            ["tmux", "set-option", "-t", session, "window-status-style", f"fg={color},bg=colour236"],
+            ["tmux", "set-option", "-t", session, "window-status-format", tmux_legion_window_status_format()],
+            [
+                "tmux",
+                "set-option",
+                "-t",
+                session,
+                "window-status-current-style",
+                f"fg=colour16,bg={color},bold",
+            ],
+            [
+                "tmux",
+                "set-option",
+                "-t",
+                session,
+                "window-status-current-format",
+                tmux_legion_window_status_format(active=True),
+            ],
+            ["tmux", "set-option", "-t", session, "pane-border-status", "bottom"],
+            ["tmux", "set-option", "-t", session, "pane-border-format", "#{pane_title}"],
+            ["tmux", "set-option", "-t", session, "pane-border-style", f"fg={color}"],
+            ["tmux", "set-option", "-t", session, "pane-active-border-style", f"fg={color},bold"],
+            ["tmux", "set-option", "-t", session, "status-position", "bottom"],
+            ["tmux", "set-option", "-t", session, "set-titles-string", commander_id],
+            ["tmux", "select-pane", "-t", f"{window_target}.0", "-T", tmux_legion_label(commander_id, color)],
+        ]
+        for command in commands:
+            self.runner.run(command)
+
+    def _apply_worker_window_identity(self, session: str, window: str, task_id: str) -> None:
+        if not session or not window or not task_id:
+            return
+        color = tmux_legion_color(task_id)
+        pane_target = f"{session}:{window}.0"
+        commands = [
+            ["tmux", "set-window-option", "-t", f"{session}:{window}", "automatic-rename", "off"],
+            ["tmux", "set-window-option", "-t", f"{session}:{window}", "@legion_window_color", color],
+            ["tmux", "set-option", "-t", session, "window-status-format", tmux_legion_window_status_format()],
+            [
+                "tmux",
+                "set-option",
+                "-t",
+                session,
+                "window-status-current-format",
+                tmux_legion_window_status_format(active=True),
+            ],
+            ["tmux", "set-option", "-t", session, "pane-border-status", "bottom"],
+            ["tmux", "set-option", "-t", session, "pane-border-format", "#{pane_title}"],
+            ["tmux", "select-pane", "-t", pane_target, "-T", tmux_legion_label(task_id, color)],
         ]
         for command in commands:
             self.runner.run(command)
@@ -4470,6 +4670,90 @@ def normalize_complexity(value: str) -> str:
     return aliases.get(normalized, "")
 
 
+def tmux_legion_color(seed: str | int) -> str:
+    if isinstance(seed, int):
+        return TMUX_LEGION_PALETTE[seed % len(TMUX_LEGION_PALETTE)]
+    digest = hashlib.md5(str(seed).encode("utf-8")).hexdigest()
+    return TMUX_LEGION_PALETTE[int(digest[:8], 16) % len(TMUX_LEGION_PALETTE)]
+
+
+def tmux_legion_label(text: str, color: str) -> str:
+    return f"#[fg={color},bold]{text}#[default]"
+
+
+def tmux_legion_window_status_format(active: bool = False) -> str:
+    if active:
+        return "#{?@legion_window_color,#[fg=colour16,bg=#{@legion_window_color},bold],#[fg=colour16,bg=colour244,bold]} #I:#W #[default]"
+    return "#{?@legion_window_color,#[fg=#{@legion_window_color},bg=colour236],#[fg=colour244,bg=colour236]} #I:#W #[default]"
+
+
+def tmux_legion_ansi_color(color: str) -> str:
+    normalized = str(color).strip().lower()
+    if normalized.startswith("colour") and normalized[6:].isdigit():
+        return normalized[6:]
+    return "39"
+
+
+LEGION_VIEW_FRAME_RENDERER = r'''
+import os
+import re
+import shutil
+import subprocess
+import textwrap
+import time
+
+ESC = "\033["
+ANSI_RE = re.compile(r"\x1b\[[0-9;?]*[ -/]*[@-~]|\x1b\][^\a]*(?:\a|\x1b\\)")
+BOX_TRANSLATION = str.maketrans({char: " " for char in "┌┐└┘├┤┬┴┼─│┃━╭╮╰╯"})
+
+
+def clean(line):
+    return ANSI_RE.sub("", line).replace("\t", "    ").translate(BOX_TRANSLATION).rstrip()
+
+
+def capture_lines(session, limit):
+    try:
+        completed = subprocess.run(
+            ["tmux", "capture-pane", "-p", "-t", session, "-S", f"-{limit}"],
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            timeout=1.5,
+        )
+    except Exception as exc:
+        return [f"tmux capture failed: {exc}"]
+    if completed.returncode != 0:
+        detail = (completed.stderr or completed.stdout or "unknown tmux capture failure").strip()
+        return [f"session unavailable: {session}", detail, "", f"attach: tmux a -t {session}"]
+    return [clean(line) for line in completed.stdout.splitlines()]
+
+
+def draw():
+    session = os.environ["LEGION_VIEW_TARGET_SESSION"]
+    color = os.environ["LEGION_VIEW_COLOR"]
+    size = shutil.get_terminal_size((80, 24))
+    width = max(20, size.columns)
+    height = max(4, size.lines)
+    captured = capture_lines(session, max(16, height))
+    content = []
+    for line in captured:
+        wrapped = textwrap.wrap(line, width=width, replace_whitespace=False) or [""]
+        content.extend(wrapped)
+    content = content[-height:]
+
+    out = [ESC + "2J" + ESC + "H"]
+    for row in range(height):
+        text = content[row] if row < len(content) else ""
+        out.append(f"{ESC}38;5;{color}m{text[:width]:<{width}}{ESC}0m")
+    print("\n".join(out), end="", flush=True)
+
+
+while True:
+    draw()
+    time.sleep(1.5)
+'''
+
+
 def normalize_branch(value: str) -> str:
     return normalize_task_id(value.strip().lower()) if value.strip() else ""
 
@@ -4581,12 +4865,11 @@ def build_duo_terminal_commands(
     claude_name: str = "青龙军团",
 ) -> list[str]:
     project = shlex.quote(str(project_dir))
-    entrypoint = shlex.quote(str(legion_sh))
     codex = shlex.quote(codex_name)
     claude = shlex.quote(claude_name)
     return [
-        f"cd {project} && {entrypoint} codex l1 {codex}",
-        f"cd {project} && {entrypoint} claude l1 {claude}",
+        f"cd {project} && cx l1 {codex}",
+        f"cd {project} && cc l1 {claude}",
     ]
 
 
@@ -4597,12 +4880,11 @@ def build_dou_terminal_commands(
     claude_name: str = "青龙军团",
 ) -> dict[str, str]:
     project = shlex.quote(str(project_dir))
-    entrypoint = shlex.quote(str(legion_sh))
     codex = shlex.quote(codex_name)
     claude = shlex.quote(claude_name)
     return {
-        "new_window": f"cd {project} && {entrypoint} codex l1 {codex}",
-        "current_window": f"cd {project} && {entrypoint} claude l1 {claude}",
+        "new_window": f"cd {project} && cx l1 {codex}",
+        "current_window": f"cd {project} && cc l1 {claude}",
     }
 
 
@@ -4638,46 +4920,69 @@ def build_interactive_view_tmux_script(
         ]
     )
 
-    def attach_command(target: dict[str, str]) -> str:
-        title = f"{target['label']} · {target['id']}"
+    def target_title(target: dict[str, str]) -> str:
+        return f"{target['label']} · {target['id']}"
+
+    def pane_title(target: dict[str, str], index: int) -> str:
+        title = target_title(target)
+        return tmux_legion_label(title, tmux_legion_color(index))
+
+    def frame_command(target: dict[str, str], index: int) -> str:
+        color = tmux_legion_color(index)
         return (
-            f"printf '\\033]2;%s\\007' {shlex.quote(title)}; "
-            f"TMUX= tmux attach -t {shlex.quote(target['session'])}"
+            f"LEGION_VIEW_TARGET_SESSION={shlex.quote(target['session'])} "
+            f"LEGION_VIEW_TITLE={shlex.quote(target_title(target))} "
+            f"LEGION_VIEW_COLOR={shlex.quote(tmux_legion_ansi_color(color))} "
+            "python3 -u - <<'PY'\n"
+            f"{LEGION_VIEW_FRAME_RENDERER}\n"
+            "PY"
         )
 
     first = targets[0]
-    first_title = f"{first['label']} · {first['id']}"
+    first_title = pane_title(first, 0)
+    view_color = tmux_legion_color(view_session)
     lines.append(
         'L1_PANE=$(tmux new-session -d -s "$VIEW_SESSION" -c "$PROJECT_DIR" -P -F "#{pane_id}" '
-        f"-n legion {shlex.quote(attach_command(first))})"
+        f"-n legion {shlex.quote(frame_command(first, 0))})"
     )
     lines.extend(
         [
-            'tmux set-option -t "$VIEW_SESSION" pane-border-status top >/dev/null',
-            'tmux set-option -t "$VIEW_SESSION" pane-border-format "#{pane_title}" >/dev/null',
+            'tmux set-option -t "$VIEW_SESSION" status on >/dev/null',
+            f'tmux set-window-option -t "$VIEW_SESSION:legion" @legion_window_color {shlex.quote(view_color)} >/dev/null',
+            f'tmux set-option -t "$VIEW_SESSION" status-style {shlex.quote(f"bg=colour235,fg={view_color}")} >/dev/null',
+            f'tmux set-option -t "$VIEW_SESSION" window-status-style {shlex.quote(f"fg={view_color},bg=colour236")} >/dev/null',
+            f'tmux set-option -t "$VIEW_SESSION" window-status-format {shlex.quote(tmux_legion_window_status_format())} >/dev/null',
+            f'tmux set-option -t "$VIEW_SESSION" window-status-current-style {shlex.quote(f"fg=colour16,bg={view_color},bold")} >/dev/null',
+            f'tmux set-option -t "$VIEW_SESSION" window-status-current-format {shlex.quote(tmux_legion_window_status_format(active=True))} >/dev/null',
+            f'tmux set-option -t "$VIEW_SESSION" status-left {shlex.quote(f"#[fg=colour16,bg={view_color},bold] LEGION VIEW #[fg={view_color},bg=colour235] ")} >/dev/null',
+            'tmux set-option -t "$VIEW_SESSION" status-left-length 80 >/dev/null',
+            'tmux set-option -t "$VIEW_SESSION" pane-border-status bottom >/dev/null',
+            f'tmux set-option -t "$VIEW_SESSION" pane-border-format {shlex.quote("#{pane_title}")} >/dev/null',
+            'tmux set-option -t "$VIEW_SESSION" pane-border-style "fg=colour238" >/dev/null',
+            'tmux set-option -t "$VIEW_SESSION" pane-active-border-style "fg=colour231,bold" >/dev/null',
             f'tmux select-pane -t "$L1_PANE" -T {shlex.quote(first_title)}',
         ]
     )
     l2_targets = targets[1:]
     if l2_targets:
         first_l2 = l2_targets[0]
-        first_l2_title = f"{first_l2['label']} · {first_l2['id']}"
+        first_l2_title = pane_title(first_l2, 1)
         lines.append(
             'L2_REMAINING_PANE=$(tmux split-window -h -p 60 -P -F "#{pane_id}" '
             '-t "$L1_PANE" -c "$PROJECT_DIR" '
-            f"{shlex.quote(attach_command(first_l2))})"
+            f"{shlex.quote(frame_command(first_l2, 1))})"
         )
         lines.append(f'tmux select-pane -t "$L2_REMAINING_PANE" -T {shlex.quote(first_l2_title)}')
 
     for index, target in enumerate(l2_targets[1:], start=1):
-        title = f"{target['label']} · {target['id']}"
+        title = pane_title(target, index + 1)
         remaining = len(l2_targets) - index + 1
         percent = round((remaining - 1) * 100 / remaining)
         variable = f"L2_PANE_{index + 1}"
         lines.append(
             f'{variable}=$(tmux split-window -v -p {percent} -P -F "#{{pane_id}}" '
             '-t "$L2_REMAINING_PANE" -c "$PROJECT_DIR" '
-            f"{shlex.quote(attach_command(target))})"
+            f"{shlex.quote(frame_command(target, index + 1))})"
         )
         lines.append(f'tmux select-pane -t "${variable}" -T {shlex.quote(title)}')
         lines.append(f'L2_REMAINING_PANE="${variable}"')
@@ -4711,11 +5016,10 @@ def build_duo_tmux_script(
     session = f"legion-duo-{context.project_hash}-{context.project_name}"
     socket = f"legion-duo-{context.project_hash}"
     project = shlex.quote(str(context.project_dir))
-    entrypoint = shlex.quote(str(legion_sh))
     codex = shlex.quote(codex_name)
     claude = shlex.quote(claude_name)
-    codex_command = f"TMUX= {entrypoint} codex l1 {codex}"
-    claude_command = f"TMUX= {entrypoint} claude l1 {claude}"
+    codex_command = f"TMUX= cx l1 {codex}"
+    claude_command = f"TMUX= cc l1 {claude}"
     if codex_launch_script:
         codex_command = f"bash {shlex.quote(str(codex_launch_script))}"
     if claude_launch_script:

@@ -36,8 +36,8 @@
 #   legion.sh host                     # 一键启动独立 Claude L1 + Codex L1；不自动合并分屏
 #   legion.sh aicto                    # 查看外部 Hermes AICTO profile 状态/启动指引
 #   legion.sh codex l1 [名]            # 启动 Codex L1；不写名则载入在线军团，没有才新增
-#   claudel1 [名]                      # 无冲突裸命令：启动/恢复 Claude L1
-#   codexl1 [名]                       # 无冲突裸命令：启动/恢复 Codex L1
+#   cc l1 [名]                         # 快捷命令：启动/恢复 Claude L1
+#   cx l1 [名]                         # 快捷命令：启动/恢复 Codex L1
 #   legion.sh claude h                 # Claude L1 当前窗口，Codex L1 后台，同时接入军团通讯
 #   legion.sh claude l1 [名]           # 启动 / 恢复 Claude L1 指挥官
 #   legion.sh duo                      # 打开两个终端窗口：Codex L1 + Claude L1
@@ -295,6 +295,18 @@ _path_contains_dir() {
   esac
 }
 
+_legion_command_resolves_to() {
+  local command_name="$1"
+  local target="$2"
+  local resolved resolved_abs target_abs
+  resolved="$(command -v "$command_name" 2>/dev/null || true)"
+  [[ -n "$resolved" && -x "$resolved" ]] || return 1
+  resolved_abs="$(cd -P "$(dirname "$resolved")" 2>/dev/null && pwd)/$(basename "$resolved")" || return 1
+  target_abs="$(cd -P "$(dirname "$target")" 2>/dev/null && pwd)/$(basename "$target")" || return 1
+  [[ "$resolved_abs" == "$target_abs" ]] && return 0
+  grep -Fq "exec \"$target\"" "$resolved" 2>/dev/null
+}
+
 _append_legion_path_to_shell_rc() {
   local shell_name rc_file
   shell_name="$(basename "${SHELL:-zsh}")"
@@ -314,7 +326,7 @@ export PATH="$HOME/.claude/scripts:$PATH"
 # <<< legion-0 global path <<<
 EOF
   echo "  ✅ 已写入 PATH 配置: $rc_file"
-  echo "     新终端可直接使用 legion；当前终端可执行: export PATH=\"\$HOME/.claude/scripts:\$PATH\""
+  echo "     新终端可直接使用 legion / cc l1 / cx l1；当前终端可执行: export PATH=\"\$HOME/.claude/scripts:\$PATH\""
 }
 
 _write_global_command_wrappers() {
@@ -322,7 +334,7 @@ _write_global_command_wrappers() {
   local scripts_dir="$HOME/.claude/scripts"
   local command_name
   mkdir -p "$target_dir"
-  for command_name in legion claudel1 codexl1; do
+  for command_name in legion cc cx claudel1 codexl1; do
     cat > "$target_dir/$command_name" <<EOF
 #!/usr/bin/env bash
 exec "$scripts_dir/$command_name" "\$@"
@@ -336,12 +348,16 @@ _legion_source_fingerprint() {
     cd "$LEGION_REPO_ROOT" || exit 1
     for path in \
       scripts/legion \
+      scripts/cc \
+      scripts/cx \
       scripts/claudel1 \
       scripts/codexl1 \
       scripts/legion.sh \
       scripts/legion-init.sh \
       scripts/legion-self-check.py \
       scripts/legion_core.py \
+      scripts/cc \
+      scripts/cx \
       scripts/claude \
       scripts/codex \
       scripts/stack-verify.sh \
@@ -362,11 +378,12 @@ _global_legion_config_ready() {
   local fingerprint_file="$HOME/.claude/legion/.global-entrypoint-fingerprint"
   local current_fingerprint
 
-  [[ -x "$scripts_dst/legion" && -x "$scripts_dst/claudel1" && -x "$scripts_dst/codexl1" ]] || return 1
+  [[ -x "$scripts_dst/legion" && -x "$scripts_dst/cc" && -x "$scripts_dst/cx" ]] || return 1
+  [[ -x "$scripts_dst/claudel1" && -x "$scripts_dst/codexl1" ]] || return 1
   [[ -x "$scripts_dst/legion.sh" && -x "$scripts_dst/legion-init.sh" ]] || return 1
-  [[ -x "$(command -v legion 2>/dev/null || true)" ]] || return 1
-  [[ -x "$(command -v claudel1 2>/dev/null || true)" ]] || return 1
-  [[ -x "$(command -v codexl1 2>/dev/null || true)" ]] || return 1
+  _legion_command_resolves_to legion "$scripts_dst/legion" || return 1
+  _legion_command_resolves_to cc "$scripts_dst/cc" || return 1
+  _legion_command_resolves_to cx "$scripts_dst/cx" || return 1
   [[ -f "$fingerprint_file" ]] || return 1
 
   current_fingerprint="$(_legion_source_fingerprint)"
@@ -378,23 +395,26 @@ _install_legion_command() {
 
   if [[ -n "${LEGION_GLOBAL_BIN_DIR:-}" ]]; then
     _write_global_command_wrappers "$LEGION_GLOBAL_BIN_DIR"
-    echo "  ✅ legion/claudel1/codexl1 裸命令: $LEGION_GLOBAL_BIN_DIR"
+    echo "  ✅ legion/cc/cx 裸命令: $LEGION_GLOBAL_BIN_DIR"
     return 0
   fi
 
-  if _path_contains_dir "$HOME/.claude/scripts"; then
-    echo "  ✅ PATH 已包含 ~/.claude/scripts（legion/claudel1/codexl1）"
+  if _path_contains_dir "$HOME/.claude/scripts" \
+    && _legion_command_resolves_to cc "$HOME/.claude/scripts/cc" \
+    && _legion_command_resolves_to cx "$HOME/.claude/scripts/cx"; then
+    echo "  ✅ PATH 已包含 ~/.claude/scripts（legion/cc/cx）"
     return 0
   fi
 
   IFS=':' read -r -a _legion_path_dirs <<< "${PATH:-}"
   for path_dir in "${_legion_path_dirs[@]}"; do
-    [[ -n "$path_dir" && -d "$path_dir" && -w "$path_dir" ]] || continue
+    [[ -n "$path_dir" ]] || continue
     case "$path_dir" in
-      /bin|/sbin|/usr/bin|/usr/sbin) continue ;;
+      /bin|/sbin|/usr/bin|/usr/sbin) break ;;
     esac
+    [[ -d "$path_dir" && -w "$path_dir" ]] || continue
     _write_global_command_wrappers "$path_dir" 2>/dev/null || continue
-    echo "  ✅ legion/claudel1/codexl1 裸命令: $path_dir"
+    echo "  ✅ legion/cc/cx 裸命令: $path_dir"
     return 0
   done
 
@@ -436,7 +456,7 @@ _ensure_global_legion_config() {
 
   chmod +x "$scripts_dst"/*.sh 2>/dev/null || true
   chmod +x "$scripts_dst"/*.py 2>/dev/null || true
-  chmod +x "$scripts_dst"/legion "$scripts_dst"/claudel1 "$scripts_dst"/codexl1 2>/dev/null || true
+  chmod +x "$scripts_dst"/legion "$scripts_dst"/cc "$scripts_dst"/cx "$scripts_dst"/claudel1 "$scripts_dst"/codexl1 2>/dev/null || true
   chmod +x "$scripts_dst"/claude "$scripts_dst"/codex 2>/dev/null || true
   chmod +x "$scripts_dst"/hooks/* 2>/dev/null || true
 

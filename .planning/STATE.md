@@ -157,6 +157,35 @@
 - Planned/implemented in this change: `legion codex l1` without a name reuses an existing Codex L1 even if it is already attached elsewhere, so a new terminal opens the Codex L1 session instead of creating a duplicate.
 - Verification: `PYTHONPYCACHEPREFIX=/tmp/legion-pycache python3 -m py_compile scripts/legion_core.py` passed; `/bin/bash -n scripts/legion.sh` passed; `python3 -m json.tool .planning/features.json >/dev/null` passed; `TMPDIR=/tmp PYTHONPYCACHEPREFIX=/tmp/legion-pycache PYTHONDONTWRITEBYTECODE=1 python3 -m unittest tests/test_legion_core.py tests/test_legion_shell_contract.py -v` passed (139 tests OK); dry-run smoke for `/bin/bash scripts/legion.sh claude h --dry-run --no-attach`, `/bin/bash scripts/legion.sh host --dry-run --no-attach`, `/bin/bash scripts/legion.sh mixed dual-host --dry-run --no-attach`, and `/bin/bash scripts/legion.sh codex l1 --dry-run` passed.
 
+## Framed L2 Operator View (2026-04-29)
+
+- Status: completed
+- Trigger: live `L1-银河军团` tmux inspection showed the desired operator view: L1 left, all L2 teams stacked on the right, and each L2 needs its own colored border plus bottom title.
+- Locked direction: keep startup L1 sessions separate; only explicit `legion view` builds the combined operator view. The view keeps L1 interactive and renders each L2 as a live colored frame preview of its tmux session.
+- Planned/implemented in this change: `build_interactive_view_tmux_script` now uses a Python tmux-capture renderer for L2 panes, giving every L2 an independent pseudo-random colored frame and bottom title while preserving the L1 interactive pane.
+- Planned/implemented in this change: commander and worker tmux pane titles move to the bottom border so team identity stays visible in the same place as the framed view.
+- Verification: `PYTHONPYCACHEPREFIX=/tmp/legion-pycache python3 -m py_compile scripts/legion_core.py` passed; `python3 -m json.tool .planning/features.json >/dev/null` passed; focused view unit tests passed; scrubbed full `tests.test_legion_core` passed (146 tests OK); scrubbed `tests.test_legion_shell_contract` passed (13 tests OK); `bash -n scripts/legion.sh` passed; `git diff --check -- scripts/legion_core.py tests/test_legion_core.py README.md .planning/REQUIREMENTS.md .planning/DECISIONS.md .planning/STATE.md .planning/features.json` passed. Global sync: `scripts/legion_core.py` installed to `/Users/feijun/.claude/scripts/legion_core.py`, global py_compile passed, and global view-script smoke confirmed framed L2 renderer markers.
+
+## L1 Exit Cascades L2 Disband (2026-04-29)
+
+- Status: completed
+- Trigger: user required all subordinate L2 teams to be automatically disbanded and closed when their L1 exits.
+- Locked direction: L1 lifecycle owns only its own L2 subtree. Peer L1 trees remain untouched, and inaccessible tmux probes are non-destructive.
+- Planned/implemented in this change: `reconcile_state` now records missing live L1 sessions and cascades disband through descendant L2 branch commanders in that L1 parent tree.
+- Planned/implemented in this change: `mark_commander` now applies the same cascade when an L1 is marked `completed` or `failed`, covering normal commander launch-script exits.
+- Planned/implemented in this change: commander launch scripts now install an `EXIT` trap around the interactive Claude/Codex runtime, so shell exit paths also mark the commander terminal and trigger the same lifecycle cascade.
+- Planned/implemented in this change: each affected L2 receives durable `DISBAND`, reachable L2 tmux sessions are killed, non-terminal tasks assigned to that L2 are blocked with a parent-exit reason, and registry/events record the disband.
+- Verification: `python3 -m py_compile scripts/legion_core.py` passed; `bash -n scripts/legion.sh` passed; focused L1-exit lifecycle tests passed (4 tests OK); scrubbed full `tests.test_legion_core` passed (149 tests OK); scrubbed `tests.test_legion_shell_contract` passed (13 tests OK); `python3 -m json.tool .planning/features.json >/dev/null` passed; `git diff --check -- scripts/legion_core.py tests/test_legion_core.py README.md .planning/REQUIREMENTS.md .planning/DECISIONS.md .planning/STATE.md .planning/features.json` passed. Global sync: `scripts/legion_core.py` installed to `/Users/feijun/.claude/scripts/legion_core.py`; global py_compile and `cmp -s` passed.
+
+## Short L1 Startup Commands (2026-04-29)
+
+- Status: completed
+- Trigger: user required L1 startup shortcuts to be `cc l1` for Claude and `cx l1` for Codex, with global/project initialization kept as `legion 0`.
+- Locked direction: `legion 0` installs/syncs `legion`, `cc`, and `cx` globally. Legacy `claudel1` / `codexl1` and `claude l1` / `codex l1` remain compatibility paths but are no longer the documented primary commands.
+- Planned/implemented in this change: added `scripts/cc` and `scripts/cx` shims; `cc` only intercepts `l1` / `l1+1` and forwards all other invocations to the real C compiler.
+- Planned/implemented in this change: global entrypoint sync, fingerprinting, init output, installer output, README, L1 prompt guidance, duo/dou generated commands, and shell/core tests now use `cc l1` / `cx l1`.
+- Verification: `python3 -m py_compile scripts/legion_core.py` passed; `bash -n scripts/legion.sh scripts/cc scripts/cx scripts/legion-init.sh install.sh` passed; focused shortcut tests passed (7 tests OK); scrubbed full `tests.test_legion_core` passed (153 tests OK); scrubbed `tests.test_legion_shell_contract` passed (13 tests OK); `python3 -m json.tool .planning/features.json >/dev/null` passed; `git diff --check -- scripts/cc scripts/cx scripts/legion scripts/legion.sh scripts/legion-init.sh scripts/legion_core.py install.sh tests/test_legion_core.py tests/test_legion_shell_contract.py README.md .planning/REQUIREMENTS.md .planning/DECISIONS.md .planning/STATE.md .planning/features.json` passed. Global sync installed `cc`, `cx`, `legion`, `legion.sh`, `legion-init.sh`, and `legion_core.py` to `/Users/feijun/.claude/scripts`; global py_compile, `cmp -s`, and global entrypoint fingerprint refresh passed. Current shell smoke: `command -v cc` and `command -v cx` resolve to `/Users/feijun/.claude/scripts/...`; `cc l1 银河快捷测试 --dry-run --no-attach` and `cx l1 银河快捷测试 --dry-run --no-attach` both planned the expected provider L1.
+
 ## Baihu L1 Readiness / Worker Window Repair (2026-04-27)
 
 - Status: completed

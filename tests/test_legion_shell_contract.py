@@ -162,34 +162,34 @@ class LegionShellContractTests(unittest.TestCase):
                 timeout=20,
             )
             self.assertEqual(completed.returncode, 0, msg=f"stdout:\n{completed.stdout}\nstderr:\n{completed.stderr}")
-            self.assertIn("legion/claudel1/codexl1 裸命令", completed.stdout)
-            self.assertIn("claudel1        # 启动/恢复 Claude L1 军团", completed.stdout)
-            self.assertIn("codexl1         # 启动/恢复 Codex L1 军团", completed.stdout)
+            self.assertIn("legion/cc/cx 裸命令", completed.stdout)
+            self.assertIn("cc l1           # 启动/恢复 Claude L1 军团", completed.stdout)
+            self.assertIn("cx l1           # 启动/恢复 Codex L1 军团", completed.stdout)
             self.assertNotIn("legion.sh l1", completed.stdout)
-            for command_name in ("legion", "claudel1", "codexl1"):
+            for command_name in ("legion", "cc", "cx", "claudel1", "codexl1"):
                 self.assertTrue((bin_dir / command_name).exists())
                 self.assertTrue(os.access(bin_dir / command_name, os.X_OK))
 
-            claudel1 = subprocess.run(
-                [str(bin_dir / "claudel1"), "青龙军团", "--dry-run", "--no-attach"],
+            cc_l1 = subprocess.run(
+                [str(bin_dir / "cc"), "l1", "青龙军团", "--dry-run", "--no-attach"],
                 cwd=project,
                 env=env,
                 capture_output=True,
                 text=True,
                 timeout=20,
             )
-            codexl1 = subprocess.run(
-                [str(bin_dir / "codexl1"), "玄武军团", "--dry-run", "--no-attach"],
+            cx_l1 = subprocess.run(
+                [str(bin_dir / "cx"), "l1", "玄武军团", "--dry-run", "--no-attach"],
                 cwd=project,
                 env=env,
                 capture_output=True,
                 text=True,
                 timeout=20,
             )
-            self.assertEqual(claudel1.returncode, 0, msg=f"stdout:\n{claudel1.stdout}\nstderr:\n{claudel1.stderr}")
-            self.assertEqual(codexl1.returncode, 0, msg=f"stdout:\n{codexl1.stdout}\nstderr:\n{codexl1.stderr}")
-            self.assertIn("planned: L1-青龙军团 [claude]", claudel1.stdout)
-            self.assertIn("planned: L1-玄武军团 [codex]", codexl1.stdout)
+            self.assertEqual(cc_l1.returncode, 0, msg=f"stdout:\n{cc_l1.stdout}\nstderr:\n{cc_l1.stderr}")
+            self.assertEqual(cx_l1.returncode, 0, msg=f"stdout:\n{cx_l1.stdout}\nstderr:\n{cx_l1.stderr}")
+            self.assertIn("planned: L1-青龙军团 [claude]", cc_l1.stdout)
+            self.assertIn("planned: L1-玄武军团 [codex]", cx_l1.stdout)
 
     def test_provider_l1_entrypoints_initialize_runtime_without_deploying_project_templates(self):
         def run_provider_l1(root, args):

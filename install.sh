@@ -87,6 +87,8 @@ chmod +x "${LEGION_ROOT}"/scripts/*.py 2>/dev/null || true
 [ -f "${LEGION_ROOT}/scripts/codex" ] && chmod +x "${LEGION_ROOT}/scripts/codex" || true
 [ -f "${LEGION_ROOT}/scripts/claude" ] && chmod +x "${LEGION_ROOT}/scripts/claude" || true
 [ -f "${LEGION_ROOT}/scripts/legion" ] && chmod +x "${LEGION_ROOT}/scripts/legion" || true
+[ -f "${LEGION_ROOT}/scripts/cc" ] && chmod +x "${LEGION_ROOT}/scripts/cc" || true
+[ -f "${LEGION_ROOT}/scripts/cx" ] && chmod +x "${LEGION_ROOT}/scripts/cx" || true
 [ -d "${LEGION_ROOT}/scripts/hooks" ] && chmod +x "${LEGION_ROOT}/scripts/hooks"/* 2>/dev/null || true
 [ -f "${LEGION_ROOT}/install.sh" ] && chmod +x "${LEGION_ROOT}/install.sh" || true
 ok "权限位已设"
@@ -134,20 +136,18 @@ ${G} 军团体系部署完成${N}
  快速开始：
    1. 项目初始化+配置：  ~/.claude/scripts/legion 0
    2. 一键主持启动：     legion h
-   3. 启动 L1 指挥官：   ~/.claude/scripts/legion.sh l1 <军团名>
-   4. Codex L1 指挥官：  ~/.claude/scripts/legion codex l1 [军团名]
-   4b. Claude L1 指挥官： ~/.claude/scripts/claude l1 [军团名]
+   3. Claude L1 指挥官： cc l1 [军团名]
+   4. Codex L1 指挥官：  cx l1 [军团名]
    5. 状态查询：         ~/.claude/scripts/legion.sh status
    6. 作战态势：         ~/.claude/scripts/legion.sh sitrep
 
- 裸命令 claude/codex l1：
+ 裸命令：
    export PATH="\$HOME/.claude/scripts:\$PATH"
    legion 0                 # 当前项目初始化
    legion h                 # 初始化并启动主持人 + Claude/Codex 军团
-   claude l1 青龙军团        # 进入/启动 Claude L1；--no-attach 可后台启动
-   legion codex l1          # 载入在线 Codex L1；没有才随机新增
-   codex l1 玄武军团         # 进入/启动 Codex L1；--no-attach 可后台启动
-   legion codex l1 玄武军团  # 进入/启动指定军团名
+   cc l1 青龙军团            # 进入/启动 Claude L1；--no-attach 可后台启动
+   cx l1                     # 载入在线 Codex L1；没有才随机新增
+   cx l1 玄武军团            # 进入/启动 Codex L1；--no-attach 可后台启动
 
  项目级定制：
    在项目根目录新建 \`.claude/agents/\` 或 \`.claude/skills/\` 覆盖全局版本。

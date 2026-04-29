@@ -422,6 +422,46 @@ class LegionCoreTests(unittest.TestCase):
             self.assertEqual(completed.returncode, 0, completed.stderr)
             self.assertEqual(completed.stdout.strip(), "codex l1 玄武军团 --dry-run")
 
+    def test_cx_shim_routes_l1_to_codex_l1_entrypoint(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            fake_legion = root / "legion.sh"
+            fake_legion.write_text("#!/usr/bin/env bash\nprintf '%s\\n' \"$*\"\n", encoding="utf-8")
+            fake_legion.chmod(0o755)
+
+            env = os.environ.copy()
+            env["CODEX_LEGION_SH"] = str(fake_legion)
+            completed = subprocess.run(
+                ["bash", "scripts/cx", "l1", "玄武军团", "--dry-run"],
+                capture_output=True,
+                text=True,
+                env=env,
+                check=False,
+            )
+
+            self.assertEqual(completed.returncode, 0, completed.stderr)
+            self.assertEqual(completed.stdout.strip(), "codex l1 玄武军团 --dry-run")
+
+    def test_cx_shim_forwards_non_l1_args_to_real_codex(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            fake_codex = root / "codex"
+            fake_codex.write_text("#!/usr/bin/env bash\nprintf 'REAL:%s\\n' \"$*\"\n", encoding="utf-8")
+            fake_codex.chmod(0o755)
+
+            env = os.environ.copy()
+            env["CODEX_REAL_BIN"] = str(fake_codex)
+            completed = subprocess.run(
+                ["bash", "scripts/cx", "exec", "--help"],
+                capture_output=True,
+                text=True,
+                env=env,
+                check=False,
+            )
+
+            self.assertEqual(completed.returncode, 0, completed.stderr)
+            self.assertEqual(completed.stdout.strip(), "REAL:exec --help")
+
     def test_codex_shim_forwards_non_legion_args_to_real_codex(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
@@ -483,6 +523,46 @@ class LegionCoreTests(unittest.TestCase):
 
             self.assertEqual(completed.returncode, 0, completed.stderr)
             self.assertEqual(completed.stdout.strip(), "claude l1 青龙军团 --no-attach")
+
+    def test_cc_shim_routes_l1_to_claude_l1_entrypoint(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            fake_legion = root / "legion.sh"
+            fake_legion.write_text("#!/usr/bin/env bash\nprintf '%s\\n' \"$*\"\n", encoding="utf-8")
+            fake_legion.chmod(0o755)
+
+            env = os.environ.copy()
+            env["CLAUDE_LEGION_SH"] = str(fake_legion)
+            completed = subprocess.run(
+                ["bash", "scripts/cc", "l1", "青龙军团", "--no-attach"],
+                capture_output=True,
+                text=True,
+                env=env,
+                check=False,
+            )
+
+            self.assertEqual(completed.returncode, 0, completed.stderr)
+            self.assertEqual(completed.stdout.strip(), "claude l1 青龙军团 --no-attach")
+
+    def test_cc_shim_forwards_non_l1_args_to_real_c_compiler(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            fake_cc = root / "cc"
+            fake_cc.write_text("#!/usr/bin/env bash\nprintf 'REAL:%s\\n' \"$*\"\n", encoding="utf-8")
+            fake_cc.chmod(0o755)
+
+            env = os.environ.copy()
+            env["CC_REAL_BIN"] = str(fake_cc)
+            completed = subprocess.run(
+                ["bash", "scripts/cc", "--version"],
+                capture_output=True,
+                text=True,
+                env=env,
+                check=False,
+            )
+
+            self.assertEqual(completed.returncode, 0, completed.stderr)
+            self.assertEqual(completed.stdout.strip(), "REAL:--version")
 
     def test_claude_shim_forwards_non_legion_args_to_real_claude(self):
         with tempfile.TemporaryDirectory() as td:
@@ -642,8 +722,13 @@ class LegionCoreTests(unittest.TestCase):
             commands = [cmd for cmd, _ in runner.commands]
             self.assertTrue(any(cmd[:4] == ["tmux", "rename-window", "-t", "live-codex-session:0"] and cmd[-1] == "L1-玄武军团" for cmd in commands))
             self.assertTrue(any(cmd[:4] == ["tmux", "set-window-option", "-t", "live-codex-session:0"] and "automatic-rename" in cmd for cmd in commands))
-            self.assertTrue(any(cmd[:4] == ["tmux", "set-option", "-u", "-t"] and cmd[4] == "live-codex-session" and cmd[-1] == "status-left" for cmd in commands))
-            self.assertTrue(any(cmd[:4] == ["tmux", "set-option", "-u", "-t"] and cmd[4] == "live-codex-session" and cmd[-1] == "status-right" for cmd in commands))
+            self.assertTrue(any(cmd[:4] == ["tmux", "set-window-option", "-t", "live-codex-session:0"] and cmd[4] == "@legion_window_color" and "colour" in cmd[-1] for cmd in commands))
+            self.assertTrue(any(cmd[:4] == ["tmux", "set-option", "-t", "live-codex-session"] and cmd[4] == "status-left" and "L1-玄武军团" in cmd[-1] for cmd in commands))
+            self.assertTrue(any(cmd[:4] == ["tmux", "set-option", "-t", "live-codex-session"] and cmd[4] == "status-style" and "colour" in cmd[-1] for cmd in commands))
+            self.assertTrue(any(cmd[:4] == ["tmux", "set-option", "-t", "live-codex-session"] and cmd[4] == "window-status-format" and "@legion_window_color" in cmd[-1] for cmd in commands))
+            self.assertTrue(any(cmd[:4] == ["tmux", "set-option", "-t", "live-codex-session"] and cmd[4] == "window-status-current-style" and "bold" in cmd[-1] for cmd in commands))
+            self.assertTrue(any(cmd[:4] == ["tmux", "set-option", "-t", "live-codex-session"] and cmd[4] == "window-status-current-format" and "@legion_window_color" in cmd[-1] for cmd in commands))
+            self.assertTrue(any(cmd[:4] == ["tmux", "select-pane", "-t", "live-codex-session:0.0"] and "#[fg=colour" in cmd[-1] for cmd in commands))
 
     def test_codex_l1_without_name_reuses_commander_already_open_in_frontend(self):
         with tempfile.TemporaryDirectory() as td:
@@ -751,7 +836,9 @@ class LegionCoreTests(unittest.TestCase):
             commander = core.start_commander(provider="codex", name="玄武军团", dry_run=False, attach=False)
 
             launch_text = (Path(commander["run_dir"]) / "launch.sh").read_text(encoding="utf-8")
-            self.assertIn('if [ "$status" -eq 0 ]; then', launch_text)
+            self.assertIn("finish_commander()", launch_text)
+            self.assertIn('trap \'finish_commander "$?"\' EXIT', launch_text)
+            self.assertIn('finish_commander "$status"', launch_text)
             self.assertIn("mark-commander", launch_text)
             self.assertIn(" completed", launch_text)
             self.assertIn(" failed", launch_text)
@@ -1754,6 +1841,116 @@ class LegionCoreTests(unittest.TestCase):
             task = next(item for item in json.loads(core.registry_file.read_text())["tasks"] if item["id"] == "implement")
             self.assertEqual(task["status"], "running")
 
+    def test_reconcile_disbands_l2_descendants_when_l1_session_missing(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            runner = NamedSessionRunner({"alpha-session", "peer-l1-session", "peer-l2-session"})
+            core = LegionCore(root, legion_home=root / "home", runner=runner)
+            self.register_commander(core, "L1-host", session="missing-l1-session")
+            self.register_commander(
+                core,
+                "L2-alpha-1",
+                role="branch-commander",
+                branch="alpha",
+                parent="L1-host",
+                session="alpha-session",
+            )
+            self.register_commander(core, "L1-peer", session="peer-l1-session")
+            self.register_commander(
+                core,
+                "L2-peer-1",
+                role="branch-commander",
+                branch="peer",
+                parent="L1-peer",
+                session="peer-l2-session",
+            )
+            core._upsert_task(
+                {
+                    "id": "alpha-task",
+                    "role": "implement",
+                    "provider": "claude",
+                    "branch": "alpha",
+                    "task": "run alpha work",
+                    "scope": ["src/alpha.py"],
+                    "depends_on": [],
+                    "commander": "L2-alpha-1",
+                    "status": "running",
+                    "run_dir": str(root / "runs" / "alpha-task"),
+                    "updated": "old",
+                }
+            )
+
+            core.reconcile_state()
+
+            registry = json.loads(core.registry_file.read_text(encoding="utf-8"))
+            commanders = {item["id"]: item for item in registry["commanders"]}
+            tasks = {item["id"]: item for item in registry["tasks"]}
+            self.assertEqual(commanders["L1-host"]["status"], "failed")
+            self.assertEqual(commanders["L2-alpha-1"]["status"], "completed")
+            self.assertIn("parent L1 L1-host exited", commanders["L2-alpha-1"]["disbanded_reason"])
+            self.assertTrue(commanders["L2-alpha-1"]["tmux_killed"])
+            self.assertEqual(commanders["L2-peer-1"]["status"], "commanding")
+            self.assertEqual(tasks["alpha-task"]["status"], "blocked")
+            self.assertIn("parent L1 L1-host exited", tasks["alpha-task"]["blocked_reason"])
+            kill_targets = [
+                cmd[cmd.index("-t") + 1]
+                for cmd, _cwd in runner.commands
+                if cmd[:2] == ["tmux", "kill-session"] and "-t" in cmd
+            ]
+            self.assertIn("alpha-session", kill_targets)
+            self.assertNotIn("peer-l2-session", kill_targets)
+
+    def test_mark_l1_completed_disbands_child_l2_sessions(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            runner = NamedSessionRunner({"l1-session", "alpha-session"})
+            core = LegionCore(root, legion_home=root / "home", runner=runner)
+            self.register_commander(core, "L1-host", session="l1-session")
+            self.register_commander(
+                core,
+                "L2-alpha-1",
+                role="branch-commander",
+                branch="alpha",
+                parent="L1-host",
+                session="alpha-session",
+            )
+
+            core.mark_commander("L1-host", "completed")
+
+            registry = json.loads(core.registry_file.read_text(encoding="utf-8"))
+            commanders = {item["id"]: item for item in registry["commanders"]}
+            self.assertEqual(commanders["L1-host"]["status"], "completed")
+            self.assertEqual(commanders["L2-alpha-1"]["status"], "completed")
+            self.assertIn("parent L1 marked completed", commanders["L2-alpha-1"]["disbanded_reason"])
+            kill_commands = [cmd for cmd, _cwd in runner.commands if cmd[:2] == ["tmux", "kill-session"]]
+            self.assertTrue(any(cmd[-1] == "alpha-session" for cmd in kill_commands))
+            inbox = core._inbox_file("L2-alpha-1").read_text(encoding="utf-8")
+            self.assertIn("DISBAND:init-complete", inbox)
+
+    def test_reconcile_does_not_cascade_l2_shutdown_when_l1_probe_is_inaccessible(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            runner = InaccessibleTmuxRunner()
+            core = LegionCore(root, legion_home=root / "home", runner=runner)
+            self.register_commander(core, "L1-host", session="l1-session")
+            self.register_commander(
+                core,
+                "L2-alpha-1",
+                role="branch-commander",
+                branch="alpha",
+                parent="L1-host",
+                session="alpha-session",
+            )
+
+            core.reconcile_state()
+
+            registry = json.loads(core.registry_file.read_text(encoding="utf-8"))
+            commanders = {item["id"]: item for item in registry["commanders"]}
+            self.assertEqual(commanders["L1-host"]["status"], "commanding")
+            self.assertEqual(commanders["L2-alpha-1"]["status"], "commanding")
+            kill_commands = [cmd for cmd, _cwd in runner.commands if cmd[:2] == ["tmux", "kill-session"]]
+            self.assertFalse(kill_commands)
+
     def test_worker_schema_status_overrides_successful_process_exit(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
@@ -2645,7 +2842,7 @@ class LegionCoreTests(unittest.TestCase):
                 ],
             )
 
-    def test_interactive_view_tmux_script_embeds_real_sessions_in_split_panes(self):
+    def test_interactive_view_tmux_script_renders_real_sessions_in_split_panes(self):
         script = build_interactive_view_tmux_script(
             project_dir=Path("/tmp/example project"),
             view_session="legion-view-test",
@@ -2659,12 +2856,30 @@ class LegionCoreTests(unittest.TestCase):
 
         self.assertIn('tmux kill-session -t "$VIEW_SESSION"', script)
         self.assertIn('tmux new-session -d -s "$VIEW_SESSION"', script)
-        self.assertIn("TMUX= tmux attach -t host-session", script)
-        self.assertIn("TMUX= tmux attach -t impl-session", script)
-        self.assertIn("TMUX= tmux attach -t audit-session", script)
+        self.assertIn("LEGION_VIEW_TARGET_SESSION=host-session", script)
+        self.assertIn("LEGION_VIEW_TARGET_SESSION=impl-session", script)
+        self.assertIn("LEGION_VIEW_TARGET_SESSION=audit-session", script)
+        self.assertNotIn("TMUX= tmux attach -t host-session", script)
+        self.assertIn("LEGION_VIEW_COLOR=39", script)
+        self.assertIn("LEGION_VIEW_COLOR=45", script)
+        self.assertIn("LEGION_VIEW_COLOR=83", script)
+        self.assertIn("capture-pane", script)
+        self.assertIn("session unavailable: {session}", script)
+        self.assertIn("attach: tmux a -t {session}", script)
+        self.assertNotIn('"┌"', script)
+        self.assertNotIn('"│"', script)
+        self.assertNotIn('"└ "', script)
         self.assertIn("tmux split-window -h -p 60", script)
         self.assertIn("tmux split-window -v -p 50", script)
-        self.assertIn("pane-border-status top", script)
+        self.assertIn("pane-border-status bottom", script)
+        self.assertIn("pane-border-format '#{pane_title}'", script)
+        self.assertIn("LEGION VIEW", script)
+        self.assertIn("window-status-current-style", script)
+        self.assertIn("@legion_window_color", script)
+        self.assertIn("window-status-current-format", script)
+        self.assertIn("#[fg=colour39,bold]L1 · L1-host#[default]", script)
+        self.assertIn("L2 implement [claude] · L2-impl", script)
+        self.assertIn("L2 audit [codex] · L2-audit", script)
         self.assertNotIn("select-layout", script)
 
     def test_interactive_view_tmux_script_splits_l2_column_evenly(self):
@@ -2701,9 +2916,9 @@ class LegionCoreTests(unittest.TestCase):
 
         self.assertEqual(len(commands), 2)
         self.assertIn("cd '/tmp/example project'", commands[0])
-        self.assertIn("'/tmp/legion scripts/legion.sh' codex l1 '玄武'", commands[0])
+        self.assertIn("cx l1 '玄武'", commands[0])
         self.assertIn("cd '/tmp/example project'", commands[1])
-        self.assertIn("'/tmp/legion scripts/legion.sh' claude l1 '青龙'", commands[1])
+        self.assertIn("cc l1 '青龙'", commands[1])
 
     def test_dou_terminal_commands_open_codex_in_new_window_and_claude_in_current(self):
         project = Path("/tmp/example project")
@@ -2718,9 +2933,9 @@ class LegionCoreTests(unittest.TestCase):
 
         self.assertEqual(set(commands.keys()), {"new_window", "current_window"})
         self.assertIn("cd '/tmp/example project'", commands["new_window"])
-        self.assertIn("'/tmp/legion scripts/legion.sh' codex l1 '玄武'", commands["new_window"])
+        self.assertIn("cx l1 '玄武'", commands["new_window"])
         self.assertIn("cd '/tmp/example project'", commands["current_window"])
-        self.assertIn("'/tmp/legion scripts/legion.sh' claude l1 '青龙'", commands["current_window"])
+        self.assertIn("cc l1 '青龙'", commands["current_window"])
 
     def test_dual_host_cli_attaches_claude_without_opening_dual_view(self):
         with tempfile.TemporaryDirectory() as td:
@@ -2798,8 +3013,8 @@ class LegionCoreTests(unittest.TestCase):
             )
 
             self.assertEqual(len(commands), 1)
-            self.assertIn("codex l1", commands[0])
-            self.assertIn("claude l1", commands[0])
+            self.assertIn("cx l1", commands[0])
+            self.assertIn("cc l1", commands[0])
             self.assertNotIn("launch.sh", commands[0])
             self.assertFalse((home / ProjectContext.from_path(root).project_hash / "mixed" / "mixed-registry.json").exists())
 

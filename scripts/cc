@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+# Legion-aware Claude Code shortcut.
+#
+#   cc l1 [name]     -> Legion Claude L1 commander
+#   cc l1+1 [name]   -> fresh Legion Claude L1 commander
+#   cc ...           -> real C compiler, preserving the system cc command
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LEGION_SH="${CLAUDE_LEGION_SH:-$SCRIPT_DIR/legion.sh}"
+
+case "${1:-}" in
+  l1)
+    shift
+    exec "$LEGION_SH" claude l1 "$@"
+    ;;
+  l1+1)
+    shift
+    exec "$LEGION_SH" claude l1+1 "$@"
+    ;;
+esac
+
+find_real_cc() {
+  if [[ -n "${CC_REAL_BIN:-}" ]]; then
+    printf '%s\n' "$CC_REAL_BIN"
+    return 0
+  fi
+
+  local self
+  self="$(cd -P "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")"
+
+  local candidate candidate_abs
+  for candidate in /usr/bin/cc /bin/cc /usr/local/bin/cc /opt/homebrew/bin/cc; do
+    [[ -x "$candidate" ]] || continue
+    candidate_abs="$(cd -P "$(dirname "$candidate")" 2>/dev/null && pwd)/$(basename "$candidate")" || continue
+    [[ "$candidate_abs" != "$self" ]] || continue
+    printf '%s\n' "$candidate"
+    return 0
+  done
+
+  return 1
+}
+
+REAL_CC="$(find_real_cc)" || {
+  echo "cc shim: real C compiler not found. Set CC_REAL_BIN=/path/to/cc." >&2
+  exit 127
+}
+
+exec "$REAL_CC" "$@"
