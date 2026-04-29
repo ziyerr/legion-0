@@ -48,7 +48,9 @@ CTO 作为 PM 和开发军团之间的最高技术负责人，职责：
     │       ↑
     │       └─ 反向约束 PM：技术不可行时回弹
     │
-    └── HR (AIHR) —— 招聘、候选人
+    ├── HR (AIHR) —— 招聘、候选人
+    │
+    └── 情报专家 (intel-hub) —— 多平台情报采集、养号、日报推送
 ```
 
 ## 技术栈
@@ -64,6 +66,7 @@ CTO 作为 PM 和开发军团之间的最高技术负责人，职责：
 |------|------|------|
 | ProdMind | `~/Documents/prodmind/` | AI PM — 产品经理 |
 | AIHR | `~/Documents/AIHR/` | AI HR — 招聘 |
+| intel-hub | `~/Documents/intel-hub/` | AI 情报专家 — 多平台情报采集 |
 | **AICTO** | `~/Documents/AICTO/` | **AI CTO — 本项目** |
 | Hermes Gateway | `~/.hermes/` | 底层 agent 框架 |
 
