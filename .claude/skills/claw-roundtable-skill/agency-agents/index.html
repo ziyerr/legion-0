@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 智能体专家团队 | Agency Agents</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-card: #1a1a25;
+            --accent-cyan: #00f0ff;
+            --accent-magenta: #ff00aa;
+            --accent-purple: #a855f7;
+            --accent-green: #00ff88;
+            --text-primary: #ffffff;
+            --text-secondary: #8b8b9e;
+            --border-glow: rgba(0, 240, 255, 0.3);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        /* 背景效果 */
+        .bg-grid {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(rgba(0, 240, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 240, 255, 0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+            pointer-events: none;
+            z-index: 0;
+        }
+        
+        .bg-glow {
+            position: fixed;
+            width: 600px;
+            height: 600px;
+            border-radius: 50%;
+            filter: blur(150px);
+            opacity: 0.15;
+            pointer-events: none;
+            z-index: 0;
+        }
+        
+        .bg-glow-1 {
+            top: -200px;
+            right: -200px;
+            background: var(--accent-cyan);
+        }
+        
+        .bg-glow-2 {
+            bottom: -200px;
+            left: -200px;
+            background: var(--accent-magenta);
+        }
+        
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        
+        /* 头部 */
+        header {
+            text-align: center;
+            margin-bottom: 60px;
+            animation: fadeInDown 0.8s ease-out;
+        }
+        
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .logo {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 3rem;
+            font-weight: 900;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-magenta));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: 4px;
+            margin-bottom: 16px;
+            text-shadow: 0 0 40px rgba(0, 240, 255, 0.5);
+        }
+        
+        .subtitle {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            font-weight: 300;
+        }
+        
+        .count-badge {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 8px 20px;
+            background: linear-gradient(135deg, rgba(0, 240, 255, 0.1), rgba(255, 0, 170, 0.1));
+            border: 1px solid var(--border-glow);
+            border-radius: 30px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.9rem;
+            color: var(--accent-cyan);
+        }
+        
+        /* 搜索和筛选 */
+        .search-box {
+            max-width: 600px;
+            margin: 0 auto 40px;
+            position: relative;
+            animation: fadeInUp 0.8s ease-out 0.2s both;
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .search-box input {
+            width: 100%;
+            padding: 18px 24px 18px 56px;
+            background: var(--bg-secondary);
+            border: 1px solid rgba(0, 240, 255, 0.2);
+            border-radius: 16px;
+            color: var(--text-primary);
+            font-size: 1rem;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+        
+        .search-box input:focus {
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 30px rgba(0, 240, 255, 0.2);
+        }
+        
+        .search-box::before {
+            content: "⌕";
+            position: absolute;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 1.4rem;
+            color: var(--text-secondary);
+        }
+        
+        /* 分类标签 */
+        .categories {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 50px;
+            animation: fadeInUp 0.8s ease-out 0.4s both;
+        }
+        
+        .category-tag {
+            padding: 10px 22px;
+            background: var(--bg-card);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 30px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+        
+        .category-tag:hover, .category-tag.active {
+            background: linear-gradient(135deg, rgba(0, 240, 255, 0.2), rgba(168, 85, 247, 0.2));
+            border-color: var(--accent-cyan);
+            color: var(--text-primary);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 240, 255, 0.2);
+        }
+        
+        .category-tag .count {
+            display: inline-block;
+            margin-left: 8px;
+            padding: 2px 8px;
+            background: rgba(0, 240, 255, 0.2);
+            border-radius: 10px;
+            font-size: 0.75rem;
+            font-family: 'Orbitron', sans-serif;
+        }
+        
+        /* Agent 网格 */
+        .agents-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+        }
+        
+        .agent-card {
+            background: var(--bg-card);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 24px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            animation: fadeInUp 0.6s ease-out both;
+        }
+        
+        .agent-card::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent-cyan), var(--accent-magenta));
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform 0.3s ease;
+        }
+        
+        .agent-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--border-glow);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+        
+        .agent-card:hover::before {
+            transform: scaleX(1);
+        }
+        
+        .agent-card .name {
+            font-size: 1.1rem;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+        }
+        
+        .agent-card .desc {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+        
+        .agent-card .tag {
+            display: inline-block;
+            margin-top: 12px;
+            padding: 4px 12px;
+            background: rgba(0, 240, 255, 0.1);
+            border-radius: 20px;
+            font-size: 0.75rem;
+            color: var(--accent-cyan);
+        }
+        
+        /* 分类区块 */
+        .category-section {
+            margin-bottom: 60px;
+        }
+        
+        .category-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 24px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .category-title::before {
+            content: "";
+            width: 4px;
+            height: 24px;
+            background: linear-gradient(180deg, var(--accent-cyan), var(--accent-magenta));
+            border-radius: 2px;
+        }
+        
+        /* 页脚 */
+        footer {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            margin-top: 60px;
+        }
+        
+        footer a {
+            color: var(--accent-cyan);
+            text-decoration: none;
+        }
+        
+        /* 响应式 */
+        @media (max-width: 768px) {
+            .logo {
+                font-size: 2rem;
+            }
+            
+            .categories {
+                gap: 8px;
+            }
+            
+            .category-tag {
+                padding: 8px 16px;
+                font-size: 0.8rem;
+            }
+            
+            .agents-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        /* 隐藏/显示 */
+        .hidden {
+            display: none !important;
+        }
+        
+        /* 加载动画 */
+        .loading {
+            text-align: center;
+            padding: 60px;
+            color: var(--text-secondary);
+        }
+        
+        .loading::after {
+            content: "";
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--accent-cyan);
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-grid"></div>
+    <div class="bg-glow bg-glow-1"></div>
+    <div class="bg-glow bg-glow-2"></div>
+    
+    <div class="container">
+        <header>
+            <h1 class="logo">AGENCY AGENTS</h1>
+            <p class="subtitle">AI 智能体专家团队 · 146 个垂直领域专家</p>
+            <div class="count-badge">146 AGENTS</div>
+        </header>
+        
+        <div class="search-box">
+            <input type="text" id="searchInput" placeholder="搜索智能体... (输入中文或英文关键词)">
+        </div>
+        
+        <div class="categories" id="categories">
+            <div class="category-tag active" data-category="all">全部 <span class="count">146</span></div>
+            <div class="category-tag" data-category="engineering">工程部 <span class="count">24</span></div>
+            <div class="category-tag" data-category="marketing">营销部 <span class="count">29</span></div>
+            <div class="category-tag" data-category="design">设计部 <span class="count">8</span></div>
+            <div class="category-tag" data-category="game">游戏开发 <span class="count">19</span></div>
+            <div class="category-tag" data-category="testing">测试 <span class="count">10</span></div>
+            <div class="category-tag" data-category="sales">销售 <span class="count">12</span></div>
+            <div class="category-tag" data-category="product">产品 <span class="count">5</span></div>
+            <div class="category-tag" data-category="support">支持 <span class="count">8</span></div>
+            <div class="category-tag" data-category="paid-media">付费媒体 <span class="count">7</span></div>
+            <div class="category-tag" data-category="project">项目管理 <span class="count">6</span></div>
+            <div class="category-tag" data-category="specialized">专业服务 <span class="count">7</span></div>
+            <div class="category-tag" data-category="xr">XR/VR <span class="count">5</span></div>
+            <div class="category-tag" data-category="blockchain">区块链 <span class="count">3</span></div>
+        </div>
+        
+        <div class="agents-grid" id="agentsGrid">
+            <!-- Agent cards will be rendered here -->
+        </div>
+        
+        <footer>
+            <p>Powered by <a href="https://github.com/msitarzewski/agency-agents" target="_blank">agency-agents</a></p>
+            <p>AI 智能体专家团队 · 中文版</p>
+        </footer>
+    </div>
+    
+    <script>
+        const agentsData = [
+            { name: "前端开发者", desc: "精通 React/Vue/Angular 的前端工程专家，擅长 UI 实现、性能优化", category: "engineering", en: "engineering-frontend-developer" },
+            { name: "后端架构师", desc: "API 设计、数据库架构、可扩展性", category: "engineering", en: "engineering-backend-architect" },
+            { name: "AI 工程师", desc: "机器学习、模型部署、AI 集成", category: "engineering", en: "engineering-ai-engineer" },
+            { name: "DevOps 自动化师", desc: "CI/CD、基础设施自动化", category: "engineering", en: "engineering-devops-automator" },
+            { name: "安全工程师", desc: "威胁建模、代码审计、安全架构", category: "engineering", en: "engineering-security-engineer" },
+            { name: "快速原型师", desc: "快速 POC、MVP 开发", category: "engineering", en: "engineering-rapid-prototyper" },
+            { name: "高级开发者", desc: "Laravel/Livewire/FluxUI、高端 CSS、Three.js", category: "engineering", en: "engineering-senior-developer" },
+            { name: "移动应用开发者", desc: "iOS/Android 原生、跨平台框架", category: "engineering", en: "engineering-mobile-app-builder" },
+            { name: "数据工程师", desc: "ETL/ELT、数据湖、Spark/dbt", category: "engineering", en: "engineering-data-engineer" },
+            { name: "技术文档工程师", desc: "API 文档、开发者文档、docs-as-code", category: "engineering", en: "engineering-technical-writer" },
+            { name: "自主优化架构师", desc: "自适应系统、自动调优", category: "engineering", en: "engineering-autonomous-optimization-architect" },
+            { name: "嵌入式固件工程师", desc: "RTOS、外设驱动、低功耗设计", category: "engineering", en: "engineering-embedded-firmware-engineer" },
+            { name: "故障响应指挥官", desc: "故障处置、SLO 管理、事后复盘", category: "engineering", en: "engineering-incident-response-commander" },
+            { name: "威胁检测工程师", desc: "SIEM、威胁狩猎、检测规则", category: "engineering", en: "engineering-threat-detection-engineer" },
+            { name: "Solidity 智能合约工程师", desc: "Solidity、EVM、Gas 优化、DeFi", category: "engineering", en: "engineering-solidity-smart-contract-engineer" },
+            { name: "微信小程序开发者", desc: "WXML/WXSS、微信支付、云开发", category: "engineering", en: "engineering-wechat-mini-program-developer" },
+            { name: "代码审查员", desc: "代码审查、安全审计、质量把关", category: "engineering", en: "engineering-code-reviewer" },
+            { name: "数据库优化师", desc: "Schema 设计、查询优化、索引策略", category: "engineering", en: "engineering-database-optimizer" },
+            { name: "Git 工作流大师", desc: "分支策略、约定式提交、变基", category: "engineering", en: "engineering-git-workflow-master" },
+            { name: "软件架构师", desc: "系统设计、DDD、架构决策", category: "engineering", en: "engineering-software-architect" },
+            { name: "SRE", desc: "SLO、可观测性、混沌工程", category: "engineering", en: "engineering-sre" },
+            { name: "飞书集成开发工程师", desc: "飞书机器人、审批流、多维表格", category: "engineering", en: "engineering-feishu-integration-developer" },
+            { name: "小红书运营专家", desc: "种草笔记、达人合作、爆款内容", category: "marketing", en: "marketing-xiaohongshu-operator" },
+            { name: "抖音策略师", desc: "短视频策划、算法优化、直播带货", category: "marketing", en: "marketing-douyin-strategist" },
+            { name: "微信公众号运营", desc: "公众号内容、社群运营、裂变增长", category: "marketing", en: "marketing-wechat-operator" },
+            { name: "B站内容策略师", desc: "UP主运营、弹幕文化、中长视频", category: "marketing", en: "marketing-bilibili-strategist" },
+            { name: "快手策略师", desc: "下沉市场、老铁文化、直播电商", category: "marketing", en: "marketing-kuaishou-strategist" },
+            { name: "中国电商运营专家", desc: "淘宝/拼多多/京东、广告投放、大促作战", category: "marketing", en: "marketing-china-ecommerce-operator" },
+            { name: "电商运营师", desc: "电商全平台运营", category: "marketing", en: "marketing-ecommerce-operator" },
+            { name: "百度 SEO 专家", desc: "百度优化、百科/知道/贴吧生态", category: "marketing", en: "marketing-baidu-seo-specialist" },
+            { name: "私域流量运营师", desc: "企微SCRM、社群运营、用户生命周期", category: "marketing", en: "marketing-private-domain-operator" },
+            { name: "直播电商主播教练", desc: "直播话术、选品排品、千川投放", category: "marketing", en: "marketing-livestream-commerce-coach" },
+            { name: "跨境电商运营专家", desc: "Amazon/Shopee/Lazada、海外仓、品牌出海", category: "marketing", en: "marketing-cross-border-ecommerce" },
+            { name: "短视频剪辑指导师", desc: "剪映/PR/达芬奇、调色、音频、特效", category: "marketing", en: "marketing-short-video-editing-coach" },
+            { name: "微博运营策略师", desc: "热搜运营、超话、舆情公关", category: "marketing", en: "marketing-weibo-strategist" },
+            { name: "播客内容策略师", desc: "小宇宙/喜马拉雅、音频制作、商业化", category: "marketing", en: "marketing-podcast-strategist" },
+            { name: "知乎策略师", desc: "知识型内容、思想领袖建设", category: "marketing", en: "marketing-zhihu-strategist" },
+            { name: "TikTok 策略师", desc: "病毒式内容、算法优化", category: "marketing", en: "marketing-tiktok-strategist" },
+            { name: "Twitter 互动官", desc: "实时互动、思想领袖", category: "marketing", en: "marketing-twitter-engager" },
+            { name: "Instagram 策展师", desc: "视觉叙事、社区运营", category: "marketing", en: "marketing-instagram-curator" },
+            { name: "Reddit 社区运营", desc: "社区文化、真实互动", category: "marketing", en: "marketing-reddit-community-builder" },
+            { name: "应用商店优化师", desc: "ASO、转化优化", category: "marketing", en: "marketing-app-store-optimizer" },
+            { name: "增长黑客", desc: "增长策略、病毒式传播", category: "marketing", en: "marketing-growth-hacker" },
+            { name: "内容创作者", desc: "多平台内容策划与创作", category: "marketing", en: "marketing-content-creator" },
+            { name: "SEO专家", desc: "搜索引擎优化", category: "marketing", en: "marketing-seo-specialist" },
+            { name: "社交媒体策略师", desc: "全平台社交媒体运营", category: "marketing", en: "marketing-social-media-strategist" },
+            { name: "LinkedIn 内容创作专家", desc: "职场内容、品牌建设", category: "marketing", en: "marketing-linkedin-content-creator" },
+            { name: "UI 设计师", desc: "视觉设计、组件库、设计系统", category: "design", en: "design-ui-designer" },
+            { name: "UX 研究员", desc: "用户测试、行为分析", category: "design", en: "design-ux-researcher" },
+            { name: "UX 架构师", desc: "信息架构、交互设计、导航系统", category: "design", en: "design-ux-architect" },
+            { name: "品牌守护者", desc: "品牌标识、一致性、定位", category: "design", en: "design-brand-guardian" },
+            { name: "图像提示词工程师", desc: "AI 图像生成、提示词优化", category: "design", en: "design-image-prompt-engineer" },
+            { name: "视觉叙事师", desc: "数据可视化、视觉叙事", category: "design", en: "design-visual-storyteller" },
+            { name: "趣味注入师", desc: "微交互、彩蛋、趣味元素", category: "design", en: "design-whimsy-injector" },
+            { name: "包容性视觉专家", desc: "多元化视觉、无障碍设计", category: "design", en: "design-inclusive-visuals-specialist" },
+            { name: "Unity 架构师", desc: "Unity 游戏架构设计", category: "game", en: "unity-architect" },
+            { name: "Unity 多人游戏工程师", desc: "Unity 网络同步、多人游戏", category: "game", en: "unity-multiplayer-engineer" },
+            { name: "Unity 编辑器工具开发者", desc: "Unity 编辑器扩展、工具开发", category: "game", en: "unity-editor-tool-developer" },
+            { name: "Unreal 世界构建师", desc: "Unreal 场景搭建、世界设计", category: "game", en: "unreal-world-builder" },
+            { name: "Unreal 多人游戏架构师", desc: "Unreal 网络架构、多人游戏", category: "game", en: "unreal-multiplayer-architect" },
+            { name: "Unreal 系统工程师", desc: "Unreal 系统开发、性能优化", category: "game", en: "unreal-systems-engineer" },
+            { name: "Unreal 技术美术", desc: "Unreal 美术管线、技术美术", category: "game", en: "unreal-technical-artist" },
+            { name: "Godot 游戏脚本开发者", desc: "Godot GDScript、游戏逻辑", category: "game", en: "godot-gameplay-scripter" },
+            { name: "Godot 多人游戏工程师", desc: "Godot 网络同步、多人游戏", category: "game", en: "godot-multiplayer-engineer" },
+            { name: "Godot Shader 开发者", desc: "Godot Shader 编程、着色器", category: "game", en: "godot-shader-developer" },
+            { name: "Roblox 系统脚本工程师", desc: "Roblox Luau、脚本开发", category: "game", en: "roblox-systems-scripter" },
+            { name: "Roblox 体验设计师", desc: "Roblox 游戏体验设计", category: "game", en: "roblox-experience-designer" },
+            { name: "Roblox 虚拟形象创作者", desc: "Roblox Avatar、虚拟形象", category: "game", en: "roblox-avatar-creator" },
+            { name: "游戏设计师", desc: "游戏机制、玩法设计", category: "game", en: "game-designer" },
+            { name: "关卡设计师", desc: "游戏关卡设计、难度平衡", category: "game", en: "level-designer" },
+            { name: "游戏音频工程师", desc: "游戏音频设计、音效", category: "game", en: "game-audio-engineer" },
+            { name: "技术美术", desc: "美术管线、工具开发", category: "game", en: "technical-artist" },
+            { name: "叙事设计师", desc: "游戏剧情、叙事设计", category: "game", en: "narrative-designer" },
+            { name: "XR 界面架构师", desc: "XR 界面设计、交互架构", category: "xr", en: "xr-interface-architect" },
+            { name: "XR 沉浸式开发者", desc: "XR 应用开发、沉浸式体验", category: "xr", en: "xr-immersive-developer" },
+            { name: "XR 座舱交互专家", desc: "XR 座舱交互设计", category: "xr", en: "xr-cockpit-interaction-specialist" },
+            { name: "visionOS 空间工程师", desc: "visionOS 空间应用开发", category: "xr", en: "visionos-spatial-engineer" },
+            { name: "macOS Metal 空间工程师", desc: "macOS Metal 图形编程", category: "xr", en: "macos-spatial-metal-engineer" },
+            { name: "性能基准师", desc: "性能测试、基准评估", category: "testing", en: "testing-performance-benchmarker" },
+            { name: "测试结果分析师", desc: "测试数据分析、报告", category: "testing", en: "testing-test-results-analyzer" },
+            { name: "API 测试员", desc: "API 自动化测试", category: "testing", en: "testing-api-tester" },
+            { name: "无障碍审核员", desc: "无障碍测试、合规审核", category: "testing", en: "testing-accessibility-auditor" },
+            { name: "证据收集者", desc: "测试证据收集、归档", category: "testing", en: "testing-evidence-collector" },
+            { name: "工具评估师", desc: "测试工具评估、选型", category: "testing", en: "testing-tool-evaluator" },
+            { name: "工作流优化师", desc: "测试工作流优化", category: "testing", en: "testing-workflow-optimizer" },
+            { name: "现实检验者", desc: "测试现实性检验", category: "testing", en: "testing-reality-checker" },
+            { name: "销售教练", desc: "销售技巧培训、辅导", category: "sales", en: "sales-coach" },
+            { name: "售前工程师", desc: "售前支持、技术方案", category: "sales", en: "sales-engineer" },
+            { name: "Pipeline 分析师", desc: "销售 Pipeline 分析", category: "sales", en: "sales-pipeline-analyst" },
+            { name: "赢单策略师", desc: "销售赢单策略", category: "sales", en: "sales-deal-strategist" },
+            { name: "Outbound 策略师", desc: "Outbound 销售策略", category: "sales", en: "sales-outbound-strategist" },
+            { name: "客户拓展策略师", desc: "客户拓展、BD策略", category: "sales", en: "sales-account-strategist" },
+            { name: "Discovery 教练", desc: "销售 Discovery 技巧", category: "sales", en: "sales-discovery-coach" },
+            { name: "投标策略师", desc: "投标策略、方案", category: "sales", en: "sales-proposal-strategist" },
+            { name: "销售数据提取师", desc: "销售数据提取、分析", category: "sales", en: "sales-data-extraction-agent" },
+            { name: "高级项目经理", desc: "项目规划、执行、交付", category: "project", en: "project-manager-senior" },
+            { name: "项目牧羊人", desc: "项目跟进、推动", category: "project", en: "project-management-project-shepherd" },
+            { name: "Jira工作流管家", desc: "Jira 配置、工作流", category: "project", en: "project-management-jira-workflow-steward" },
+            { name: "工作室制片人", desc: "工作室项目管理", category: "project", en: "project-management-studio-producer" },
+            { name: "工作室运营", desc: "工作室运营管理", category: "project", en: "project-management-studio-operations" },
+            { name: "实验追踪员", desc: "A/B 测试追踪", category: "project", en: "project-management-experiment-tracker" },
+            { name: "Sprint 排序师", desc: "Sprint 优先级排序", category: "product", en: "product-sprint-prioritizer" },
+            { name: "趋势研究员", desc: "产品趋势研究、分析", category: "product", en: "product-trend-researcher" },
+            { name: "反馈分析师", desc: "用户反馈分析、整理", category: "product", en: "product-feedback-synthesizer" },
+            { name: "行为助推引擎", desc: "行为设计、 nudge", category: "product", en: "product-behavioral-nudge-engine" },
+            { name: "提示词工程师", desc: "提示词设计、优化", category: "specialized", en: "prompt-engineer" },
+            { name: "MCP 构建器", desc: "MCP 协议开发", category: "specialized", en: "specialized-mcp-builder" },
+            { name: "文档生成器", desc: "自动化文档生成", category: "specialized", en: "specialized-document-generator" },
+            { name: "开发者布道师", desc: "开发者关系、布道", category: "specialized", en: "specialized-developer-advocate" },
+            { name: "模型 QA 专家", desc: "AI 模型质量保证", category: "specialized", en: "specialized-model-qa" },
+            { name: "文化智能策略师", desc: "跨文化沟通策略", category: "specialized", en: "specialized-cultural-intelligence-strategist" },
+            { name: "智能体编排者", desc: "多智能体编排、协作", category: "specialized", en: "agents-orchestrator" },
+            { name: "客服响应者", desc: "客户支持、响应", category: "support", en: "support-support-responder" },
+            { name: "高管摘要师", desc: "高管汇报摘要生成", category: "support", en: "support-executive-summary-generator" },
+            { name: "财务追踪员", desc: "财务数据追踪、分析", category: "support", en: "support-finance-tracker" },
+            { name: "基础设施运维师", desc: "IT 基础设施维护", category: "support", en: "support-infrastructure-maintainer" },
+            { name: "法务合规员", desc: "法务合规检查", category: "support", en: "support-legal-compliance-checker" },
+            { name: "招聘运营专家", desc: "招聘流程运营", category: "support", en: "support-recruitment-specialist" },
+            { name: "数据分析师", desc: "数据分析、报表", category: "support", en: "support-analytics-reporter" },
+            { name: "供应链采购策略师", desc: "供应链采购策略", category: "support", en: "support-supply-chain-strategist" },
+            { name: "付费媒体审计师", desc: "付费媒体效果审计", category: "paid-media", en: "paid-media-auditor" },
+            { name: "广告创意策略师", desc: "付费媒体创意策略", category: "paid-media", en: "paid-media-creative-strategist" },
+            { name: "社交广告策略师", desc: "付费社交广告策略", category: "paid-media", en: "paid-media-paid-social-strategist" },
+            { name: "PPC 竞价策略师", desc: "PPC 竞价优化", category: "paid-media", en: "paid-media-ppc-strategist" },
+            { name: "程序化广告采买专家", desc: "程序化广告投放", category: "paid-media", en: "paid-media-programmatic-buyer" },
+            { name: "搜索词分析师", desc: "搜索词分析、优化", category: "paid-media", en: "paid-media-search-query-analyst" },
+            { name: "追踪与归因专家", desc: "归因分析、追踪", category: "paid-media", en: "paid-media-tracking-specialist" },
+            { name: "区块链安全审计师", desc: "区块链安全审计", category: "blockchain", en: "blockchain-security-auditor" },
+            { name: "合规审计师", desc: "合规审计", category: "blockchain", en: "compliance-auditor" },
+            { name: "ZK 管家", desc: "ZK 零知识证明", category: "blockchain", en: "zk-steward" },
+            { name: "数据整合师", desc: "数据整合、清洗", category: "specialized", en: "data-consolidation-agent" },
+            { name: "身份图谱操作员", desc: "身份图谱管理", category: "specialized", en: "identity-graph-operator" },
+            { name: "身份信任架构师", desc: "数字身份信任架构", category: "specialized", en: "agentic-identity-trust" },
+            { name: "应付账款智能体", desc: "应付账款管理", category: "specialized", en: "accounts-payable-agent" },
+            { name: "报告分发师", desc: "报告自动分发", category: "specialized", en: "report-distribution-agent" },
+            { name: "企业培训课程设计师", desc: "企业培训设计", category: "specialized", en: "corporate-training-designer" },
+            { name: "医疗健康营销合规师", desc: "医疗营销合规", category: "specialized", en: "healthcare-marketing-compliance" },
+            { name: "政务数字化售前顾问", desc: "政务数字化咨询", category: "specialized", en: "government-digital-presales-consultant" },
+            { name: "留学规划顾问", desc: "留学规划咨询", category: "specialized", en: "study-abroad-advisor" },
+            { name: "图书联合作者", desc: "图书联名创作", category: "specialized", en: "marketing-book-co-author" },
+            { name: "Unity Shader Graph 美术师", desc: "Unity Shader 艺术", category: "game", en: "unity-shader-graph-artist" },
+            { name: "LSP 索引工程师", desc: "LSP 语言服务器", category: "engineering", en: "lsp-index-engineer" },
+            { name: "终端集成专家", desc: "终端集成开发", category: "engineering", en: "terminal-integration-specialist" },
+            { name: "小红书专家", desc: "小红书品牌建设", category: "marketing", en: "marketing-xiaohongshu-specialist" },
+            { name: "微信公众号管理", desc: "公众号运营管理", category: "marketing", en: "marketing-wechat-official-account" }
+        ];
+        
+        let currentCategory = 'all';
+        let searchQuery = '';
+        
+        function renderAgents() {
+            const grid = document.getElementById('agentsGrid');
+            const filtered = agentsData.filter(agent => {
+                const matchCategory = currentCategory === 'all' || agent.category === currentCategory;
+                const matchSearch = searchQuery === '' || 
+                    agent.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    agent.desc.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    agent.en.toLowerCase().includes(searchQuery.toLowerCase());
+                return matchCategory && matchSearch;
+            });
+            
+            grid.innerHTML = filtered.map((agent, index) => `
+                <div class="agent-card" style="animation-delay: ${index * 0.03}s">
+                    <div class="name">${agent.name}</div>
+                    <div class="desc">${agent.desc}</div>
+                    <div class="tag">${agent.en}</div>
+                </div>
+            `).join('');
+            
+            if (filtered.length === 0) {
+                grid.innerHTML = '<div class="loading">未找到匹配的智能体</div>';
+            }
+        }
+        
+        // 分类点击事件
+        document.querySelectorAll('.category-tag').forEach(tag => {
+            tag.addEventListener('click', () => {
+                document.querySelectorAll('.category-tag').forEach(t => t.classList.remove('active'));
+                tag.classList.add('active');
+                currentCategory = tag.dataset.category;
+                renderAgents();
+            });
+        });
+        
+        // 搜索事件
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            searchQuery = e.target.value;
+            renderAgents();
+        });
+        
+        // 初始渲染
+        renderAgents();
+    </script>
+</body>
+</html>
